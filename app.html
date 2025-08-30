@@ -1,32 +1,23 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Revopt — Choice Configurator (v6 PRO)</title>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Revopt — Choice Configurator (v7, CSV-driven)</title>
   <style>
-    /* --- Minimal, readable styling --- */
-    :root{
-      --bg:#0B1020; --card:#12162A; --ink:#E6E9F5; --muted:#9CA3AF;
-      --line:#1E2450; --line2:#242947; --btn:#0E1530; --primary:#4F46E5;
-    }
-    html,body{margin:0;height:100%;}
-    body{font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--ink)}
-    .wrap{max-width:1100px;margin:0 auto;padding:16px}
-    h1{margin:0 0 12px 0}
+    :root{--bg:#0B1020;--card:#12162A;--ink:#E6E9F5;--muted:#9CA3AF;--line:#1E2450;--line2:#242947;--btn:#0E1530;--primary:#4F46E5;}
+    html,body{margin:0;height:100%} body{font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--ink)}
+    .wrap{max-width:1100px;margin:0 auto;padding:16px} h1{margin:0 0 12px 0}
     .card{background:var(--card);border:1px solid var(--line2);border-radius:14px;padding:14px;margin:10px 0}
     .row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
     label{display:inline-flex;gap:8px;align-items:center}
     select,button{background:var(--btn);border:1px solid var(--line2);border-radius:10px;color:var(--ink);padding:8px 10px}
     button.primary{background:var(--primary);border:none;font-weight:700;color:var(--bg)}
-    table{width:100%;border-collapse:collapse}
-    th,td{border-bottom:1px solid var(--line);padding:8px;font-size:14px;text-align:left;vertical-align:top}
-    th{color:#C7CBF5}
-    small{color:var(--muted)}
+    table{width:100%;border-collapse:collapse} th,td{border-bottom:1px solid var(--line);padding:8px;font-size:14px;text-align:left;vertical-align:top}
+    th{color:#C7CBF5} small{color:var(--muted)}
     .kpi{display:inline-block;margin-right:12px;background:var(--btn);border:1px solid var(--line);border-radius:12px;padding:8px 10px}
-    details summary{cursor:pointer}
-    .badges{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:6px}
-    .items-cell{max-width:800px}
+    .badges{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:6px} .items-cell{max-width:800px}
+    .warn{color:#ffd966}
   </style>
 </head>
 <body>
@@ -34,25 +25,28 @@
     <h1>Revopt — Choice Configurator</h1>
 
     <div class="card">
-      <small>VSP Choice Master v6 embedded • Fields: Category, Enhancement, Code, Notes, Copay, VSP, Chargeback</small>
+      <small>Data-driven: loads <code>vsp_choice_master_v7.csv</code> (with exclusivity & track rules baked in).</small>
+      <div id="csvStatus" class="warn" style="margin-top:6px"></div>
     </div>
 
     <div class="card">
       <div class="row">
         <label>Track
           <select id="track">
-            <option>SV</option>
-            <option>Progressive</option>
-            <option>Occupational</option>
+            <option value="SV">SV</option>
+            <option value="MF">Progressive (MF)</option>
+            <option value="OCC">Occupational</option>
           </select>
         </label>
 
         <label>Sun
           <select id="sun">
-            <option>Clear</option>
-            <option>Photochromic</option>
-            <option>Polarized</option>
-            <option>Tint</option>
+            <option value="Clear">Clear</option>
+            <option value="SolidTint">Tint – Solid</option>
+            <option value="GradientTint">Tint – Gradient</option>
+            <option value="Mirror">Mirror</option>
+            <option value="Photochromic">Photochromic</option>
+            <option value="Polarized">Polarized</option>
           </select>
         </label>
 
@@ -72,7 +66,7 @@
         </label>
 
         <button class="primary" id="build">Build tiers</button>
-        <button id="csv">Download CSV</button>
+        <button id="csv">Download Quote CSV</button>
       </div>
     </div>
 
@@ -95,14 +89,15 @@
 
     <div class="card">
       <details open>
-        <summary>Master rows (v6)</summary>
+        <summary>Master rows (v7 CSV)</summary>
         <table>
           <thead>
             <tr>
-              <th>Category</th><th>Enhancement</th><th>Code</th><th>Notes</th>
+              <th>Group</th><th>Subtype</th><th>Enhancement</th><th>Code</th><th>Notes</th>
               <th style="text-align:right">Copay</th>
               <th style="text-align:right">VSP</th>
               <th style="text-align:right">Chargeback</th>
+              <th>Exclusive</th><th>Applies</th>
             </tr>
           </thead>
           <tbody id="master"></tbody>
@@ -112,243 +107,234 @@
   </div>
 
   <script>
-    /* -------------------------
-       VSP Choice MASTER (v6)
-       NOTE: kept compact to keep this message shorter; rest of file is formatted.
-    --------------------------*/
-    const MASTER = [{"Category":"Material","Enhancement":"Aspheric Plastic 1.50","Notes":"nan","Copay":31,"VSP":0,"Chargeback":10,"Code":"AA"},{"Category":"Material","Enhancement":"Aspheric Plastic 1.50","Notes":"nan","Copay":35,"VSP":0,"Chargeback":14,"Code":"AA"},{"Category":"Material","Enhancement":"High-index Plastic 1.53–1.60/Trivex","Notes":"nan","Copay":56,"VSP":0,"Chargeback":29,"Code":"AB"},{"Category":"Material","Enhancement":"High-index Plastic 1.53–1.60/Trivex","Notes":"nan","Copay":60,"VSP":0,"Chargeback":33,"Code":"AB"},{"Category":"Material","Enhancement":"High-index Plastic 1.66/1.67","Notes":"nan","Copay":83,"VSP":0,"Chargeback":48,"Code":"AH"},{"Category":"Material","Enhancement":"High-index Plastic 1.66/1.67","Notes":"nan","Copay":98,"VSP":0,"Chargeback":58,"Code":"AH"},{"Category":"Material","Enhancement":"High-index Plastic 1.70 and Above","Notes":"nan","Copay":111,"VSP":0,"Chargeback":68,"Code":"AJ"},{"Category":"Material","Enhancement":"High-index Plastic 1.70 and Above","Notes":"nan","Copay":118,"VSP":0,"Chargeback":78,"Code":"AJ"},{"Category":"Material","Enhancement":"Polycarbonate","Notes":"Note: No Service Fee for covered polycarbonate for children/handicapped/Federal Plan.","Copay":35,"VSP":0,"Chargeback":14,"Code":"AD"},{"Category":"Material","Enhancement":"Polycarbonate","Notes":"Note: No Service Fee for covered polycarbonate for children/handicapped/Federal Plan.","Copay":35,"VSP":0,"Chargeback":14,"Code":"AD"},{"Category":"Material","Enhancement":"High-index Glass 1.60–1.80 (Clear)","Notes":"nan","Copay":60,"VSP":0,"Chargeback":35,"Code":"AF"},{"Category":"Material","Enhancement":"High-index Glass 1.60–1.80 (Clear)","Notes":"nan","Copay":138,"VSP":0,"Chargeback":85,"Code":"AF"},{"Category":"Material","Enhancement":"Digital Aspheric Lenses – Plastic","Notes":"nan","Copay":45,"VSP":0,"Chargeback":24,"Code":"BA"},{"Category":"Material","Enhancement":"Digital Aspheric Lenses – Plastic","Notes":"nan","Copay":55,"VSP":0,"Chargeback":34,"Code":"BA"},{"Category":"Material","Enhancement":"Digital Aspheric – High-index Plastic 1.53–1.60/Trivex","Notes":"Copay = 45+28 (SV) / 55+28 (MF)","Copay":73,"VSP":0,"Chargeback":16,"Code":"BA+BB"},{"Category":"Material","Enhancement":"Digital Aspheric – High-index Plastic 1.53–1.60/Trivex","Notes":"Copay = 45+28 (SV) / 55+28 (MF)","Copay":83,"VSP":0,"Chargeback":16,"Code":"BA+BB"},{"Category":"Material","Enhancement":"Digital Aspheric – High-index Plastic 1.66/1.67","Notes":"Copay = 45+58 (SV) / 55+68 (MF)","Copay":103,"VSP":0,"Chargeback":37,"Code":"BA+BH"},{"Category":"Material","Enhancement":"Digital Aspheric – High-index Plastic 1.66/1.67","Notes":"Copay = 45+58 (SV) / 55+68 (MF)","Copay":123,"VSP":0,"Chargeback":40,"Code":"BA+BH"},{"Category":"Material","Enhancement":"Digital Aspheric – High-index Plastic 1.70 and Above","Notes":"Copay = 45+86 (SV)","Copay":131,"VSP":0,"Chargeback":57,"Code":"BA+BJ"},{"Category":"Material","Enhancement":"Digital Aspheric – Polycarbonate","Notes":"Copay = 45+10 (SV) / 55+10 (MF)","Copay":55,"VSP":0,"Chargeback":10,"Code":"BA+BD"},{"Category":"Material","Enhancement":"Digital Aspheric – Polycarbonate","Notes":"Copay = 45+10 (SV) / 55+10 (MF)","Copay":65,"VSP":0,"Chargeback":10,"Code":"BA+BD"},{"Category":"Sun/Polarized","Enhancement":"Polarized Lenses – Plastic A","Notes":"nan","Copay":57,"VSP":0,"Chargeback":36,"Code":"DA"},{"Category":"Sun/Polarized","Enhancement":"Polarized Lenses – Plastic A","Notes":"nan","Copay":77,"VSP":0,"Chargeback":48,"Code":"DA"},{"Category":"Sun/Polarized","Enhancement":"Polarized – High-index Plastic 1.53–1.60/Trivex","Notes":"Copay = 57+76 (SV) / 77+95 (MF)","Copay":133,"VSP":0,"Chargeback":47,"Code":"DA+DB"},{"Category":"Sun/Polarized","Enhancement":"Polarized – High-index Plastic 1.53–1.60/Trivex","Notes":"Copay = 57+76 (SV) / 77+95 (MF)","Copay":172,"VSP":0,"Chargeback":59,"Code":"DA+DB"},{"Category":"Sun/Polarized","Enhancement":"Polarized – High-index Plastic 1.66/1.67","Notes":"Copay = 57+89 (SV) / 77+108 (MF)","Copay":146,"VSP":0,"Chargeback":55,"Code":"DA+DH"},{"Category":"Sun/Polarized","Enhancement":"Polarized – High-index Plastic 1.66/1.67","Notes":"Copay = 57+89 (SV) / 77+108 (MF)","Copay":185,"VSP":0,"Chargeback":67,"Code":"DA+DH"},{"Category":"Sun/Polarized","Enhancement":"Polarized – High-index Plastic 1.70 and Above","Notes":"Copay = 57+108 (SV)","Copay":165,"VSP":0,"Chargeback":70,"Code":"DA+DJ"},{"Category":"Sun/Polarized","Enhancement":"Polarized – Polycarbonate","Notes":"Copay = 57+31 (SV) / 77+31 (MF)","Copay":88,"VSP":0,"Chargeback":13,"Code":"DA+DD"},{"Category":"Sun/Polarized","Enhancement":"Polarized – Polycarbonate","Notes":"Copay = 57+31 (SV) / 77+31 (MF)","Copay":108,"VSP":0,"Chargeback":13,"Code":"DA+DD"},{"Category":"Sun/Polarized","Enhancement":"Polarized/Laminated Lenses – Glass","Notes":"nan","Copay":78,"VSP":0,"Chargeback":49,"Code":"DE"},{"Category":"Sun/Polarized","Enhancement":"Polarized/Laminated Lenses – Glass","Notes":"nan","Copay":101,"VSP":0,"Chargeback":63,"Code":"DE"},{"Category":"Bifocal/Occupational","Enhancement":"Near Variable Focus – Plastic","Notes":"nan","Copay":50,"VSP":0,"Chargeback":26,"Code":"IA"},{"Category":"Bifocal/Occupational","Enhancement":"Near Variable Focus – High-index Plastic 1.53–1.60/Trivex","Notes":"Copay = 50+24 (MF)","Copay":74,"VSP":0,"Chargeback":11,"Code":"IA+IB"},{"Category":"Bifocal/Occupational","Enhancement":"Near Variable Focus – High-index Plastic 1.66/1.67","Notes":"Copay = 50+50 (MF)","Copay":100,"VSP":0,"Chargeback":27,"Code":"IA+II"},{"Category":"Bifocal/Occupational","Enhancement":"Near Variable Focus – High-index Plastic 1.70 and Above","Notes":"Copay = 50+60 (MF)","Copay":110,"VSP":0,"Chargeback":36,"Code":"IA+IJ"},{"Category":"Bifocal/Occupational","Enhancement":"Near Variable Focus – Polycarbonate","Notes":"Copay = 50+20 (MF)","Copay":70,"VSP":0,"Chargeback":7,"Code":"IA+ID"},{"Category":"Bifocal/Occupational","Enhancement":"Blended Bifocal – Plastic","Notes":"nan","Copay":30,"VSP":0,"Chargeback":14,"Code":"GA"},{"Category":"Tint","Enhancement":"Plastic Dyes – Solid Color (Except Pink I and II)","Notes":"nan","Copay":15,"VSP":0,"Chargeback":5,"Code":"MN"},{"Category":"Tint","Enhancement":"Plastic Dyes – Gradient","Notes":"nan","Copay":17,"VSP":0,"Chargeback":7,"Code":"MP"},{"Category":"Tint (Glass)","Enhancement":"Glass Tints Solid (Except Pink I and II and Yellow)","Notes":"nan","Copay":34,"VSP":0,"Chargeback":16,"Code":"MR"},{"Category":"Tint (Glass)","Enhancement":"Glass Color Coatings – Solid","Notes":"nan","Copay":42,"VSP":0,"Chargeback":22,"Code":"MS"},{"Category":"Tint (Glass)","Enhancement":"Glass Color Coatings – Gradient","Notes":"nan","Copay":46,"VSP":0,"Chargeback":25,"Code":"MT"},{"Category":"Photochromic","Enhancement":"Photochromics – Glass","Notes":"nan","Copay":33,"VSP":0,"Chargeback":15,"Code":"PM"},{"Category":"Photochromic","Enhancement":"Photochromics – Plastic","Notes":"nan","Copay":75,"VSP":0,"Chargeback":45,"Code":"PR"},{"Category":"Coating","Enhancement":"Anti-reflective Coating A","Notes":"nan","Copay":41,"VSP":0,"Chargeback":21,"Code":"QM"},{"Category":"Coating","Enhancement":"Anti-reflective Coating C","Notes":"nan","Copay":68,"VSP":0,"Chargeback":41,"Code":"QT"},{"Category":"Coating","Enhancement":"Anti-reflective Coating D","Notes":"nan","Copay":85,"VSP":0,"Chargeback":52,"Code":"QV"},{"Category":"Coating","Enhancement":"Mirror – Solid and Single Gradient (Includes Base Color)","Notes":"nan","Copay":49,"VSP":0,"Chargeback":26,"Code":"QP"},{"Category":"Coating","Enhancement":"Ski Type (Includes Base Tint and Backside Color)","Notes":"nan","Copay":55,"VSP":0,"Chargeback":30,"Code":"QR"},{"Category":"Coating","Enhancement":"Scratch-resistant Coating A – Factory Applied","Notes":"nan","Copay":17,"VSP":0,"Chargeback":7,"Code":"QQ"},{"Category":"Coating","Enhancement":"Scratch-resistant Coating B – Other Approved Coatings","Notes":"nan","Copay":33,"VSP":0,"Chargeback":15,"Code":"QS"},{"Category":"Oversize","Enhancement":"Frames Stamped 61mm Eye Size or Greater – Plastic","Notes":"nan","Copay":11,"VSP":0,"Chargeback":5,"Code":"RM"},{"Category":"Oversize","Enhancement":"Frames Stamped 61mm Eye Size or Greater – Glass","Notes":"nan","Copay":13,"VSP":0,"Chargeback":7,"Code":"RN"},{"Category":"Misc","Enhancement":"High Luster Edge Polish","Notes":"nan","Copay":16,"VSP":0,"Chargeback":6,"Code":"SP"},{"Category":"Misc","Enhancement":"Edge Coating","Notes":"nan","Copay":36,"VSP":0,"Chargeback":17,"Code":"SQ"},{"Category":"Misc","Enhancement":"Faceted Lenses (Includes Polishing)","Notes":"nan","Copay":66,"VSP":0,"Chargeback":41,"Code":"SR"},{"Category":"Misc","Enhancement":"Rimless Drill","Notes":"nan","Copay":30,"VSP":0,"Chargeback":25,"Code":"SW"},{"Category":"Misc","Enhancement":"UV Protection","Notes":"nan","Copay":16,"VSP":0,"Chargeback":6,"Code":"SV"},{"Category":"Misc","Enhancement":"UV Protection – Backside","Notes":"nan","Copay":10,"VSP":0,"Chargeback":7,"Code":"BV"},{"Category":"Misc","Enhancement":"Light Filter","Notes":"nan","Copay":15,"VSP":0,"Chargeback":11,"Code":"LF"},{"Category":"Misc","Enhancement":"Technical Add-On","Notes":"nan","Copay":10,"VSP":0,"Chargeback":8,"Code":"TA"},{"Category":"Doctor Supplied","Enhancement":"Plastic Dyes – Solid Color (Pink I and II)","Notes":"nan","Copay":0,"VSP":0,"Chargeback":5,"Code":"IM"},{"Category":"Doctor Supplied","Enhancement":"Plastic Dyes – Solid Color (Except Pink I and II)","Notes":"nan","Copay":15,"VSP":0,"Chargeback":5,"Code":"IN"},{"Category":"Doctor Supplied","Enhancement":"Plastic Dyes – Gradient","Notes":"nan","Copay":17,"VSP":0,"Chargeback":7,"Code":"IP"},{"Category":"Doctor Supplied","Enhancement":"UV Protection","Notes":"nan","Copay":16,"VSP":0,"Chargeback":6,"Code":"IV"},{"Category":"Progressive","Enhancement":"Custom Measurements (on Eligible Progressive N or O) Lenses","Notes":"nan","Copay":10,"VSP":0,"Chargeback":2,"Code":"CM"},{"Category":"Progressive","Enhancement":"Progressive N – Plastic","Notes":"nan","Copay":175,"VSP":0,"Chargeback":95,"Code":"nan"},{"Category":"Progressive","Enhancement":"Progressive N – High-index Plastic 1.53–1.60/Trivex","Notes":"Copay = 175+47","Copay":222,"VSP":0,"Chargeback":25,"Code":"NA+NB"},{"Category":"Progressive","Enhancement":"Progressive N – High-index Plastic 1.66/1.67","Notes":"Copay = 175+78","Copay":253,"VSP":0,"Chargeback":48,"Code":"NA+NH"},{"Category":"Progressive","Enhancement":"Progressive N – High-index Plastic 1.70 and Above","Notes":"Copay = 175+125","Copay":300,"VSP":0,"Chargeback":77,"Code":"NA+NJ"},{"Category":"Progressive","Enhancement":"Progressive N – Polycarbonate","Notes":"Copay = 175+35","Copay":210,"VSP":0,"Chargeback":15,"Code":"NA+ND"},{"Category":"Progressive","Enhancement":"Progressive N – Polarized","Notes":"Copay = 175+82","Copay":257,"VSP":0,"Chargeback":51,"Code":"NA+NP"},{"Category":"Progressive","Enhancement":"Progressive O – Plastic","Notes":"nan","Copay":150,"VSP":0,"Chargeback":79,"Code":"OA"},{"Category":"Progressive","Enhancement":"Progressive O – High-index Plastic 1.53–1.60/Trivex","Notes":"Copay = 150+47","Copay":197,"VSP":0,"Chargeback":25,"Code":"OA+OB"},{"Category":"Progressive","Enhancement":"Progressive O – High-index Plastic 1.66/1.67","Notes":"Copay = 150+78","Copay":228,"VSP":0,"Chargeback":48,"Code":"OA+OH"},{"Category":"Progressive","Enhancement":"Progressive O – High-index Plastic 1.70 and Above","Notes":"Copay = 150+125","Copay":275,"VSP":0,"Chargeback":77,"Code":"OA+OJ"},{"Category":"Progressive","Enhancement":"Progressive O – Polycarbonate","Notes":"Copay = 150+35","Copay":185,"VSP":0,"Chargeback":15,"Code":"OA+OD"},{"Category":"Progressive","Enhancement":"Progressive O – Polarized","Notes":"Copay = 150+82","Copay":232,"VSP":0,"Chargeback":51,"Code":"OA+OP"},{"Category":"Progressive","Enhancement":"Progressive F – Plastic","Notes":"nan","Copay":105,"VSP":0,"Chargeback":54,"Code":"FA"},{"Category":"Progressive","Enhancement":"Progressive F – High-index Plastic 1.53–1.60/Trivex","Notes":"Copay = 105+47","Copay":152,"VSP":0,"Chargeback":25,"Code":"FA+FB"},{"Category":"Progressive","Enhancement":"Progressive F – High-index Plastic 1.66/1.67","Notes":"Copay = 105+78","Copay":183,"VSP":0,"Chargeback":48,"Code":"FA+FH"},{"Category":"Progressive","Enhancement":"Progressive F – High-index Plastic 1.70 and Above","Notes":"Copay = 105+125","Copay":230,"VSP":0,"Chargeback":77,"Code":"FA+FJ"},{"Category":"Progressive","Enhancement":"Progressive F – Polycarbonate","Notes":"Copay = 105+35","Copay":140,"VSP":0,"Chargeback":15,"Code":"FA+FD"},{"Category":"Progressive","Enhancement":"Progressive F – Polarized","Notes":"Copay = 105+82","Copay":187,"VSP":0,"Chargeback":51,"Code":"FA+FP"},{"Category":"Progressive","Enhancement":"Progressive F – Glass/High-index Glass (Clear)","Notes":"nan","Copay":110,"VSP":0,"Chargeback":59,"Code":"FE"},{"Category":"Progressive","Enhancement":"Progressive J – Plastic","Notes":"nan","Copay":95,"VSP":0,"Chargeback":46,"Code":"JA"},{"Category":"Progressive","Enhancement":"Progressive J – High-index Plastic 1.53–1.60/Trivex","Notes":"Copay = 95+47","Copay":142,"VSP":0,"Chargeback":25,"Code":"JA+JB"},{"Category":"Progressive","Enhancement":"Progressive J – High-index Plastic 1.66/1.67","Notes":"Copay = 95+78","Copay":173,"VSP":0,"Chargeback":48,"Code":"JA+JH"},{"Category":"Progressive","Enhancement":"Progressive J – High-index Plastic 1.70 and Above","Notes":"Copay = 95+125","Copay":220,"VSP":0,"Chargeback":77,"Code":"JA+JJ"},{"Category":"Progressive","Enhancement":"Progressive J – Polycarbonate","Notes":"Copay = 95+35","Copay":130,"VSP":0,"Chargeback":15,"Code":"JA+JD"},{"Category":"Progressive","Enhancement":"Progressive J – Polarized","Notes":"Copay = 95+82","Copay":177,"VSP":0,"Chargeback":51,"Code":"JA+JP"},{"Category":"Progressive","Enhancement":"Progressive J – Glass/High-index Glass (Clear)","Notes":"nan","Copay":105,"VSP":0,"Chargeback":56,"Code":"JE"},{"Category":"Progressive","Enhancement":"Progressive K – Plastic","Notes":"nan","Copay":55,"VSP":0,"Chargeback":28,"Code":"KA"},{"Category":"Progressive","Enhancement":"Progressive K – High-index Plastic 1.53–1.60/Trivex","Notes":"Copay = 55+47","Copay":102,"VSP":0,"Chargeback":25,"Code":"KA+KB"},{"Category":"Progressive","Enhancement":"Progressive K – High-index Plastic 1.66/1.67","Notes":"Copay = 55+78","Copay":133,"VSP":0,"Chargeback":48,"Code":"KA+KH"},{"Category":"Progressive","Enhancement":"Progressive K – High-index Plastic 1.70 and Above","Notes":"Copay = 55+125","Copay":180,"VSP":0,"Chargeback":77,"Code":"KA+KJ"},{"Category":"Progressive","Enhancement":"Progressive K – Polycarbonate","Notes":"Copay = 55+35","Copay":90,"VSP":0,"Chargeback":15,"Code":"KA+KD"},{"Category":"Progressive","Enhancement":"Progressive K – Polarized","Notes":"Copay = 55+82","Copay":137,"VSP":0,"Chargeback":51,"Code":"KA+KP"},{"Category":"Progressive","Enhancement":"Progressive K – Glass/High-index Glass (Clear)","Notes":"nan","Copay":80,"VSP":0,"Chargeback":53,"Code":"KE"}];
+    // --------- CSV LOADER ----------
+    async function loadCSV(url){
+      const res = await fetch(url, { cache: "no-store" });
+      if (!res.ok) throw new Error("CSV not found");
+      const text = await res.text();
+      return parseCSV(text);
+    }
+    function parseCSV(text){
+      // simple CSV parser that handles quotes
+      const rows = [];
+      const lines = text.replace(/\r/g,"").split("\n").filter(x=>x.trim().length);
+      const headers = splitCSVLine(lines[0]);
+      for (let i=1; i<lines.length; i++){
+        const cells = splitCSVLine(lines[i]);
+        const row = {};
+        headers.forEach((h,idx)=> row[h] = cells[idx] ?? "");
+        rows.push(row);
+      }
+      return rows;
+    }
+    function splitCSVLine(line){
+      const out=[]; let cur=""; let inQ=false;
+      for (let i=0;i<line.length;i++){
+        const ch=line[i];
+        if (inQ){
+          if (ch==='"' && line[i+1]==='"'){ cur+='"'; i++; }
+          else if (ch === '"'){ inQ=false; }
+          else cur+=ch;
+        } else {
+          if (ch === ','){ out.push(cur); cur=""; }
+          else if (ch === '"'){ inQ=true; }
+          else cur+=ch;
+        }
+      }
+      out.push(cur);
+      return out;
+    }
 
-    /* ---------- Utilities ---------- */
-    const $ = (q) => document.querySelector(q);
-    const num = (n) => Number(n || 0).toLocaleString("en-US", { style: "currency", currency: "USD" });
-    const clean = (s) => (s == null ? "" : String(s).replace(/^nan$/i, "").trim());
-    const where = (fn) => MASTER.filter(fn);
-    const byEnhRx = (rx) => where((r) => rx.test(r.Enhancement || ""));
-    const byCatRx = (rx) => where((r) => rx.test(r.Category || ""));
-    const maxBy = (arr, k) => arr.reduce((a, b) => (+b[k] > +a[k] ? b : a), arr[0]);
-    const minBy = (arr, k) => arr.reduce((a, b) => (+b[k] < +a[k] ? b : a), arr[0]);
+    const fmtCurrency = (n)=> Number(n||0).toLocaleString("en-US",{style:"currency",currency:"USD"});
 
-    /* ---------- Render MASTER table ---------- */
-    function renderMaster() {
-      const tb = $("#master");
+    // --------- GLOBAL DATA ----------
+    let MASTER = []; // v7 rows
+
+    function renderMasterTable(){
+      const tb = document.getElementById("master");
       tb.innerHTML = "";
-      MASTER.forEach((r) => {
+      MASTER.forEach(r=>{
         const tr = document.createElement("tr");
         tr.innerHTML = `
-          <td>${clean(r.Category)}</td>
-          <td>${clean(r.Enhancement)}</td>
-          <td>${clean(r.Code)}</td>
-          <td>${clean(r.Notes)}</td>
-          <td style="text-align:right">${num(r.Copay)}</td>
-          <td style="text-align:right">${num(r.VSP)}</td>
-          <td style="text-align:right">${num(r.Chargeback)}</td>`;
-        tb.appendChild(tr);
+          <td>${r.group||""}</td>
+          <td>${r.subtype||""}</td>
+          <td>${r.enhancement||""}</td>
+          <td>${r.code||""}</td>
+          <td>${r.notes||""}</td>
+          <td style="text-align:right">${fmtCurrency(r.copay)}</td>
+          <td style="text-align:right">${fmtCurrency(r.vsp)}</td>
+          <td style="text-align:right">${fmtCurrency(r.chargeback)}</td>
+          <td>${r.exclusive_key||""}</td>
+          <td>${r.applies_to||""}</td>`;
+        document.getElementById("master").appendChild(tr);
       });
     }
-    renderMaster();
 
-    /* ---------- AR picker ---------- */
-    function pickAR(level) {
-      let choices = where(
-        (r) =>
-          /Coating/i.test(r.Category || "") ||
-          /anti[- ]?reflect|coating\s*[A-E]\b|\bAR\b/i.test(r.Enhancement || "")
-      );
-      if (!choices.length) return null;
-
-      const rank = (e) => {
-        e = (e || "").toUpperCase();
-        if (/\bE\b/.test(e)) return 5;
-        if (/\bD\b/.test(e)) return 4;
-        if (/\bC\b/.test(e)) return 3;
-        if (/\bB\b/.test(e)) return 2;
-        if (/\bA\b/.test(e)) return 1;
-        return 0;
+    // --------- PICKERS (DATA-DRIVEN, NO REGEX) ----------
+    function chooseMaterial(level){
+      const mats = MASTER.filter(r=>r.group==="Material");
+      const pick = (filter)=> {
+        const rows = mats.filter(filter);
+        return rows.sort((a,b)=> b.copay - a.copay)[0] || null;
       };
-
-      choices.sort((x, y) => rank(y.Enhancement) - rank(x.Enhancement) || y.Copay - x.Copay);
-      if (level === "BEST") return choices[0];
-      if (level === "BASIC") return choices[choices.length - 1];
-      return choices[Math.max(0, Math.floor(choices.length / 2) - 1)];
+      if (level==="BASIC") return pick(r=>r.subtype==="Poly" || r.subtype==="CR");
+      if (level==="MID")   return pick(r=>r.subtype==="Mid" || r.subtype==="Poly");
+      // BEST
+      return pick(r=>r.subtype==="Hi70" || r.subtype==="Hi67" || r.subtype==="Mid" || r.subtype==="Poly" || r.subtype==="CR");
     }
 
-    /* ---------- Material picker (SV/Occ only) ---------- */
-    function pickMaterial(level) {
-      if (level === "BASIC") {
-        const poly = byEnhRx(/polycarbonate/i);
-        if (poly.length) return maxBy(poly, "Copay");
+    function chooseProgressive(level){
+      const progs = MASTER.filter(r=>r.group==="Progressive");
+      const families = level==="BEST" ? ["N","O","F"] : level==="MID" ? ["O","F","J"] : ["K","J","F"];
+      for (const fam of families){
+        const rows = progs.filter(r=>r.subtype===fam);
+        if (rows.length) return rows.sort((a,b)=> b.copay - a.copay)[0];
       }
-      if (level === "MID") {
-        const mid = byEnhRx(/high[- ]?index\s*plastic\s*1\.5[3-9]|trivex/i);
-        if (mid.length) return maxBy(mid, "Copay");
-      }
-      let best = byEnhRx(/high[- ]?index\s*plastic\s*1\.70/i);
-      if (best.length) return maxBy(best, "Copay");
-      best = byEnhRx(/high[- ]?index\s*plastic\s*1\.6[6-7]/i);
-      if (best.length) return maxBy(best, "Copay");
-      const mid2 = byEnhRx(/high[- ]?index\s*plastic\s*1\.5[3-9]|trivex/i);
-      if (mid2.length) return maxBy(mid2, "Copay");
-      const poly2 = byEnhRx(/polycarbonate/i);
-      if (poly2.length) return maxBy(poly2, "Copay");
-      const cr = byEnhRx(/CR-?39|aspheric\s*plastic\s*1\.50|plastic\s*1\.50/i);
-      if (cr.length) return minBy(cr, "Copay");
-      const any = byCatRx(/material/i);
-      return any[0] || null;
+      return progs.sort((a,b)=> b.copay - a.copay)[0] || null;
     }
 
-    /* ---------- Progressive picker (ONE row, includes material flavor) ---------- */
-    function pickProgressive(level) {
-      const families = level === "BEST" ? ["N","O","F"] : level === "MID" ? ["O","F","J"] : ["K","J","F"];
-      const materialPhrase =
-        level === "BEST" ? /(1\.70\s*and\s*Above|1\.66|1\.67)/i :
-        level === "MID"  ? /(1\.53–?1\.60|Trivex)/i :
-                           /Polycarbonate/i;
-
-      const progs = where(
-        (r) => /progressive/i.test(r.Category || "") || /progressive/i.test(r.Enhancement || "")
-      );
-
-      for (const fam of families) {
-        const famRows = progs.filter((r) => new RegExp(`Progressive\\s+${fam}\\b`, "i").test(r.Enhancement || ""));
-        const famWithMat = famRows.filter((r) => materialPhrase.test(r.Enhancement || ""));
-        if (famWithMat.length) return maxBy(famWithMat, "Copay");
-        if (famRows.length) return maxBy(famRows, "Copay");
-      }
-      return progs.length ? maxBy(progs, "Copay") : null;
+    function chooseAR(level){
+      const ars = MASTER.filter(r=>r.group==="AR");
+      if (!ars.length) return null;
+      ars.sort((a,b)=> b.copay - a.copay);
+      if (level==="BEST") return ars[0];
+      if (level==="BASIC") return ars[ars.length-1];
+      return ars[Math.max(0, Math.floor(ars.length/2)-1)];
     }
 
-    /* ---------- Sun add-ons (off when Clear) ---------- */
-    function pickSun(path) {
-      if (!path || path === "Clear") return null;
-      if (path === "Photochromic") {
-        const p = byEnhRx(/photochrom|transitions/i).filter((r) => !/glass/i.test(r.Enhancement || ""));
-        return p[0] || null;
-      }
-      if (path === "Polarized") return byEnhRx(/polar/i)[0] || null;
-      if (path === "Tint") return byEnhRx(/\b(tint|dyes?)\b/i)[0] || null;
-      return null;
+    function chooseSun(choice){
+      if (!choice || choice==="Clear") return null;
+      const row = MASTER.find(r=>r.group==="Sun" && r.subtype===choice);
+      return row || null;
     }
 
-    /* ---------- Deduper + totals ---------- */
-    function enforceExclusiveMaterials(items) {
-      let seen = false;
-      return items.filter((r) => {
-        const isMat = /material/i.test(r?.Category || "");
-        if (!isMat) return true;
-        if (!seen) { seen = true; return true; }
-        return false;
-      });
-    }
-
-    function dedupe(items) {
+    function enforceExclusivity(items){
       const seen = new Set();
-      return items.filter((i) => {
-        if (!i) return false;
-        const key = (i.Category || "") + "|" + (i.Enhancement || "");
+      return items.filter(r=>{
+        const key = (r.exclusive_key||"").trim();
+        if (!key) return true;
         if (seen.has(key)) return false;
         seen.add(key);
         return true;
       });
     }
 
-    function totals(items) {
-      const c = items.reduce((s, r) => s + Number(r.Copay || 0), 0);
-      const v = items.reduce((s, r) => s + Number(r.VSP || 0), 0);
-      const cb = items.reduce((s, r) => s + Number(r.Chargeback || 0), 0);
-      return { copay: c, vsp: v, cb: cb, revenue: c + v - cb };
+    function totals(items){
+      const sum = (k)=> items.reduce((s,r)=> s + Number(r[k]||0), 0);
+      const copay = sum("copay"), vsp = sum("vsp"), cb = sum("chargeback");
+      return { copay, vsp, cb, revenue: copay + vsp - cb };
     }
 
-    /* ---------- Tier builder ---------- */
-    function buildTier(track, sun, level) {
-      let items = [];
-      if (track === "Progressive") {
-        items.push(pickProgressive(level));       // ONE progressive only
-      } else {
-        items.push(pickMaterial(level));          // ONE material only
-      }
-      items.push(pickAR(level));                  // AR for all
-      const sitem = pickSun(sun);                 // optional sun add-on
-      if (sitem) items.push(sitem);
-
-      items = enforceExclusiveMaterials(items);
-      return dedupe(items);
+    function appliesToTrack(row, track){
+      const a = (row.applies_to||"ALL").toUpperCase();
+      if (a==="ALL") return true;
+      return a.split(/\s*,\s*/).includes(track.toUpperCase());
     }
 
-    /* ---------- UI: Build button ---------- */
-    document.getElementById("build").addEventListener("click", () => {
-      const t = $("#track").value;
-      const s = $("#sun").value;
-      const over = $("#over").value;
-      const rim = $("#rim").value;
-
-      const tiers = [
-        { name: "BEST",  items: buildTier(t, s, "BEST")  },
-        { name: "MID",   items: buildTier(t, s, "MID")   },
-        { name: "BASIC", items: buildTier(t, s, "BASIC") }
-      ];
-
-      if (over !== "None") {
-        const os = MASTER.find((r) => /oversize/i.test(r.Enhancement || ""));
-        if (os) tiers.forEach((tt) => tt.items.push(os));
+    function buildTier(track, sun, level){
+      const items = [];
+      if (track==="MF"){
+        const p = chooseProgressive(level); if (p && appliesToTrack(p, "MF")) items.push(p);
+      } else if (track==="SV" || track==="OCC"){
+        const m = chooseMaterial(level); if (m && appliesToTrack(m, track)) items.push(m);
       }
-      if (rim === "Drill") {
-        const rl = MASTER.find((r) => /rimless|drill/i.test(r.Enhancement || ""));
-        if (rl) tiers.forEach((tt) => tt.items.push(rl));
-      }
+      const ar = chooseAR(level); if (ar && appliesToTrack(ar, track)) items.push(ar);
+      const s = chooseSun(sun);  if (s && appliesToTrack(s, track)) items.push(s);
+      return enforceExclusivity(items);
+    }
 
-      $("#tiers").style.display = "block";
-
-      const tb = $("#tierbody");
-      tb.innerHTML = "";
-      const k = $("#kpis");
-      k.innerHTML = "";
-
-      tiers.forEach((tt) => {
+    function renderTiers(tiers){
+      document.getElementById("tiers").style.display = "block";
+      const tb = document.getElementById("tierbody"); tb.innerHTML = "";
+      const k = document.getElementById("kpis"); k.innerHTML = "";
+      tiers.forEach(tt=>{
         const x = totals(tt.items);
-        const list = tt.items.map((i) => clean(i.Enhancement)).join(", ");
+        const list = tt.items.map(i=> i.enhancement).join(", ");
         const tr = document.createElement("tr");
         tr.innerHTML = `
           <td><b>${tt.name}</b></td>
           <td class="items-cell">${list}</td>
-          <td style="text-align:right">${num(x.copay)}</td>
-          <td style="text-align:right">${num(x.vsp)}</td>
-          <td style="text-align:right">${num(x.cb)}</td>
-          <td style="text-align:right"><b>${num(x.revenue)}</b></td>`;
+          <td style="text-align:right">${fmtCurrency(x.copay)}</td>
+          <td style="text-align:right">${fmtCurrency(x.vsp)}</td>
+          <td style="text-align:right">${fmtCurrency(x.cb)}</td>
+          <td style="text-align:right"><b>${fmtCurrency(x.revenue)}</b></td>`;
         tb.appendChild(tr);
 
-        const div = document.createElement("span");
-        div.className = "kpi";
-        div.innerHTML = `<small>${tt.name} revenue</small> <b>${num(x.revenue)}</b>`;
-        k.appendChild(div);
+        const badge = document.createElement("span");
+        badge.className = "kpi";
+        badge.innerHTML = `<small>${tt.name} revenue</small> <b>${fmtCurrency(x.revenue)}</b>`;
+        k.appendChild(badge);
       });
-    });
+    }
 
-    /* ---------- CSV export ---------- */
-    document.getElementById("csv").addEventListener("click", () => {
-      const t = $("#track").value;
-      const s = $("#sun").value;
+    // --------- EVENTS ----------
+    document.getElementById("build").addEventListener("click", ()=>{
+      const track = document.getElementById("track").value;      // SV | MF | OCC
+      const sun   = document.getElementById("sun").value;        // Clear | subtype
+      const over  = document.getElementById("over").value;
+      const rim   = document.getElementById("rim").value;
+
       const tiers = [
-        { name: "BEST",  items: buildTier(t, s, "BEST")  },
-        { name: "MID",   items: buildTier(t, s, "MID")   },
-        { name: "BASIC", items: buildTier(t, s, "BASIC") }
+        { name:"BEST",  items: buildTier(track, sun, "BEST")  },
+        { name:"MID",   items: buildTier(track, sun, "MID")   },
+        { name:"BASIC", items: buildTier(track, sun, "BASIC") }
       ];
 
-      const rows = [["Tier","Category","Enhancement","Code","Copay","VSP","Chargeback"]];
-      tiers.forEach((tt) =>
-        tt.items.forEach((i) =>
-          rows.push([
-            tt.name, clean(i.Category), clean(i.Enhancement), clean(i.Code),
-            i.Copay || 0, i.VSP || 0, i.Chargeback || 0
-          ])
-        )
-      );
+      // Optional add-ons that aren't exclusive to track
+      if (over !== "None"){
+        const os = MASTER.find(r=>r.group==="Oversize");
+        if (os) tiers.forEach(tt=> tt.items.push(os));
+      }
+      if (rim !== "None"){
+        const rl = MASTER.find(r=> r.group==="Rimless" && r.subtype===rim);
+        if (rl) tiers.forEach(tt=> tt.items.push(rl));
+      }
 
-      const csv = rows.map(r => r.map(x => `"${(x??"").toString().replace(/"/g,'""')}"`).join(",")).join("\n");
+      // Final exclusivity pass
+      tiers.forEach(tt=> tt.items = enforceExclusivity(tt.items));
+      renderTiers(tiers);
+    });
+
+    document.getElementById("csv").addEventListener("click", ()=>{
+      const track = document.getElementById("track").value;
+      const sun   = document.getElementById("sun").value;
+      const tiers = [
+        { name:"BEST",  items: buildTier(track, sun, "BEST")  },
+        { name:"MID",   items: buildTier(track, sun, "MID")   },
+        { name:"BASIC", items: buildTier(track, sun, "BASIC") }
+      ];
+      const rows = [["Tier","Group","Subtype","Enhancement","Code","Copay","VSP","Chargeback"]];
+      tiers.forEach(tt=>{
+        tt.items.forEach(i=>{
+          rows.push([tt.name, i.group, i.subtype, i.enhancement, i.code, i.copay||0, i.vsp||0, i.chargeback||0]);
+        })
+      });
+      const csv = rows.map(r=> r.map(x=> `"${String(x??"").replace(/"/g,'""')}"`).join(",")).join("\n");
       const a = document.createElement("a");
-      a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
+      a.href = URL.createObjectURL(new Blob([csv], {type:"text/csv"}));
       a.download = "revopt_quote.csv";
       a.click();
     });
+
+    // --------- BOOT ---------
+    (async function boot(){
+      const status = document.getElementById("csvStatus");
+      try{
+        MASTER = await loadCSV("./vsp_choice_master_v7.csv");
+        // Coerce numerics
+        MASTER = MASTER.map(r=>({
+          ...r,
+          copay: Number(r.copay||0),
+          vsp: Number(r.vsp||0),
+          chargeback: Number(r.chargeback||0)
+        }));
+        status.textContent = "Loaded v7 CSV.";
+      }catch(e){
+        status.textContent = "Could not find vsp_choice_master_v7.csv in this repo. Upload it to the repo root.";
+        MASTER = [];
+      }
+      renderMasterTable();
+    })();
   </script>
 </body>
 </html>
