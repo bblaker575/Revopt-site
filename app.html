@@ -30,7 +30,7 @@
     <h1>Revopt — Profit-First Choice Configurator</h1>
 
     <div class="card">
-      <small>Data-driven: loads <code>vsp_choice_master_v7*.csv</code> (exclusivity & track rules baked in). AR is always included.</small>
+      <small>Data-driven: loads <code>vsp_choice_master_v7_full_fixed.csv</code> (exclusivity & track rules baked in). AR is always included.</small>
       <div id="csvStatus" class="warn" style="margin-top:6px"></div>
     </div>
 
@@ -113,9 +113,9 @@
 
   <script>
     /* ======= CONFIG: set the CSV filename your app should read ======= */
-    const DATA_CSV = "./vsp_choice_master_v7_full_fixed.csv"; // or "./vsp_choice_master_v7.csv"
+    const DATA_CSV = "./vsp_choice_master_v7_full_fixed.csv"; // change if you use a different name
 
-    /* ======= CSV loader (simple, quote-safe) ======= */
+    /* ======= CSV loader (quote-safe) ======= */
     async function loadCSV(url){
       const res = await fetch(url, { cache: "no-store" });
       if (!res.ok) throw new Error("CSV not found");
@@ -153,7 +153,7 @@
     const money = (n)=> Number(n||0).toLocaleString("en-US",{style:"currency",currency:"USD"});
 
     /* ======= Global data ======= */
-    let MASTER = []; // v7 rows with numbers
+    let MASTER = []; // normalized rows with numerics
 
     function renderMasterTable(){
       const tb = document.getElementById("master");
@@ -170,22 +170,21 @@
           <td style="text-align:right">${money(r.vsp)}</td>
           <td style="text-align:right">${money(r.chargeback)}</td>
           <td>${r.exclusive_key||""}</td>
-          <td>${r.applies_to||""}</td>`;
+          <td>${(r.applies_to_tokens||[]).join(", ")}</td>`;
         tb.appendChild(tr);
       });
     }
 
     /* ======= Helpers ======= */
-    const by = (fn) => MASTER.filter(fn);
     const sum = (arr,k) => arr.reduce((s,r)=> s + Number(r[k]||0), 0);
     const totals = (items)=> {
       const copay = sum(items,"copay"), vsp = sum(items,"vsp"), cb = sum(items,"chargeback");
       return { copay, vsp, cb, revenue: copay + vsp - cb };
     };
     const appliesTo = (row, track) => {
-      const a = (row.applies_to||"ALL").toUpperCase();
-      if (a==="ALL") return true;
-      return a.split(/\s*,\s*/).includes(track.toUpperCase());
+      if (!row || !row.applies_to_tokens) return true;
+      const T = track.toUpperCase();
+      return row.applies_to_tokens.includes("ALL") || row.applies_to_tokens.includes(T);
     };
     const enforceExclusive = (items)=>{
       const seen = new Set();
@@ -200,33 +199,42 @@
 
     /* ======= Always-include AR, tier-specific selection ======= */
     function pickARForTier(level){
-      const ars = MASTER.filter(r=>r.group==="AR");
+      const ars = MASTER.filter(r=> r.group === "AR");
       if (!ars.length) return null;
-      ars.sort((a,b)=> b.copay - a.copay); // highest copay = richest AR
-      if (level==="BEST") return ars[0];
-      if (level==="BASIC") return ars[ars.length-1];
-      return ars[Math.max(0, Math.floor(ars.length/2)-1)];
+      const sorted = [...ars].sort((a,b)=> b.copay - a.copay); // richest AR first
+      if (level==="BEST")  return sorted[0];
+      if (level==="BASIC") return sorted[sorted.length-1];
+      return sorted[Math.max(0, Math.floor(sorted.length/2)-1)];
     }
 
-    /* ======= Candidate base items per track ======= */
+    /* ======= Candidate base items per track (normalized & tolerant) ======= */
     function candidatesForTrack(track){
-      if (track==="MF")  return MASTER.filter(r=>r.group==="Progressive"  && appliesTo(r,"MF"));
-      if (track==="OCC") return MASTER.filter(r=>r.group==="Occupational" && appliesTo(r,"OCC"));
-      return MASTER.filter(r=>r.group==="Material" && appliesTo(r,"SV")); // SV
+      let cands = [];
+      if (track==="MF")  cands = MASTER.filter(r=> r.group==="PROGRESSIVE"  && appliesTo(r,"MF"));
+      else if (track==="OCC") cands = MASTER.filter(r=> r.group==="OCCUPATIONAL" && appliesTo(r,"OCC"));
+      else cands = MASTER.filter(r=> r.group==="MATERIAL" && appliesTo(r,"SV")); // SV
+
+      // Fallback if tagging is imperfect: ignore applies_to
+      if (cands.length === 0) {
+        if (track==="MF")  cands = MASTER.filter(r=> r.group==="PROGRESSIVE");
+        if (track==="OCC") cands = MASTER.filter(r=> r.group==="OCCUPATIONAL");
+        if (track==="SV")  cands = MASTER.filter(r=> r.group==="MATERIAL");
+      }
+      return cands;
     }
 
     /* ======= Optional add-ons (sun/oversize/rimless) applied to all tiers ======= */
     function pickSunRow(subtype){
       if (!subtype || subtype==="Clear") return null;
-      return MASTER.find(r=> r.group==="Sun" && r.subtype===subtype) || null;
+      return MASTER.find(r=> r.group==="SUN" && (r.subtype||"")===subtype) || null;
     }
     function pickOversizeRow(overSel){
-      if (overSel==="80% of U&C") return MASTER.find(r=> r.group==="Oversize") || null;
+      if (overSel==="80% of U&C") return MASTER.find(r=> r.group==="OVERSIZE") || null;
       return null;
     }
     function pickRimlessRow(rimSel){
-      if (rimSel==="Drill")  return MASTER.find(r=> r.group==="Rimless" && /drill/i.test(r.subtype||"")) || null;
-      if (rimSel==="Groove") return MASTER.find(r=> r.group==="Rimless" && /groove/i.test(r.subtype||"")) || null;
+      if (rimSel==="Drill")  return MASTER.find(r=> r.group==="RIMLESS" && /drill/i.test(r.subtype||"")) || null;
+      if (rimSel==="Groove") return MASTER.find(r=> r.group==="RIMLESS" && /groove/i.test(r.subtype||"")) || null;
       return null;
     }
 
@@ -276,7 +284,6 @@
 
       // MID: pick something between best and basic by revenue
       midStats.sort((a,b)=> a.revenue - b.revenue);
-      // target halfway between best & basic revenue
       const target = basic.revenue + (best.revenue - basic.revenue)/2;
       let mid = midStats[0];
       let mindiff = Math.abs(mid.revenue - target);
@@ -352,18 +359,33 @@
       exportQuoteCSV(tiers);
     });
 
-    /* ======= Boot: load CSV & coerce numerics ======= */
+    /* ======= Boot: load CSV & normalize ======= */
     (async function boot(){
       const status = document.getElementById("csvStatus");
       try{
         const rows = await loadCSV(DATA_CSV);
-        // coerce numerics
-        MASTER = rows.map(r=>({
-          ...r,
-          copay: Number((r.copay||"").toString().replace(/[^0-9.\-]/g,""))||0,
-          vsp: Number((r.vsp||"").toString().replace(/[^0-9.\-]/g,""))||0,
-          chargeback: Number((r.chargeback||"").toString().replace(/[^0-9.\-]/g,""))||0
-        }));
+
+        const norm = (s)=> (s==null ? "" : String(s).trim());
+        const up   = (s)=> norm(s).toUpperCase();
+
+        MASTER = rows.map(r=>{
+          const atokens = up(r.applies_to || "ALL").split(/[, ]+/).filter(Boolean);
+          if (atokens.length === 0) atokens.push("ALL");
+          return {
+            ...r,
+            group: up(r.group),                       // normalize for safe comparisons
+            subtype: norm(r.subtype),
+            enhancement: norm(r.enhancement),
+            code: norm(r.code),
+            notes: norm(r.notes),
+            exclusive_key: norm(r.exclusive_key).toLowerCase(),
+            applies_to_tokens: atokens,
+            copay: Number(norm(r.copay).replace(/[^0-9.\-]/g,"")) || 0,
+            vsp: Number(norm(r.vsp).replace(/[^0-9.\-]/g,"")) || 0,
+            chargeback: Number(norm(r.chargeback).replace(/[^0-9.\-]/g,"")) || 0
+          };
+        });
+
         status.textContent = `Loaded ${DATA_CSV}.`;
       }catch(e){
         status.textContent = `Could not find ${DATA_CSV}. Upload it next to app.html.`;
