@@ -57,7 +57,7 @@
         </select>
       </label>
 
-      <!-- Lens Tint (moved directly after Lens Family) -->
+      <!-- Lens Tint (immediately after lens family) -->
       <label class="switch">Lens tint
         <select id="lensTint">
           <option value="clear" selected>Clear</option>
@@ -81,7 +81,7 @@
   <script>
     // ---------------- Config ----------------
     const DEFAULT_CSV = 'data/vsp_choice_master_v7_full_fixed.csv';
-    const REQUIRE_D_CODES_FOR_SV_AND_LINED_POLARIZED = true; // polarized is a material for SV/LINED
+    const REQUIRE_D_CODES_FOR_SV_AND_LINED_POLARIZED = true; // polarized is material for SV/LINED
 
     // ---------------- Utils -----------------
     const el = (id)=>document.getElementById(id);
@@ -92,6 +92,8 @@
     const N = s => String(s||'').toLowerCase();
     const isDCode  = r => /^d/i.test((r.code||'').trim());
     const isPPhoto = r => /^p(m|r)/i.test((r.code||'').trim()); // PM/PR
+    const isGlassBase = row => /glass/i.test(N(row?.enhancement || row?.subtype || ''));
+    const preferPhotoCodeForBase = row => (isGlassBase(row) ? 'PM' : 'PR'); // everything not glass => PR
 
     function parseCSV(text){
       const rows=[]; let row=[], field='', q=false;
@@ -155,8 +157,8 @@
       const a=(row.applies_to||'ALL').toUpperCase();
       if(a.includes('ALL')) return true;
       if(fam==='SV')     return a.includes('SV');
-      if(fam==='LINED')  return a.includes('OCC');
-      if(fam==='PAL')    return a.includes('MF');
+      if(fam==='LINED')  return a.includes('OCC');   // bifocal/occupational
+      if(fam==='PAL')    return a.includes('MF');    // progressive/multifocal
       return true;
     }
 
@@ -212,7 +214,7 @@
       const cop = sum(lines.map(x=>x.copay));
       const cb  = sum(lines.map(x=>x.chargeback));
       const pr  = cop - cb;
-      const ratio = cop>0 ? (pr/cop) : 0;
+      const ratio = cop>0 ? (pr/cop) : 0; // internal tie-breaker only
       const label = base.enhancement || base.subtype || base.code || 'Base';
       return { label, lines, copay:cop, chargeback:cb, profit:pr, ratio };
     }
@@ -268,9 +270,21 @@
         if (tintSel==='clear' || tintSel==='polarized') return null;
 
         if (tintSel==='transitions') {
-          let pool = sunAll.filter(r => /photochrom/.test(N(r.enhancement)) && sunMatchesBase(r, baseRow));
-          const pPool = pool.filter(isPPhoto); // PR/PM
-          return pickBest(pPool.length ? pPool : pool);
+          // Prefer P-code by substrate: PM (glass) vs PR (plastic).
+          // Do NOT require material matching—PR/PM are generic add-ons.
+          const want = preferPhotoCodeForBase(baseRow); // 'PM' for glass, else 'PR'
+          let pool = sunAll.filter(r => /photochrom/.test(N(r.enhancement)));
+
+          // 1) exact substrate (PR/PM) first
+          let choice = pickBest(pool.filter(r => new RegExp('^' + want, 'i').test((r.code || '').trim())));
+          if (choice) return choice;
+
+          // 2) any P-code next
+          choice = pickBest(pool.filter(isPPhoto));
+          if (choice) return choice;
+
+          // 3) fallback: any photochromic
+          return pickBest(pool);
         }
 
         if (tintSel==='tinted') {
