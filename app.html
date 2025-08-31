@@ -197,8 +197,7 @@
     function buildUniverse(rows){
       const mapped = rows.map(classify).filter(Boolean);
       return mapped.filter(it=>{
-        if(it.baseKind){ return true; } // allow all base
-        // enhancements: only drop if explicitly non-composable
+        if(it.baseKind){ return true; }
         return !('composable' in it.raw) || truthy(it.raw.composable);
       });
     }
@@ -287,48 +286,40 @@
       </tbody></table>`;
     }
 
+    // Snapshot helpers
     function saveSnapshot(csvText){ try{ localStorage.setItem('vsp_choice_snapshot_v7', csvText); }catch(e){} }
     function loadSnapshot(){ try{ return localStorage.getItem('vsp_choice_snapshot_v7'); }catch(e){ return null; } }
     function clearSnapshot(){ try{ localStorage.removeItem('vsp_choice_snapshot_v7'); }catch(e){} }
 
-    async function tryFetch(url){
-      const bust = (url.includes('?')? '&':'?') + 't=' + Date.now();
-      const full = url + bust;
-      const r = await fetch(full, {cache:'no-store'});
-      if(!r.ok) throw new Error(r.status+': '+r.statusText+' @ '+url);
-      return r.text();
-    }
-
+    // SIMPLE loader (match first script behavior) — try only the two known-good paths
     async function loadCSV(){
       const badge = document.getElementById('csvStatus');
-      const tried = [];
-      // 1) snapshot
+      const tried=[];
+
+      // 1) If snapshot exists, use it (keeps offline behavior)
       const snap = loadSnapshot();
       if(snap){
         badge.textContent = 'CSV: offline snapshot';
         badge.style.borderColor = '#3c6';
-        document.getElementById('diag').textContent = 'Loaded snapshot. Next online paths will refresh cache.';
         return parseCSV(snap);
       }
-      // 2) attempt multiple paths
-      const baseDir = window.location.pathname.replace(/[^/]+$/,'');
+
       const candidates = [
         './vsp_choice_master_v7_full_fixed.csv',
-        baseDir + 'vsp_choice_master_v7_full_fixed.csv',
-        '/Revopt-site/vsp_choice_master_v7_full_fixed.csv',
-        // Fallback to GitHub RAW (works even if relative paths fail)
-        'https://raw.githubusercontent.com/bblaker575/Revopt-site/main/vsp_choice_master_v7_full_fixed.csv'
+        '/Revopt-site/vsp_choice_master_v7_full_fixed.csv'
       ];
       for(const u of candidates){
         try{
-          const text = await tryFetch(u);
+          const r = await fetch(u + '?t=' + Date.now(), {cache:'no-store'});
+          if(!r.ok) throw new Error(r.status+': '+r.statusText);
+          const text = await r.text();
           saveSnapshot(text);
-          badge.textContent = 'CSV: loaded from '+u;
+          badge.textContent = 'CSV: loaded from ' + u;
           badge.style.borderColor = '#6cf';
           return parseCSV(text);
-        }catch(e){ tried.push(String(e.message||e)); }
+        }catch(e){ tried.push(u+' -> '+(e.message||e)); }
       }
-      badge.textContent = 'CSV: not found';
+      badge.textContent = 'CSV: not loaded';
       badge.style.borderColor = '#f66';
       document.getElementById('diag').textContent = 'Tried URLs:
 - ' + tried.join('
