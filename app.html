@@ -34,16 +34,18 @@
     .tag{display:inline-block;padding:2px 6px;border-radius:6px;background:#0e1622;border:1px solid var(--border);font-size:12px;margin-right:6px;color:var(--muted)}
     .ok{color:var(--good)}.warn{color:var(--mid)}.boom{color:var(--best)}
     .foot{opacity:.7;font-size:12px;padding:10px 2px}
+    .err{color:#ff7a7a}
   </style>
 </head>
 <body>
   <header>
     <div>
       <h1>RevSight AI — VSP Choice Profit Engine</h1>
-      <div class="sub">Tiers ranked by <b>profit</b> where profit is the <b>sum of VSP service fees</b> for items in the bundle. Toggles are enforced globally (OFF = excluded everywhere). Flexible header matching for your CSV.</div>
+      <div class="sub">Profit = <b>sum of VSP service fees</b>. Toggles enforced globally (OFF = excluded everywhere). Loader now tries multiple CSV paths + has a cache reset.</div>
     </div>
     <div class="row" style="align-items:center">
       <span class="pill" id="csvStatus">CSV: not loaded</span>
+      <button id="resetCache">Reset Cache</button>
       <button id="forceRefresh">Recalc</button>
     </div>
   </header>
@@ -100,11 +102,11 @@
   </main>
 
   <section class="card" style="margin:16px">
-    <details>
+    <details open>
       <summary>Data/Diagnostics</summary>
       <div id="diag" class="muted" style="white-space:pre-wrap"></div>
     </details>
-    <div class="foot">Autoload order: <code>localStorage.snapshot</code> → <code>./vsp_choice_master_v7_full_fixed.csv</code>. If online load succeeds, a fresh offline snapshot is saved automatically.</div>
+    <div class="foot">Autoload order: <code>localStorage.snapshot</code> → <code>./vsp_choice_master_v7_full_fixed.csv</code> → <code>[page-dir]/vsp_choice_master_v7_full_fixed.csv</code> → <code>/Revopt-site/vsp_choice_master_v7_full_fixed.csv</code>. A successful online load saves a fresh offline snapshot.</div>
   </section>
 
   <script>
@@ -175,7 +177,7 @@
         AR: t.includes(' AR') || t.startsWith('AR') || t.includes('ANTI-REFLECT'),
         ASPHERIC: t.includes('ASPHERIC'),
         GLASS: t.includes('GLASS'),
-        OVERSIZE: t.includes('OVERSIZE') || t.includes('OVR')
+        OVERSIZE: t.includes('OVERSIZE') || t.includes('OVR') || t.includes('61MM')
       };
 
       return {
@@ -195,9 +197,7 @@
     function buildUniverse(rows){
       const mapped = rows.map(classify).filter(Boolean);
       return mapped.filter(it=>{
-        if(it.material){
-          return true; // base materials allowed
-        }
+        if(it.baseKind){ return true; } // allow all base
         // enhancements: only drop if explicitly non-composable
         return !('composable' in it.raw) || truthy(it.raw.composable);
       });
@@ -219,18 +219,15 @@
         toggles
       );
 
-      // Choose base set depending on lensType
       const isMF = lensType==='MF';
       const bases = pool.filter(x => (isMF ? x.baseKind==='MF' : x.baseKind==='SV'));
-      const enh   = pool.filter(x => !x.baseKind); // non-base enhancements (AR, Oversize, Sun, etc.)
+      const enh   = pool.filter(x => !x.baseKind);
 
-      // Buckets for base choices
       const buckets = bases.reduce((m,x)=>{ const k=x.material||x.desc; (m[k]??=[]).push(x); return m; }, {});
       const keys = Object.keys(buckets);
 
       const candidateKeys = (materialPref && keys.includes(materialPref)) ? [materialPref] : keys;
 
-      // Enhancement picks
       const bestAR       = toggles.AR       ? enh.filter(e=>e.f.AR).sort(byProfitDesc)[0]       : null;
       const bestOversize = toggles.OVERSIZE ? enh.filter(e=>e.f.OVERSIZE).sort(byProfitDesc)[0] : null;
 
@@ -292,27 +289,48 @@
 
     function saveSnapshot(csvText){ try{ localStorage.setItem('vsp_choice_snapshot_v7', csvText); }catch(e){} }
     function loadSnapshot(){ try{ return localStorage.getItem('vsp_choice_snapshot_v7'); }catch(e){ return null; } }
+    function clearSnapshot(){ try{ localStorage.removeItem('vsp_choice_snapshot_v7'); }catch(e){} }
+
+    async function tryFetch(url){
+      const bust = (url.includes('?')? '&':'?') + 't=' + Date.now();
+      const full = url + bust;
+      const r = await fetch(full, {cache:'no-store'});
+      if(!r.ok) throw new Error(r.status+': '+r.statusText+' @ '+url);
+      return r.text();
+    }
 
     async function loadCSV(){
       const badge = document.getElementById('csvStatus');
+      const tried = [];
+      // 1) snapshot
       const snap = loadSnapshot();
       if(snap){
         badge.textContent = 'CSV: offline snapshot';
         badge.style.borderColor = '#3c6';
+        document.getElementById('diag').textContent = 'Loaded snapshot. Next online paths will refresh cache.';
         return parseCSV(snap);
       }
-      try{
-        const resp = await fetch('./vsp_choice_master_v7_full_fixed.csv', {cache:'no-store'});
-        if(resp.ok){
-          const text = await resp.text();
+      // 2) attempt multiple paths
+      const baseDir = window.location.pathname.replace(/[^/]+$/,'');
+      const candidates = [
+        './vsp_choice_master_v7_full_fixed.csv',
+        baseDir + 'vsp_choice_master_v7_full_fixed.csv',
+        '/Revopt-site/vsp_choice_master_v7_full_fixed.csv'
+      ];
+      for(const u of candidates){
+        try{
+          const text = await tryFetch(u);
           saveSnapshot(text);
-          badge.textContent = 'CSV: loaded from /vsp_choice_master_v7_full_fixed.csv';
+          badge.textContent = 'CSV: loaded from '+u;
           badge.style.borderColor = '#6cf';
           return parseCSV(text);
-        }
-      }catch(err){ /* ignore and fall through */ }
+        }catch(e){ tried.push(String(e.message||e)); }
+      }
       badge.textContent = 'CSV: not found';
       badge.style.borderColor = '#f66';
+      document.getElementById('diag').textContent = 'Tried URLs:
+- ' + tried.join('
+- ');
       return [];
     }
 
@@ -337,6 +355,7 @@
     }
 
     (async function init(){
+      document.getElementById('resetCache').addEventListener('click', async ()=>{ clearSnapshot(); document.getElementById('csvStatus').textContent='CSV: cache cleared'; UNIVERSE = buildUniverse(await loadCSV()); recalc(); });
       const raw = await loadCSV();
       UNIVERSE = buildUniverse(raw);
       document.getElementById('forceRefresh').addEventListener('click', recalc);
