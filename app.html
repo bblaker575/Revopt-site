@@ -37,7 +37,7 @@
       <h1>RevSight AI — VSP Choice Bundles</h1>
       <div class="sub">
         SV-first. Tiers ranked by <b>practice profit (copay − chargeback)</b>. AR default <b>ON</b> with step-down (Best→Better→Good).
-        <b>Mutually exclusive</b> sun: Clear / Tinted / Polarized / Transitions®. Offline cache enabled.
+        Sun is <b>mutually exclusive</b>: Clear / Tinted / Polarized / Transitions®. Offline cache enabled.
       </div>
     </div>
     <div class="sub" id="version">loading…</div>
@@ -61,6 +61,7 @@
       <label class="switch"><input type="checkbox" id="includeOversize"> Oversize</label>
       <label class="switch"><input type="checkbox" id="includeGlass"> Glass</label>
 
+      <!-- Mutually exclusive sun selection -->
       <label class="switch">Lens tint
         <select id="lensTint">
           <option value="clear" selected>Clear</option>
@@ -80,12 +81,18 @@
     // ---------------- Config ----------------
     const DEFAULT_CSV = 'data/vsp_choice_master_v7_full_fixed.csv';
 
+    // Policy: enforce D-coded polarized add-ons for SV & LINED
+    const REQUIRE_D_CODES_FOR_SV_AND_LINED_POLARIZED = true;
+
     // ---------------- Utils -----------------
     const el = (id)=>document.getElementById(id);
     const sum = (a)=>a.reduce((x,y)=>x+y,0);
     const money = (v)=>`$${v.toFixed(2)}`;
     const num = (v)=>{ const x=parseFloat(String(v??'').replace(/[^0-9.-]/g,'')); return isFinite(x)?x:0; };
     const quickHash=(s)=>{ let h=2166136261>>>0; for(let i=0;i<s.length;i++){ h^=s.charCodeAt(i); h=Math.imul(h,16777619)>>>0; } return ('00000000'+h.toString(16)).slice(-8); };
+    const N = s => String(s||'').toLowerCase();
+    const isDCode = r => /^D/i.test((r.code||'').trim());
+    const isPPhoto = r => /^P(M|R)/i.test((r.code||'').trim()); // PM/PR
 
     // CSV parser with "" escape handling
     function parseCSV(text){
@@ -161,6 +168,7 @@
     }
 
     const profitOf = (row)=> num(row.copay) - num(row.chargeback); // LOCKED: copay − chargeback
+    const pickBest = (arr)=> (arr && arr.length ? [...arr].sort((a,b)=>profitOf(b)-profitOf(a))[0] : null);
 
     // Rank AR by explicit grade D>C>B>A when present; fallback to profit
     function rankAR(ars){
@@ -177,8 +185,6 @@
         return profitOf(b)-profitOf(a);
       });
     }
-
-    const pickBest = (arr)=> (arr && arr.length ? [...arr].sort((a,b)=>profitOf(b)-profitOf(a))[0] : null);
 
     function line(row){
       const cop = num(row.copay), cb=num(row.chargeback), pr=cop-cb;
@@ -206,47 +212,70 @@
       const wantGlass = el('includeGlass').checked;
       const tintSel = el('lensTint').value; // clear|tinted|polarized|transitions
 
-      // -------- Base candidates --------
+      // -------- Base candidates by family --------
       let base = [];
-      if(fam==='SV')       base = byKey('base_material').filter(r=>applies(r,fam));
+      if(fam==='SV')         base = byKey('base_material').filter(r=>applies(r,fam));
       else if(fam==='LINED') base = byKey('occupational').filter(r=>applies(r,fam));
       else if(fam==='PAL')   base = byKey('progressive_level').filter(r=>applies(r,fam));
 
-      // Exclude base rows that already bake in sun tech to avoid double-adding
+      // ---- Base filters ----
       base = base.filter(r=>{
-        const name=(r.enhancement||'').toLowerCase();
+        const name=N(r.enhancement);
         if(!wantAsp   && name.includes('aspheric')) return false;
         if(!wantGlass && name.includes('glass'))    return false;
+
+        // PAL + Polarized => polarized is a MATERIAL (keep only polarized progressive rows)
+        if(fam==='PAL' && tintSel==='polarized')   return /polariz/.test(name);
+
+        // Otherwise exclude any base rows that already bake in sun
         if(/photochrom|polariz|tint|tinted|sunglass|gradient/.test(name)) return false;
+
         return true;
       });
 
       // -------- Add-on pools --------
-      // AR pool (tiered)
+      // AR (tiered)
       const arPool = wantAR ? byKey('ar_level').filter(r=>applies(r,fam)) : [];
       const arRanked = wantAR ? rankAR(arPool) : [];
 
-      // Sun pool (mutually exclusive)
+      // Sun tech (mutually exclusive; PAL+polarized handled in base)
       const sunAll = byKey('sun_tech').filter(r=>applies(r,fam)).filter(r=>{
-        const n=(r.enhancement||'').toLowerCase();
-        if(!wantGlass && n.includes('glass')) return false;
+        if(!wantGlass && N(r.enhancement).includes('glass')) return false;
         return true;
       });
-      const sunPick = (()=> {
-        const N = (x)=>String(x||'').toLowerCase();
-        if(tintSel==='clear') return null;
-        if(tintSel==='transitions') return pickBest(sunAll.filter(r=>/photochrom/.test(N(r.enhancement))));
-        if(tintSel==='polarized')   return pickBest(sunAll.filter(r=>/polariz/.test(N(r.enhancement))));
-        if(tintSel==='tinted')      return pickBest(sunAll.filter(r=>{
-          const n=N(r.enhancement);
-          return !/photochrom|polariz/.test(n) && /tint|tinted|solid|gradient|sunglass/.test(n);
-        }));
-        return null;
-      })();
+
+      let sunPick = null;
+      if (tintSel==='clear') {
+        sunPick = null;
+      } else if (tintSel==='polarized') {
+        if (fam==='PAL') {
+          // Already handled as base material
+          sunPick = null;
+        } else {
+          // SV & LINED: use D-coded polarized add-ons only
+          let pool = sunAll.filter(r=>/polariz/.test(N(r.enhancement)));
+          if (REQUIRE_D_CODES_FOR_SV_AND_LINED_POLARIZED) {
+            pool = pool.filter(isDCode);
+          }
+          sunPick = pickBest(pool);
+        }
+      } else if (tintSel==='transitions') {
+        // Photochromic P-codes preferred (PR/PM)
+        let pool = sunAll.filter(r=>/photochrom/.test(N(r.enhancement)));
+        const pPool = pool.filter(isPPhoto);
+        sunPick = pickBest(pPool.length ? pPool : pool);
+      } else if (tintSel==='tinted') {
+        sunPick = pickBest(
+          sunAll.filter(r=>{
+            const n=N(r.enhancement);
+            return !/photochrom|polariz/.test(n) && /tint|tinted|solid|gradient|sunglass/.test(n);
+          })
+        );
+      }
 
       // Oversize (single best)
       const overs = wantOS ? pickBest(byKey('oversize').filter(r=>applies(r,fam)).filter(r=>{
-        const n=(r.enhancement||'').toLowerCase();
+        const n=N(r.enhancement);
         if(!wantGlass && n.includes('glass')) return false;
         return true;
       })) : null;
@@ -256,7 +285,7 @@
         if(!wantAR || !arRanked.length) return null;
         if(idx < arRanked.length) return arRanked[idx];
         return arRanked[arRanked.length-1];
-      }
+        }
 
       // Selection helpers
       function selectMaxProfit(candidates, arRow, excludeLabels=new Set()){
@@ -282,15 +311,10 @@
 
       const bestAR = arForTier(0), midAR = arForTier(1), lowAR = arForTier(2);
 
-      // Best: max profit with highest AR (or none if AR off)
       const best = selectMaxProfit(base, bestAR);
       const used = new Set(best ? [best.label] : []);
-
-      // Better: max profit different base with next AR
       const mid  = selectMaxProfit(base, midAR, used) || selectMaxProfit(base, bestAR, used);
       if(mid) used.add(mid.label);
-
-      // Good: min copay different base with lowest AR
       const good = selectMinCopay(base, lowAR, used) || selectMinCopay(base, midAR||bestAR, used);
 
       renderStack([{name:'Good', cls:'good', b:good},
@@ -312,7 +336,7 @@
           </div>
           <div class="totals">
             <div>Copay: <span class="money">${money(b.copay)}</span></div>
-            <div>Chargeback: <span class="money">${money(b.chargeback)}</span></div>
+            <div>Service Fee: <span class="money">${money(b.chargeback)}</span></div>
             <div>Profit: <span class="money">${money(b.profit)}</span></div>
           </div>
         </div>`;
