@@ -1,0 +1,462 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>PayerEdge — VSP Choice Bundles</title>
+  <style>
+    /* ===== PayerEdge Skin v1 (UI-only) ===== */
+    :root{
+      --bg:#0a0f18;
+      --fg:#eaf0ff;
+      --muted:#9fb0c9;
+      --card:#0f1724;
+      --line:#263448;
+      --accent:#5aa0ff;
+      --ok:#10b981;      /* Best */
+      --mid:#f59e0b;     /* Better */
+      --low:#3fa3ff;     /* Good */
+      --shadow: 0 10px 18px rgba(0,0,0,.28), 0 1px 0 rgba(255,255,255,.02) inset;
+      --radius:14px; --radius-sm:10px;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      background:radial-gradient(1200px 600px at 20% -10%, rgba(40,80,150,.15), transparent 60%),
+                 radial-gradient(900px 500px at 110% 10%, rgba(40,150,100,.08), transparent 60%),
+                 var(--bg);
+      color:var(--fg);
+      font:15px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+      margin:0;
+      -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
+    }
+    header{
+      position:sticky; top:0; z-index:10;
+      display:flex; align-items:center; justify-content:space-between; gap:12px;
+      padding:14px 18px;
+      background:linear-gradient(0deg, rgba(10,15,24,.75), rgba(10,15,24,.9));
+      border-bottom:1px solid var(--line); backdrop-filter: blur(8px);
+    }
+    .brand{display:flex;align-items:center;gap:10px}
+    .brand h1{font-size:18px;margin:0; letter-spacing:.2px}
+    .sub{color:var(--muted);font-size:12px}
+    .version{color:var(--muted);font-variant-numeric:tabular-nums}
+    main{padding:16px}
+    .bar{
+      display:flex; flex-wrap:wrap; gap:12px; align-items:center;
+      margin:0 0 16px; padding:12px;
+      border:1px solid var(--line); border-radius:var(--radius);
+      background:linear-gradient(180deg, #0c1422, #0b1220);
+      box-shadow: var(--shadow);
+    }
+    .btn{
+      background:#122135; border:1px solid var(--line); color:var(--fg);
+      padding:8px 12px; border-radius:var(--radius-sm); cursor:pointer;
+      transition: transform .05s ease, background .15s ease, border .15s ease; font-weight:600;
+    }
+    .btn:hover{ background:#152742; border-color:#2e4160 }
+    .btn:active{ transform: translateY(1px) }
+    .switch{display:inline-flex;align-items:center;gap:8px}
+    .switch select,.switch input[type="checkbox"]{ accent-color:var(--accent) }
+    select{
+      background:#0f1b2c; color:var(--fg);
+      border:1px solid var(--line); border-radius:10px; padding:6px 8px; outline:none;
+    }
+    select:focus{ box-shadow:0 0 0 3px rgba(90,160,255,.25) }
+    .stack{ display:grid; gap:16px; grid-template-columns:repeat(auto-fit, minmax(300px,1fr)); align-items:stretch }
+    .tier{
+      background:linear-gradient(180deg, #0f1724, #0e1622);
+      border:1px solid var(--line); border-radius:var(--radius);
+      padding:14px; box-shadow: var(--shadow);
+    }
+    .tierHead{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px; gap:10px}
+    .pill{
+      display:inline-flex; align-items:center; gap:6px;
+      font-size:11px; border:1px solid var(--line);
+      border-radius:999px; padding:3px 10px; background:#0c1422;
+    }
+    .pill .ico{width:12px;height:12px;opacity:.9}
+    .good{border-color: color-mix(in oklab, var(--low) 45%, var(--line))}
+    .better{border-color: color-mix(in oklab, var(--mid) 55%, var(--line))}
+    .best{border-color: color-mix(in oklab, var(--ok) 55%, var(--line))}
+    .totals{display:flex;gap:18px;flex-wrap:wrap}
+    .money{font-weight:800; font-variant-numeric: tabular-nums}
+    table{width:100%;border-collapse:collapse;margin-top:8px}
+    th,td{border-bottom:1px dashed #203043;padding:8px 6px;text-align:left;font-size:13px}
+    th{color:var(--muted);font-weight:700}
+    .nowrap{white-space:nowrap}
+    .code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:12px; color:#cfe1ff}
+    #status{ margin-left:auto; padding:4px 8px; border-radius:999px; border:1px dashed var(--line); background:#0c1422 }
+    :focus-visible{ outline:2px solid var(--accent); outline-offset:2px; border-radius:8px }
+    @media print{
+      header,.bar{ display:none }
+      body{ background:#fff; color:#000 }
+      .tier{ break-inside: avoid; border:1px solid #000; box-shadow:none }
+      table, th, td{ border-color:#000 }
+    }
+  </style>
+
+  <!-- Minimal SVG icons (no deps) -->
+  <svg style="display:none" aria-hidden="true">
+    <symbol id="ico-good" viewBox="0 0 24 24"><path fill="currentColor" d="M21 7L9 19l-6-6 1.5-1.5L9 16l10.5-10.5z"/></symbol>
+    <symbol id="ico-better" viewBox="0 0 24 24"><path fill="currentColor" d="M3 12h18v2H3zm0-6h18v2H3zm0 12h12v2H3z"/></symbol>
+    <symbol id="ico-best" viewBox="0 0 24 24"><path fill="currentColor" d="M12 17.27 18.18 21 16.54 13.97 22 9.24l-7.19-.62L12 2 9.19 8.62 2 9.24l5.46 4.73L5.82 21z"/></symbol>
+  </svg>
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <h1>PayerEdge — VSP Choice Bundles</h1>
+      <div class="sub">Ranked by <b>practice profit</b>. AR defaults <b>ON</b> (Best→Better→Good). Clear/Tinted/Polarized/Transitions® are exclusive.</div>
+    </div>
+    <div class="version sub" id="version">loading…</div>
+  </header>
+
+  <main>
+    <div class="bar" role="toolbar" aria-label="Bundle controls">
+      <button class="btn" id="forceRefresh" title="Reload CSV and recompute">Force Refresh</button>
+      <button class="btn" id="clearCache" title="Clear local CSV cache">Clear Local Cache</button>
+
+      <label class="switch">Lens family
+        <select id="lensFamily" aria-label="Lens family">
+          <option value="SV" selected>Single Vision</option>
+          <option value="LINED">Lined Bi/Tri</option>
+          <option value="PAL">Progressive</option>
+        </select>
+      </label>
+
+      <label class="switch">Lens tint
+        <select id="lensTint" aria-label="Lens tint">
+          <option value="clear" selected>Clear</option>
+          <option value="tinted">Tinted</option>
+          <option value="polarized">Polarized</option>
+          <option value="transitions">Transitions®</option>
+        </select>
+      </label>
+
+      <label class="switch"><input type="checkbox" id="includeAR" checked> Include AR (tiered)</label>
+      <label class="switch"><input type="checkbox" id="includeAspheric"> Aspheric</label>
+      <label class="switch"><input type="checkbox" id="includeOversize"> Oversize</label>
+      <label class="switch"><input type="checkbox" id="includeGlass"> Glass</label>
+
+      <span class="sub" id="status" aria-live="polite"></span>
+    </div>
+
+    <div id="stack" class="stack"></div>
+  </main>
+
+  <script>
+    /* === Business logic preserved exactly === */
+    const DEFAULT_CSV = 'data/vsp_choice_master_v7_full_fixed.csv';
+    const REQUIRE_D_CODES_FOR_SV_AND_LINED_POLARIZED = true;
+
+    const el = (id)=>document.getElementById(id);
+    const sum = (a)=>a.reduce((x,y)=>x+y,0);
+    const money = (v)=>`$${v.toFixed(2)}`;
+    const num = (v)=>{ const x=parseFloat(String(v??'').replace(/[^0-9.-]/g,'')); return isFinite(x)?x:0; };
+    const quickHash=(s)=>{ let h=2166136261>>>0; for(let i=0;i<s.length;i++){ h^=s.charCodeAt(i); h=Math.imul(h,16777619)>>>0; } return ('00000000'+h.toString(16)).slice(-8); };
+    const N = s => String(s||'').toLowerCase();
+    const isDCode  = r => /^d/i.test((r.code||'').trim());
+    const isPPhoto = r => /^p(m|r)/i.test((r.code||'').trim());
+    const isGlassBase = row => /glass/i.test(N(row?.enhancement || row?.subtype || ''));
+    const preferPhotoCodeForBase = row => (isGlassBase(row) ? 'PM' : 'PR');
+
+    function parseCSV(text){
+      const rows=[]; let row=[], field='', q=false;
+      for(let i=0;i<text.length;i++){
+        const ch=text[i];
+        if(ch==='\"'){ if(q && text[i+1]==='\"'){ field+='\"'; i++; } else { q=!q; } continue; }
+        if(!q && ch===','){ row.push(field); field=''; continue; }
+        if(!q && (ch==='\n' || ch==='\r')){ if(field!==''||row.length){ row.push(field); rows.push(row); row=[]; field=''; } continue; }
+        field+=ch;
+      }
+      if(field!==''||row.length){ row.push(field); rows.push(row); }
+      const headers = rows.shift().map(h=>h.replace(/^\"|\"$/g,'').trim());
+      return rows.filter(r=>r.length>=headers.length).map(r=>{
+        const o={}; headers.forEach((h,i)=>o[h]=(r[i]||'').replace(/^\"|\"$/g,'').trim()); return o;
+      });
+    }
+
+    const CACHE_KEY='rev-vsp-choice-csv-v1';
+    const META_KEY='rev-vsp-choice-meta-v1';
+    const setCache=(t,m)=>{ localStorage.setItem(CACHE_KEY,t); localStorage.setItem(META_KEY,JSON.stringify(m)); };
+    const getCache=()=>({ text: localStorage.getItem(CACHE_KEY), meta: JSON.parse(localStorage.getItem(META_KEY)||'{}') });
+    const clearCache=()=>{ localStorage.removeItem(CACHE_KEY); localStorage.removeItem(META_KEY); };
+
+    let DATA=[];
+
+    async function loadCSV(){
+      const status=el('status'); status.textContent=' loading…';
+      try{
+        const res = await fetch(DEFAULT_CSV,{cache:'no-store'});
+        if(!res.ok) throw new Error('HTTP '+res.status);
+        const text = await res.text();
+        const meta = { plan:'VSP_choice', version:new Date().toISOString().slice(0,10)+'.gbb', source:'network:'+DEFAULT_CSV, sha:quickHash(text) };
+        setCache(text, meta);
+        DATA = parseCSV(text);
+        renderMeta(DATA.length, meta);
+        status.textContent = ` [ok] loaded ${DATA.length} rows`;
+        computeBundles();
+      }catch(err){
+        const {text, meta} = getCache();
+        if(text){
+          DATA = parseCSV(text);
+          renderMeta(DATA.length, {...meta, source:'cache'});
+          el('status').textContent = ` Network failed (${err.message}). Using cached data (${DATA.length} rows).`;
+          computeBundles();
+        }else{
+          el('status').textContent = ' Load failed: '+err.message+' (no cache available)';
+        }
+      }
+    }
+
+    function renderMeta(count, meta){
+      el('version').textContent = `plan=${meta.plan||'VSP_choice'} • rows=${count||0} • version=${meta.version||'—'} • source=${meta.source||'—'} • sha=${meta.sha||'—'}`;
+    }
+
+    const byKey=(k)=>DATA.filter(r=>(r.active||'yes').toLowerCase()==='yes' && (r.exclusive_key||'').toLowerCase()===k);
+
+    function applies(row, fam){
+      const a=(row.applies_to||'ALL').toUpperCase();
+      if(a.includes('ALL')) return true;
+      if(fam==='SV')     return a.includes('SV');
+      if(fam==='LINED')  return a.includes('OCC');
+      if(fam==='PAL')    return a.includes('MF');
+      return true;
+    }
+
+    const profitOf = (row)=> num(row.copay) - num(row.chargeback);
+    const pickBest = (arr)=> (arr && arr.length ? [...arr].sort((a,b)=>profitOf(b)-profitOf(a))[0] : null);
+
+    function rankAR(ars){
+      const gradeVal = (s)=>{
+        const m = String(s||'').match(/\b([A-D])\b/i);
+        if(!m) return null;
+        const g = m[1].toUpperCase();
+        return {A:1,B:2,C:3,D:4}[g]||null;
+      };
+      return [...ars].sort((a,b)=>{
+        const ga = gradeVal(a.enhancement)||-1, gb = gradeVal(b.enhancement)||-1;
+        if(ga!==gb) return gb-ga;   // D..A
+        return profitOf(b)-profitOf(a);
+      });
+    }
+
+    function materialKey(label) {
+      const s = N(label);
+      if(/polycarb/.test(s)) return 'poly';
+      if(/trivex/.test(s)) return 'trivex';
+      if(/1\.74|1\.75/.test(s)) return 'hi174';
+      if(/1\.70|1\.71|above/.test(s)) return 'hi70';
+      if(/1\.66|1\.67/.test(s)) return 'hi167';
+      if(/cr[- ]?39|plastic(?!.*high)/.test(s)) return 'cr39';
+      return 'other';
+    }
+    function sunMatchesBase(sunRow, baseRow) {
+      const mk = materialKey(baseRow.enhancement || baseRow.subtype || '');
+      const t = N(sunRow.enhancement);
+      switch (mk) {
+        case 'poly':   return /polycarb/.test(t);
+        case 'trivex': return /trivex/.test(t);
+        case 'hi174':  return /(1\.74|1\.75)/.test(t);
+        case 'hi70':   return /(1\.70|1\.71|above)/.test(t);
+        case 'hi167':  return /(1\.66|1\.67)/.test(t);
+        case 'cr39':   return /(cr[- ]?39|plastic(?!.*high))/.test(t);
+        default:       return true;
+      }
+    }
+
+    function line(row){
+      const cop = num(row.copay), cb=num(row.chargeback), pr=cop-cb;
+      return { name: row.enhancement||row.subtype||'—', code: row.code||'', copay:cop, chargeback:cb, profit:pr };
+    }
+
+    function makeBundle(base, addOns){
+      const items=[base, ...addOns.filter(Boolean)];
+      const lines = items.map(line);
+      const cop = sum(lines.map(x=>x.copay));
+      const cb  = sum(lines.map(x=>x.chargeback));
+      const pr  = cop - cb;
+      const ratio = cop>0 ? (pr/cop) : 0;
+      const label = base.enhancement || base.subtype || base.code || 'Base';
+      return { label, lines, copay:cop, chargeback:cb, profit:pr, ratio };
+    }
+
+    function computeBundles(){
+      if(!DATA.length){ el('stack').innerHTML=''; return; }
+
+      const fam = el('lensFamily').value;
+      const wantAR = el('includeAR').checked;
+      const wantAsp = el('includeAspheric').checked;
+      const wantOS  = el('includeOversize').checked;
+      const wantGlass = el('includeGlass').checked;
+      const tintSel = el('lensTint').value; // clear|tinted|polarized|transitions
+
+      const sunAll = byKey('sun_tech').filter(r=>applies(r,fam)).filter(r=>{
+        const n=N(r.enhancement);
+        if(!wantGlass && n.includes('glass')) return false;
+        return true;
+      });
+
+      let base = [];
+      if (fam === 'PAL') {
+        base = byKey('progressive_level').filter(r=>applies(r,fam)).filter(r=>{
+          const name=N(r.enhancement);
+          if(!wantAsp && name.includes('aspheric')) return false;
+          if(!wantGlass && name.includes('glass'))  return false;
+          if (tintSel==='polarized') return /polariz/.test(name); // polarized material rows only
+          return !/(photochrom|polariz|tint|tinted|sunglass|gradient)/.test(name);
+        });
+      } else {
+        if (tintSel==='polarized') {
+          base = sunAll.filter(r => /polariz/.test(N(r.enhancement)) && isDCode(r));
+        } else {
+          const pool = (fam==='SV' ? byKey('base_material') : byKey('occupational'));
+          base = pool.filter(r=>applies(r,fam)).filter(r=>{
+            const name=N(r.enhancement);
+            if(!wantAsp && name.includes('aspheric')) return false;
+            if(!wantGlass && name.includes('glass'))  return false;
+            if(/photochrom|polariz|tint|tinted|sunglass|gradient/.test(name)) return false;
+            return true;
+          });
+        }
+      }
+
+      const arPool = wantAR ? byKey('ar_level').filter(r=>applies(r,fam)) : [];
+      const arRanked = wantAR ? rankAR(arPool) : [];
+
+      function chooseSunFor(baseRow) {
+        if (tintSel==='clear' || tintSel==='polarized') return null;
+
+        if (tintSel==='transitions') {
+          const want = preferPhotoCodeForBase(baseRow);
+          let pool = sunAll.filter(r => /photochrom/.test(N(r.enhancement)));
+          let choice = pickBest(pool.filter(r => new RegExp('^' + want, 'i').test((r.code || '').trim())));
+          if (choice) return choice;
+          choice = pickBest(pool.filter(isPPhoto));
+          if (choice) return choice;
+          return pickBest(pool);
+        }
+
+        if (tintSel==='tinted') {
+          let pool = sunAll.filter(r=>{
+            const n=N(r.enhancement);
+            return sunMatchesBase(r, baseRow) && !/photochrom|polariz/.test(n) && /tint|tinted|solid|gradient|sunglass/.test(n);
+          });
+          return pickBest(pool);
+        }
+
+        return null;
+      }
+
+      const overs = wantOS ? pickBest(byKey('oversize').filter(r=>applies(r,fam)).filter(r=>{
+        const n=N(r.enhancement);
+        if(!wantGlass && n.includes('glass')) return false;
+        return true;
+      })) : null;
+
+      function arForTier(idx){
+        if(!wantAR || !arRanked.length) return null;
+        if(idx < arRanked.length) return arRanked[idx];
+        return arRanked[arRanked.length-1];
+      }
+
+      function selectMaxProfit(candidates, arRow, excludeLabels=new Set()){
+        let best=null;
+        for(const m of candidates){
+          const lbl=(m.enhancement||m.subtype||m.code||'Base');
+          if(excludeLabels.has(lbl)) continue;
+          const b = makeBundle(m, [arRow, chooseSunFor(m), overs]);
+          if(!best || b.profit>best.profit || (b.profit===best.profit && b.ratio>best.ratio)) best=b;
+        }
+        return best;
+      }
+      function selectMinCopay(candidates, arRow, excludeLabels=new Set()){
+        let best=null;
+        for(const m of candidates){
+          const lbl=(m.enhancement||m.subtype||m.code||'Base');
+          if(excludeLabels.has(lbl)) continue;
+          const b = makeBundle(m, [arRow, chooseSunFor(m), overs]);
+          if(!best || b.copay<best.copay || (b.copay===best.copay && b.profit>best.profit)) best=b;
+        }
+        return best;
+      }
+
+      const bestAR = arForTier(0), midAR = arForTier(1), lowAR = arForTier(2);
+
+      const best = selectMaxProfit(base, bestAR);
+      const used = new Set(best ? [best.label] : []);
+      const mid  = selectMaxProfit(base, midAR, used) || selectMaxProfit(base, bestAR, used);
+      if(mid) used.add(mid.label);
+      const good = selectMinCopay(base, lowAR, used) || selectMinCopay(base, midAR||bestAR, used);
+
+      renderStack([{name:'Good', cls:'good', b:good},
+                   {name:'Better', cls:'better', b:mid},
+                   {name:'Best', cls:'best', b:best}]);
+    }
+
+    function tdMoney(v){ return `<td class="money">${money(v)}</td>`; }
+    function renderTier({name, cls, b}){
+      const div=document.createElement('div'); div.className='tier';
+      if(!b){ div.innerHTML=`<div class="tierHead"><div><span class="pill ${cls}">${name}</span></div><div class="sub">no viable bundle</div></div>`; return div; }
+
+      const icoId = name==='Best' ? 'ico-best' : name==='Better' ? 'ico-better' : 'ico-good';
+      const head = `
+        <div class="tierHead">
+          <div>
+            <span class="pill ${cls}"><svg class="ico" aria-hidden="true"><use href="#${icoId}"/></svg>${name}</span>
+            <span class="pill" style="margin-left:8px">${b.label}</span>
+          </div>
+          <div class="totals">
+            <div>Copay: <span class="money">${money(b.copay)}</span></div>
+            <div>Service Fee: <span class="money">${money(b.chargeback)}</span></div>
+            <div>Profit: <span class="money">${money(b.profit)}</span></div>
+          </div>
+        </div>`;
+
+      const lines = b.lines.map(li=>`
+        <tr>
+          <td>${li.name}</td>
+          <td class="code">${li.code||'—'}</td>
+          ${tdMoney(li.copay)}
+          ${tdMoney(li.chargeback)}
+          ${tdMoney(li.profit)}
+        </tr>`).join('');
+
+      div.innerHTML = head + `
+        <table>
+          <thead>
+            <tr>
+              <th>Item</th>
+              <th class="nowrap">Code</th>
+              <th class="nowrap">Copay</th>
+              <th class="nowrap">Service Fee</th>
+              <th class="nowrap">Profit</th>
+            </tr>
+          </thead>
+          <tbody>${lines}</tbody>
+          <tfoot>
+            <tr>
+              <th colspan="2" style="text-align:right">Totals</th>
+              ${tdMoney(b.copay)}${tdMoney(b.chargeback)}${tdMoney(b.profit)}
+            </tr>
+          </tfoot>
+        </table>`;
+      return div;
+    }
+
+    function renderStack(rows){
+      const stack = el('stack');
+      stack.innerHTML='';
+      for(const row of rows){ stack.appendChild(renderTier(row)); }
+    }
+
+    el('forceRefresh').onclick=()=>{ clearCache(); loadCSV(); };
+    el('clearCache').onclick =()=>{ clearCache(); el('status').textContent=' cache cleared — click Force Refresh to reload'; };
+    ['lensFamily','lensTint','includeAR','includeAspheric','includeOversize','includeGlass']
+      .forEach(id=> el(id).onchange=computeBundles );
+
+    (async()=>{ await loadCSV(); })();
+  </script>
+</body>
+</html>
