@@ -5,40 +5,25 @@
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>PayerEdge — VSP Choice Bundles</title>
 
-  <!-- Premium typography (graceful fallback if blocked) -->
+  <!-- Typography -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
 
   <style>
-    /* ========= PayerEdge — Insanely Great UI v2 (presentation-only) ========= */
     :root{
-      /* Brand */
-      --bg:#090e16;              /* deep navy */
-      --bg-elev:#0c1320;
-      --glass:#0a1222cc;
-      --fg:#eaf1ff;
-      --muted:#9fb0c9;
-      --line:#263448;
-      --accent:#72a8ff;          /* electric steel-blue */
-      --accent-2:#7be0c3;        /* mint accent */
-      /* Tiers */
-      --tier-best:#ffd166;       /* warm star gold */
-      --tier-better:#a9c2ff;     /* cool silver-blue */
-      --tier-good:#7be0c3;       /* mint check */
-      /* States/shadows */
-      --shadow-lg:0 18px 40px rgba(0,0,0,.35);
-      --shadow-md:0 10px 26px rgba(0,0,0,.28);
+      --bg:#090e16; --bg-elev:#0c1320; --fg:#eaf1ff; --muted:#9fb0c9; --line:#263448;
+      --accent:#72a8ff; --accent-2:#7be0c3;
+      --tier-best:#ffd166; --tier-better:#a9c2ff; --tier-good:#7be0c3;
+      --shadow-lg:0 18px 40px rgba(0,0,0,.35); --shadow-md:0 10px 26px rgba(0,0,0,.28);
       --radius:18px; --radius-sm:12px;
-
-      /* Type sizes */
-      --fz-12:12px; --fz-13:13px; --fz-14:14px; --fz-15:15px;
-      --fz-18:18px; --fz-20:20px; --fz-28:28px; --fz-36:36px;
+      --fz-12:12px; --fz-13:13px; --fz-15:15px; --fz-18:18px; --fz-20:20px; --fz-36:36px;
     }
     *{box-sizing:border-box}
     html,body{height:100%}
     body{
-      margin:0; background:
+      margin:0;
+      background:
         radial-gradient(1200px 600px at 20% -10%, rgba(90,168,255,.12), transparent 60%),
         radial-gradient(900px 500px at 110% 10%, rgba(123,224,195,.10), transparent 60%),
         var(--bg);
@@ -48,45 +33,16 @@
       font-variant-numeric: tabular-nums;
     }
 
-    /* Header */
     header{
-      position:sticky; top:0; z-index:20;
-      display:flex; justify-content:space-between; align-items:center; gap:14px;
-      padding:16px 20px;
-      background:linear-gradient(180deg, rgba(9,14,22,.95), rgba(9,14,22,.78));
-      border-bottom:1px solid var(--line);
-      backdrop-filter: blur(10px);
-    }
-    .brand{
-      display:flex; gap:12px; align-items:center;
-    }
-    .mark{
-      width:28px; height:28px; border-radius:8px;
-      background:
-        conic-gradient(from 200deg, var(--accent), var(--accent-2)),
-        linear-gradient(180deg, #0d1728, #0b1422);
-      box-shadow: inset 0 0 0 2px rgba(255,255,255,.06), var(--shadow-md);
-      position:relative;
-    }
-    .mark::after{
-      /* subtle "PE" ligature */
-      content:""; position:absolute; inset:5px 7px;
-      background:
-        radial-gradient(circle at 45% 40%, rgba(255,255,255,.22), transparent 45%),
-        linear-gradient(90deg, rgba(255,255,255,.18), rgba(255,255,255,0) 60%);
-      -webkit-mask:
-        linear-gradient(#000 0 0) content-box,
-        linear-gradient(#000 0 0);
-      -webkit-mask-composite: xor; mask-composite: exclude;
-      border-radius:6px;
-      padding:3px;
+      position:sticky; top:0; z-index:20; display:flex; justify-content:space-between; align-items:center; gap:14px;
+      padding:16px 20px; background:linear-gradient(180deg, rgba(9,14,22,.95), rgba(9,14,22,.78));
+      border-bottom:1px solid var(--line); backdrop-filter: blur(10px);
     }
     h1{margin:0; font-weight:800; font-size:var(--fz-20); letter-spacing:.2px}
     .sub{color:var(--muted); font-size:var(--fz-12)}
     .version{color:var(--muted)}
-
-    /* Toolbar */
     main{padding:18px}
+
     .bar{
       display:flex; align-items:center; flex-wrap:wrap; gap:10px 14px;
       background:linear-gradient(180deg, var(--bg-elev), #0b1220);
@@ -94,94 +50,41 @@
       box-shadow: var(--shadow-md);
     }
     .group{display:flex; gap:10px; align-items:center; padding:6px 10px; border-radius:999px; background:#0b1424}
-    .btn{
-      background:#121f35; border:1px solid var(--line);
-      color:var(--fg); padding:8px 12px; border-radius:var(--radius-sm);
-      cursor:pointer; font-weight:600; transition:transform .06s ease, background .15s, border .15s;
-    }
+    .btn{ background:#121f35; border:1px solid var(--line); color:var(--fg); padding:8px 12px; border-radius:var(--radius-sm); cursor:pointer; font-weight:600; transition:.15s }
     .btn:hover{ background:#162844; border-color:#2e4260 }
-    .btn:active{ transform:translateY(1px) }
     .switch{display:inline-flex; align-items:center; gap:8px}
     .switch select, .switch input[type="checkbox"]{ accent-color:var(--accent) }
-    select{
-      background:#0e1a30; color:var(--fg);
-      border:1px solid var(--line); border-radius:10px; padding:6px 8px; outline:none;
-    }
+    select{ background:#0e1a30; color:var(--fg); border:1px solid var(--line); border-radius:10px; padding:6px 8px; outline:none }
     select:focus{ box-shadow:0 0 0 3px rgba(114,168,255,.25) }
+    #status{ margin-left:auto; padding:6px 10px; border-radius:999px; border:1px dashed var(--line); background:#0b1422; color:var(--muted) }
 
-    #status{
-      margin-left:auto; padding:6px 10px; border-radius:999px;
-      border:1px dashed var(--line); background:#0b1422; color:var(--muted);
-    }
-
-    /* Cards */
-    .stack{
-      display:grid; gap:18px;
-      grid-template-columns:repeat(auto-fit, minmax(320px,1fr));
-      align-items:stretch; margin-top:16px;
-    }
-    .tier{
-      background:linear-gradient(180deg, #0f1726, #0c1422);
-      border:1px solid var(--line); border-radius:var(--radius);
-      box-shadow: var(--shadow-lg);
-      padding:16px;
-      transform: translateY(0); opacity:1;
-      transition: transform .25s ease, box-shadow .25s ease, border-color .25s ease, opacity .2s ease;
-    }
-    .tier.pop{ transform: translateY(-2px); box-shadow: 0 22px 48px rgba(0,0,0,.40) }
+    .stack{ display:grid; gap:18px; grid-template-columns:repeat(auto-fit, minmax(320px,1fr)); align-items:stretch; margin-top:16px }
+    .tier{ background:linear-gradient(180deg, #0f1726, #0c1422); border:1px solid var(--line); border-radius:var(--radius); box-shadow: var(--shadow-lg); padding:16px; transition:.25s }
     .tierHead{display:grid; grid-template-columns:1fr auto; align-items:center; gap:10px; margin-bottom:12px}
-
-    /* Tier badges (stars) */
-    .stars{font-weight:800; letter-spacing:.5px; display:flex; align-items:center; gap:8px}
+    .stars{font-weight:800; display:flex; align-items:center; gap:8px}
     .stars .tag{font-size:var(--fz-12); color:var(--muted); padding:2px 8px; border:1px solid var(--line); border-radius:999px; background:#0c1424}
-    .stars.best{color:var(--tier-best)}
-    .stars.better{color:var(--tier-better)}
-    .stars.good{color:var(--tier-good)}
+    .stars.best{color:var(--tier-best)} .stars.better{color:var(--tier-better)} .stars.good{color:var(--tier-good)}
 
-    /* MONEY: Profit is the hero */
-    .figures{
-      text-align:right;
-      display:grid; gap:4px;
-    }
-    .profit{
-      font-size:var(--fz-36); font-weight:800; line-height:1.0;
-      letter-spacing:.2px; color:var(--accent-2);
-      text-shadow: 0 6px 18px rgba(123,224,195,.18);
-    }
-    .kv{ color:var(--fg); font-weight:600 }
-    .kv small{ color:var(--muted); font-weight:600; margin-right:6px }
+    /* Scoreboard: Copay is hero, Service Fee secondary */
+    .figures{ text-align:right; display:grid; gap:2px }
+    .hero{ font-size:var(--fz-36); font-weight:800; line-height:1.0; letter-spacing:.2px; color:#cfe6ff; text-shadow: 0 6px 18px rgba(114,168,255,.18) }
+    .caption{ color:var(--muted); font-size:var(--fz-12) }
+    .svc{ font-weight:800; color:var(--accent-2) }
 
     table{width:100%; border-collapse:collapse; margin-top:12px}
     th,td{border-bottom:1px dashed #203043; padding:9px 6px; text-align:left; font-size:var(--fz-13)}
     th{color:var(--muted); font-weight:700}
     .code{font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size:12px; color:#cfe1ff}
     .money{font-weight:800}
-    .nowrap{white-space:nowrap}
-
-    /* Access & motion */
     :focus-visible{ outline:2px solid var(--accent); outline-offset:2px; border-radius:8px }
-    @media (prefers-reduced-motion: reduce){
-      *{animation:none !important; transition:none !important}
-    }
-
-    /* Print */
-    @media print{
-      header,.bar{display:none}
-      body{background:#fff; color:#000}
-      .tier{break-inside:avoid; border:1px solid #000; box-shadow:none}
-      table, th, td{border-color:#000}
-    }
+    @media print{ header,.bar{display:none} body{background:#fff; color:#000} .tier{break-inside:avoid; border:1px solid #000; box-shadow:none} table, th, td{border-color:#000} }
   </style>
 </head>
-
 <body>
   <header>
-    <div class="brand">
-      <div class="mark" aria-hidden="true"></div>
-      <div>
-        <h1>PayerEdge — VSP Choice Bundles</h1>
-        <div class="sub">Ranked by <b>practice profit</b>. AR defaults <b>ON</b> (Best→Better→Good). Clear / Tinted / Polarized / Transitions® are exclusive.</div>
-      </div>
+    <div>
+      <h1>PayerEdge — VSP Choice Bundles</h1>
+      <div class="sub">Ranked by <b>patient copay</b> (displayed) and <b>service fee</b> for the practice (Copay − Holdback). Sun choices are exclusive.</div>
     </div>
     <div class="version sub" id="version">loading…</div>
   </header>
@@ -192,7 +95,6 @@
         <button class="btn" id="forceRefresh" title="Reload CSV and recompute">Force Refresh</button>
         <button class="btn" id="clearCache" title="Clear local CSV cache">Clear Cache</button>
       </div>
-
       <div class="group">
         <label class="switch">Lens family
           <select id="lensFamily" aria-label="Lens family">
@@ -201,7 +103,6 @@
             <option value="PAL">Progressive</option>
           </select>
         </label>
-
         <label class="switch">Lens tint
           <select id="lensTint" aria-label="Lens tint">
             <option value="clear" selected>Clear</option>
@@ -211,14 +112,12 @@
           </select>
         </label>
       </div>
-
       <div class="group">
         <label class="switch"><input type="checkbox" id="includeAR" checked> Include AR (tiered)</label>
         <label class="switch"><input type="checkbox" id="includeAspheric"> Aspheric</label>
         <label class="switch"><input type="checkbox" id="includeOversize"> Oversize</label>
         <label class="switch"><input type="checkbox" id="includeGlass"> Glass</label>
       </div>
-
       <span id="status" aria-live="polite"></span>
     </div>
 
@@ -226,10 +125,9 @@
   </main>
 
   <script>
-    /* ================== Your original business logic (unchanged) ================== */
+    /* ================== business logic (unchanged) ================== */
     const DEFAULT_CSV = 'data/vsp_choice_master_v7_full_fixed.csv';
     const REQUIRE_D_CODES_FOR_SV_AND_LINED_POLARIZED = true;
-
     const el = (id)=>document.getElementById(id);
     const sum = (a)=>a.reduce((x,y)=>x+y,0);
     const money = (v)=>`$${v.toFixed(2)}`;
@@ -256,13 +154,11 @@
         const o={}; headers.forEach((h,i)=>o[h]=(r[i]||'').replace(/^\"|\"$/g,'').trim()); return o;
       });
     }
-
     const CACHE_KEY='rev-vsp-choice-csv-v1';
     const META_KEY='rev-vsp-choice-meta-v1';
     const setCache=(t,m)=>{ localStorage.setItem(CACHE_KEY,t); localStorage.setItem(META_KEY,JSON.stringify(m)); };
     const getCache=()=>({ text: localStorage.getItem(CACHE_KEY), meta: JSON.parse(localStorage.getItem(META_KEY)||'{}') });
     const clearCache=()=>{ localStorage.removeItem(CACHE_KEY); localStorage.removeItem(META_KEY); };
-
     let DATA=[];
 
     async function loadCSV(){
@@ -289,13 +185,10 @@
         }
       }
     }
-
     function renderMeta(count, meta){
       el('version').textContent = `plan=${meta.plan||'VSP_choice'} • rows=${count||0} • version=${meta.version||'—'} • source=${meta.source||'—'} • sha=${meta.sha||'—'}`;
     }
-
     const byKey=(k)=>DATA.filter(r=>(r.active||'yes').toLowerCase()==='yes' && (r.exclusive_key||'').toLowerCase()===k);
-
     function applies(row, fam){
       const a=(row.applies_to||'ALL').toUpperCase();
       if(a.includes('ALL')) return true;
@@ -304,94 +197,41 @@
       if(fam==='PAL')    return a.includes('MF');
       return true;
     }
-
     const profitOf = (row)=> num(row.copay) - num(row.chargeback);
     const pickBest = (arr)=> (arr && arr.length ? [...arr].sort((a,b)=>profitOf(b)-profitOf(a))[0] : null);
 
     function rankAR(ars){
-      const gradeVal = (s)=>{
-        const m = String(s||'').match(/\b([A-D])\b/i);
-        if(!m) return null;
-        const g = m[1].toUpperCase();
-        return {A:1,B:2,C:3,D:4}[g]||null;
-      };
-      return [...ars].sort((a,b)=>{
-        const ga = gradeVal(a.enhancement)||-1, gb = gradeVal(b.enhancement)||-1;
-        if(ga!==gb) return gb-ga;   // D..A
-        return profitOf(b)-profitOf(a);
-      });
+      const gradeVal = (s)=>{ const m = String(s||'').match(/\b([A-D])\b/i); if(!m) return null; const g = m[1].toUpperCase(); return {A:1,B:2,C:3,D:4}[g]||null; };
+      return [...ars].sort((a,b)=>{ const ga = gradeVal(a.enhancement)||-1, gb = gradeVal(b.enhancement)||-1; if(ga!==gb) return gb-ga; return profitOf(b)-profitOf(a); });
     }
-
-    function materialKey(label) {
-      const s = N(label);
-      if(/polycarb/.test(s)) return 'poly';
-      if(/trivex/.test(s)) return 'trivex';
-      if(/1\.74|1\.75/.test(s)) return 'hi174';
-      if(/1\.70|1\.71|above/.test(s)) return 'hi70';
-      if(/1\.66|1\.67/.test(s)) return 'hi167';
-      if(/cr[- ]?39|plastic(?!.*high)/.test(s)) return 'cr39';
-      return 'other';
+    function materialKey(label){ const s=N(label); if(/polycarb/.test(s))return'poly'; if(/trivex/.test(s))return'trivex'; if(/1\.74|1\.75/.test(s))return'hi174'; if(/1\.70|1\.71|above/.test(s))return'hi70'; if(/1\.66|1\.67/.test(s))return'hi167'; if(/cr[- ]?39|plastic(?!.*high)/.test(s))return'cr39'; return'other'; }
+    function sunMatchesBase(sunRow, baseRow){
+      const mk=materialKey(baseRow.enhancement||baseRow.subtype||''), t=N(sunRow.enhancement);
+      switch(mk){case'poly':return /polycarb/.test(t); case'trivex':return /trivex/.test(t); case'hi174':return /(1\.74|1\.75)/.test(t); case'hi70':return /(1\.70|1\.71|above)/.test(t); case'hi167':return /(1\.66|1\.67)/.test(t); case'cr39':return /(cr[- ]?39|plastic(?!.*high))/.test(t); default:return true;}
     }
-    function sunMatchesBase(sunRow, baseRow) {
-      const mk = materialKey(baseRow.enhancement || baseRow.subtype || '');
-      const t = N(sunRow.enhancement);
-      switch (mk) {
-        case 'poly':   return /polycarb/.test(t);
-        case 'trivex': return /trivex/.test(t);
-        case 'hi174':  return /(1\.74|1\.75)/.test(t);
-        case 'hi70':   return /(1\.70|1\.71|above)/.test(t);
-        case 'hi167':  return /(1\.66|1\.67)/.test(t);
-        case 'cr39':   return /(cr[- ]?39|plastic(?!.*high))/.test(t);
-        default:       return true;
-      }
-    }
-
-    function line(row){
-      const cop = num(row.copay), cb=num(row.chargeback), pr=cop-cb;
-      return { name: row.enhancement||row.subtype||'—', code: row.code||'', copay:cop, chargeback:cb, profit:pr };
-    }
-
+    function line(row){ const cop=num(row.copay), cb=num(row.chargeback), pr=cop-cb; return { name:row.enhancement||row.subtype||'—', code:row.code||'', copay:cop, chargeback:cb, profit:pr }; }
     function makeBundle(base, addOns){
-      const items=[base, ...addOns.filter(Boolean)];
-      const lines = items.map(line);
-      const cop = sum(lines.map(x=>x.copay));
-      const cb  = sum(lines.map(x=>x.chargeback));
-      const pr  = cop - cb;
-      const ratio = cop>0 ? (pr/cop) : 0; // tie-breaker only
-      const label = base.enhancement || base.subtype || base.code || 'Base';
+      const items=[base,...addOns.filter(Boolean)], lines=items.map(line);
+      const cop=sum(lines.map(x=>x.copay)), cb=sum(lines.map(x=>x.chargeback)), pr=cop-cb;
+      const ratio=cop>0?(pr/cop):0; const label=base.enhancement||base.subtype||base.code||'Base';
       return { label, lines, copay:cop, chargeback:cb, profit:pr, ratio };
     }
 
-    /* ------------------- Presentation helpers (NEW — UI only) ------------------- */
-    function animateNumber(el, to){
-      // Smooth tick without changing underlying math
-      const from = parseFloat(el.getAttribute('data-prev') || '0');
-      const start = performance.now();
-      const dur = 380;
-      function step(t){
-        const k = Math.min(1, (t - start)/dur);
-        const v = from + (to - from) * (0.5 - Math.cos(Math.PI*k)/2); // ease
-        el.textContent = `$${v.toFixed(2)}`;
-        if(k<1) requestAnimationFrame(step); else el.setAttribute('data-prev', to);
-      }
+    /* ---- UI helpers (presentation only) ---- */
+    function animateNumber(el,to){
+      const from=parseFloat(el.getAttribute('data-prev')||'0'); const start=performance.now(); const dur=380;
+      function step(t){ const k=Math.min(1,(t-start)/dur); const v=from+(to-from)*(0.5-Math.cos(Math.PI*k)/2); el.textContent=`$${v.toFixed(2)}`; if(k<1)requestAnimationFrame(step); else el.setAttribute('data-prev',to); }
       requestAnimationFrame(step);
     }
-
     function tdMoney(v){ return `<td class="money">$${v.toFixed(2)}</td>`; }
 
+    /* === IMPORTANT: scoreboard shows Copay (hero) + Service Fee secondary; table shows Copay / Holdback / Service Fee === */
     function renderTier({name, cls, b}){
       const div=document.createElement('div'); div.className='tier';
-      div.classList.add('pop'); setTimeout(()=>div.classList.remove('pop'), 220);
       if(!b){
-        div.innerHTML=`
-          <div class="tierHead">
-            <div class="stars ${cls}"><span class="tag">${name}</span></div>
-            <div class="figures"><div class="profit" aria-hidden="true">—</div></div>
-          </div>
-          <div class="sub">No viable bundle</div>`;
+        div.innerHTML=`<div class="tierHead"><div class="stars ${cls}"><span class="tag">${name}</span></div><div class="figures"><div class="hero">—</div><div class="caption">Patient Copay</div></div></div><div class="sub">No viable bundle</div>`;
         return div;
       }
-
       const stars = name==='Best' ? '★★★' : name==='Better' ? '★★' : '★';
       const head = `
         <div class="tierHead">
@@ -400,29 +240,28 @@
             <span class="tag">${b.label}</span>
           </div>
           <div class="figures">
-            <div class="profit" aria-label="Profit" data-prev="0">$${b.profit.toFixed(2)}</div>
-            <div class="kv"><small>Copay</small>$${b.copay.toFixed(2)} &nbsp;&bull;&nbsp; <small>Service Fee</small>$${b.chargeback.toFixed(2)}</div>
+            <div class="hero" aria-label="Patient Copay" data-prev="0">$${b.copay.toFixed(2)}</div>
+            <div class="caption">Patient Copay</div>
+            <div class="caption">Service Fee (Practice Profit): <span class="svc">$${b.profit.toFixed(2)}</span></div>
           </div>
         </div>`;
-
       const lines = b.lines.map(li=>`
         <tr>
           <td>${li.name}</td>
           <td class="code">${li.code||'—'}</td>
           ${tdMoney(li.copay)}
-          ${tdMoney(li.chargeback)}
-          ${tdMoney(li.profit)}
+          ${tdMoney(li.chargeback)}   <!-- Holdback stays in table -->
+          ${tdMoney(li.profit)}       <!-- Service Fee per line (copay - holdback) -->
         </tr>`).join('');
-
       div.innerHTML = head + `
         <table>
           <thead>
             <tr>
               <th>Item</th>
-              <th class="nowrap">Code</th>
+              <th>Code</th>
               <th class="nowrap">Copay</th>
+              <th class="nowrap">Holdback</th>
               <th class="nowrap">Service Fee</th>
-              <th class="nowrap">Profit</th>
             </tr>
           </thead>
           <tbody>${lines}</tbody>
@@ -433,138 +272,65 @@
             </tr>
           </tfoot>
         </table>`;
-
-      // Animate the big profit number
-      const profitEl = div.querySelector('.profit');
-      animateNumber(profitEl, b.profit);
+      // animate the copay hero
+      const hero = div.querySelector('.hero'); animateNumber(hero, b.copay);
       return div;
     }
 
-    function renderStack(rows){
-      const stack = el('stack');
-      stack.innerHTML='';
-      for(const row of rows){ stack.appendChild(renderTier(row)); }
-    }
-    /* ------------------- End presentation helpers ------------------- */
+    function renderStack(rows){ const stack=el('stack'); stack.innerHTML=''; for(const row of rows){ stack.appendChild(renderTier(row)); } }
 
     function computeBundles(){
       if(!DATA.length){ el('stack').innerHTML=''; return; }
-
-      const fam = el('lensFamily').value;
-      const wantAR = el('includeAR').checked;
-      const wantAsp = el('includeAspheric').checked;
-      const wantOS  = el('includeOversize').checked;
-      const wantGlass = el('includeGlass').checked;
-      const tintSel = el('lensTint').value; // clear|tinted|polarized|transitions
-
-      const sunAll = byKey('sun_tech').filter(r=>applies(r,fam)).filter(r=>{
-        const n=N(r.enhancement);
-        if(!wantGlass && n.includes('glass')) return false;
-        return true;
-      });
-
-      let base = [];
-      if (fam === 'PAL') {
+      const fam=el('lensFamily').value, wantAR=el('includeAR').checked, wantAsp=el('includeAspheric').checked, wantOS=el('includeOversize').checked, wantGlass=el('includeGlass').checked, tintSel=el('lensTint').value;
+      const sunAll = byKey('sun_tech').filter(r=>applies(r,fam)).filter(r=>{ const n=N(r.enhancement); if(!wantGlass && n.includes('glass')) return false; return true; });
+      let base=[];
+      if(fam==='PAL'){
         base = byKey('progressive_level').filter(r=>applies(r,fam)).filter(r=>{
-          const name=N(r.enhancement);
-          if(!wantAsp && name.includes('aspheric')) return false;
-          if(!wantGlass && name.includes('glass'))  return false;
-          if (tintSel==='polarized') return /polariz/.test(name);
+          const name=N(r.enhancement); if(!wantAsp && name.includes('aspheric')) return false; if(!wantGlass && name.includes('glass')) return false;
+          if(tintSel==='polarized') return /polariz/.test(name);
           return !/(photochrom|polariz|tint|tinted|sunglass|gradient)/.test(name);
         });
-      } else {
-        if (tintSel==='polarized') {
-          base = sunAll.filter(r => /polariz/.test(N(r.enhancement)) && isDCode(r));
-        } else {
-          const pool = (fam==='SV' ? byKey('base_material') : byKey('occupational'));
-          base = pool.filter(r=>applies(r,fam)).filter(r=>{
-            const name=N(r.enhancement);
-            if(!wantAsp && name.includes('aspheric')) return false;
-            if(!wantGlass && name.includes('glass'))  return false;
-            if(/photochrom|polariz|tint|tinted|sunglass|gradient/.test(name)) return false;
-            return true;
+      }else{
+        if(tintSel==='polarized'){ base=sunAll.filter(r=>/polariz/.test(N(r.enhancement)) && isDCode(r)); }
+        else{
+          const pool=(fam==='SV'?byKey('base_material'):byKey('occupational'));
+          base=pool.filter(r=>applies(r,fam)).filter(r=>{
+            const name=N(r.enhancement); if(!wantAsp && name.includes('aspheric')) return false; if(!wantGlass && name.includes('glass')) return false;
+            if(/photochrom|polariz|tint|tinted|sunglass|gradient/.test(name)) return false; return true;
           });
         }
       }
-
       const arPool = wantAR ? byKey('ar_level').filter(r=>applies(r,fam)) : [];
       const arRanked = wantAR ? rankAR(arPool) : [];
-
-      function arForTier(idx){
-        if(!wantAR || !arRanked.length) return null;
-        if(idx < arRanked.length) return arRanked[idx];
-        return arRanked[arRanked.length-1];
-      }
-
-      function chooseSunFor(baseRow) {
-        if (tintSel==='clear' || tintSel==='polarized') return null;
-        if (tintSel==='transitions') {
+      function arForTier(i){ if(!wantAR || !arRanked.length) return null; return i<arRanked.length?arRanked[i]:arRanked[arRanked.length-1]; }
+      function chooseSunFor(baseRow){
+        if(tintSel==='clear' || tintSel==='polarized') return null;
+        if(tintSel==='transitions'){
           const want = preferPhotoCodeForBase(baseRow);
-          let pool = sunAll.filter(r => /photochrom/.test(N(r.enhancement)));
-          let choice = pickBest(pool.filter(r => new RegExp('^' + want, 'i').test((r.code || '').trim())));
-          if (choice) return choice;
-          choice = pickBest(pool.filter(isPPhoto));
-          if (choice) return choice;
+          let pool = sunAll.filter(r=>/photochrom/.test(N(r.enhancement)));
+          let choice = pickBest(pool.filter(r=>new RegExp('^'+want,'i').test((r.code||'').trim()))); if(choice) return choice;
+          choice = pickBest(pool.filter(isPPhoto)); if(choice) return choice;
           return pickBest(pool);
         }
-        if (tintSel==='tinted') {
-          let pool = sunAll.filter(r=>{
-            const n=N(r.enhancement);
-            return sunMatchesBase(r, baseRow) && !/photochrom|polariz/.test(n) && /tint|tinted|solid|gradient|sunglass/.test(n);
-          });
+        if(tintSel==='tinted'){
+          let pool = sunAll.filter(r=>{ const n=N(r.enhancement); return sunMatchesBase(r, baseRow) && !/photochrom|polariz/.test(n) && /tint|tinted|solid|gradient|sunglass/.test(n); });
           return pickBest(pool);
         }
         return null;
       }
-
-      const overs = wantOS ? pickBest(byKey('oversize').filter(r=>applies(r,fam)).filter(r=>{
-        const n=N(r.enhancement);
-        if(!wantGlass && n.includes('glass')) return false;
-        return true;
-      })) : null;
-
-      function selectMaxProfit(candidates, arRow, excludeLabels=new Set()){
-        let best=null;
-        for(const m of candidates){
-          const lbl=(m.enhancement||m.subtype||m.code||'Base');
-          if(excludeLabels.has(lbl)) continue;
-          const b = makeBundle(m, [arRow, chooseSunFor(m), overs]);
-          if(!best || b.profit>best.profit || (b.profit===best.profit && b.ratio>best.ratio)) best=b;
-        }
-        return best;
-      }
-      function selectMinCopay(candidates, arRow, excludeLabels=new Set()){
-        let best=null;
-        for(const m of candidates){
-          const lbl=(m.enhancement||m.subtype||m.code||'Base');
-          if(excludeLabels.has(lbl)) continue;
-          const b = makeBundle(m, [arRow, chooseSunFor(m), overs]);
-          if(!best || b.copay<best.copay || (b.copay===best.copay && b.profit>best.profit)) best=b;
-        }
-        return best;
-      }
-
-      const bestAR = arForTier(0), midAR = arForTier(1), lowAR = arForTier(2);
-
-      const best = selectMaxProfit(base, bestAR);
-      const used = new Set(best ? [best.label] : []);
-      const mid  = selectMaxProfit(base, midAR, used) || selectMaxProfit(base, bestAR, used);
-      if(mid) used.add(mid.label);
-      const good = selectMinCopay(base, lowAR, used) || selectMinCopay(base, midAR||bestAR, used);
-
-      renderStack([
-        {name:'Good',   cls:'good',   b:good},
-        {name:'Better', cls:'better', b:mid},
-        {name:'Best',   cls:'best',   b:best}
-      ]);
+      const overs = wantOS ? pickBest(byKey('oversize').filter(r=>applies(r,fam)).filter(r=>{ const n=N(r.enhancement); if(!wantGlass && n.includes('glass')) return false; return true; })) : null;
+      function selectMaxProfit(cands, arRow, exclude=new Set()){ let best=null; for(const m of cands){ const lbl=(m.enhancement||m.subtype||m.code||'Base'); if(exclude.has(lbl)) continue; const b=makeBundle(m,[arRow,chooseSunFor(m),overs]); if(!best || b.profit>best.profit || (b.profit===best.profit && b.ratio>best.ratio)) best=b; } return best; }
+      function selectMinCopay(cands, arRow, exclude=new Set()){ let best=null; for(const m of cands){ const lbl=(m.enhancement||m.subtype||m.code||'Base'); if(exclude.has(lbl)) continue; const b=makeBundle(m,[arRow,chooseSunFor(m),overs]); if(!best || b.copay<best.copay || (b.copay===best.copay && b.profit>best.profit)) best=b; } return best; }
+      const bestAR=arForTier(0), midAR=arForTier(1), lowAR=arForTier(2);
+      const best=selectMaxProfit(base,bestAR); const used=new Set(best?[best.label]:[]);
+      const mid = selectMaxProfit(base,midAR,used) || selectMaxProfit(base,bestAR,used); if(mid) used.add(mid.label);
+      const good=selectMinCopay(base,lowAR,used) || selectMinCopay(base,midAR||bestAR,used);
+      renderStack([{name:'Good',cls:'good',b:good},{name:'Better',cls:'better',b:mid},{name:'Best',cls:'best',b:best}]);
     }
 
-    /* Wiring (unchanged IDs) */
     el('forceRefresh').onclick=()=>{ clearCache(); loadCSV(); };
     el('clearCache').onclick =()=>{ clearCache(); el('status').textContent=' cache cleared — click Force Refresh to reload'; };
-    ['lensFamily','lensTint','includeAR','includeAspheric','includeOversize','includeGlass']
-      .forEach(id=> el(id).onchange=computeBundles );
-
+    ['lensFamily','lensTint','includeAR','includeAspheric','includeOversize','includeGlass'].forEach(id=> el(id).onchange=computeBundles);
     (async()=>{ await loadCSV(); })();
   </script>
 </body>
