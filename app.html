@@ -64,14 +64,8 @@
   </div>
 </div>
 
+<!-- Resilient Loader (diagnostic mode) -->
 <script>
-/* ========================= Resilient Loader (diagnostic mode) =========================
-   - Hashes BYTES via arrayBuffer() to avoid EOL/encoding drift.
-   - Strong cache-busting for manifest & schema via BUILD_TAG.
-   - Safe query builder for CSV (?v=...).
-   - Sanitized hex compare + HARD DIAGNOSTICS.
-   - TEMP: ENFORCE_CHECKSUM can be set false to proceed even on mismatch.
-======================================================================================= */
 (function(){
   const BUILD_TAG = "2025-08-31.3";               // bump when manifest/CSV changes
   const MANIFEST_URL = `data/manifest.json?v=${BUILD_TAG}`;
@@ -79,8 +73,8 @@
   const LKG_KEY = "revopt:lkg:data";
   const LKG_META_KEY = "revopt:lkg:meta";
 
-  // ── Toggle this to true once we confirm hashes line up in prod ────────────────
-  const ENFORCE_CHECKSUM = false;  // ← set to true after we resolve the mismatch
+  // flip to true when you want strict integrity again
+  const ENFORCE_CHECKSUM = false;
 
   const cleanHex = s => (s||"").toLowerCase().replace(/[^0-9a-f]/g,"");
   const withVersion = (url, v) => !v ? url : `${url}${url.includes("?")?"&":"?"}v=${encodeURIComponent(v)}`;
@@ -94,7 +88,7 @@
     try{
       localStorage.setItem(LKG_KEY, JSON.stringify(rows));
       localStorage.setItem(LKG_META_KEY, JSON.stringify(meta));
-    }catch{} // quota
+    }catch{}
   }
   function loadLKG(){
     try{
@@ -121,11 +115,10 @@
   async function fetchCSVBytes(urlWithV){
     const res = await fetch(urlWithV, { cache: "reload" });
     if(!res.ok) throw new Error(`HTTP ${res.status} for ${urlWithV}`);
-    const buf = await res.arrayBuffer();               // BYTES for SHA
+    const buf = await res.arrayBuffer();
     const bytes = new Uint8Array(buf);
     const sha = await sha256Bytes(bytes);
-    const text = new TextDecoder("utf-8").decode(bytes); // decode once for Papa
-    // Diagnostics: first/last 24 bytes for forensic checks
+    const text = new TextDecoder("utf-8").decode(bytes);
     const head = Array.from(bytes.slice(0,24)).map(b=>b.toString(16).padStart(2,"0")).join(" ");
     const tail = Array.from(bytes.slice(Math.max(0,bytes.length-24))).map(b=>b.toString(16).padStart(2,"0")).join(" ");
     return { sha, text, len: bytes.length, head, tail };
@@ -151,15 +144,13 @@
     const expectedSha = cleanHex(manifest.sha256);
     const got = cleanHex(gotSha);
 
-    // expose for diagnostics in UI + console
+    // diagnostics
     window.__revopt_last_sha = { expected: expectedSha, got, len, csvUrl, head, tail };
-    console.log("[revopt] manifest.version =", manifest.version);
-    console.log("[revopt] csvUrl =", csvUrl);
-    console.log("[revopt] expected sha =", expectedSha);
-    console.log("[revopt] got sha       =", got);
-    console.log("[revopt] csv bytes len =", len);
-    console.log("[revopt] csv head 24B  =", head);
-    console.log("[revopt] csv tail 24B  =", tail);
+    console.log("[revopt] version =", manifest.version);
+    console.log("[revopt] csvUrl  =", csvUrl);
+    console.log("[revopt] expected=", expectedSha);
+    console.log("[revopt] got     =", got);
+    console.log("[revopt] len     =", len);
 
     if(ENFORCE_CHECKSUM && expectedSha && expectedSha !== got){
       throw new Error(`Checksum mismatch. Expected ${expectedSha} got ${got}`);
@@ -191,7 +182,8 @@
 })();
 </script>
 
-/* ======================== Minimal App + Selection UI ======================== */
+<!-- Minimal App + Selection UI -->
+<script>
 const $ = s => document.querySelector(s);
 const statusEl = $("#status"), metaEl = $("#meta"), logEl = $("#log");
 const thead=$("#thead"), tbody=$("#tbody"), countEl=$("#count"), searchEl=$("#search");
@@ -252,5 +244,6 @@ $("#btn-clear").onclick = ()=>{ localStorage.removeItem("revopt:lkg:data"); loca
   }
 })();
 </script>
+
 </body>
 </html>
