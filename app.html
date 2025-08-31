@@ -33,8 +33,7 @@
     <div>
       <h1>RevSight AI — VSP Choice Profit Engine</h1>
       <div class="sub">
-        Profit = <b>sum of VSP service fees</b>. MF bundles stack <b>family base “A”</b> + <b>material add-on</b> (e.g., OA+OD, KA+KD).
-        Treatments (Polarized / Tinted / Transitions) are selected explicitly and never treated as materials.
+        Profit = <b>sum of VSP service fees</b>. MF bundles stack <b>family base “A”</b> + <b>material add‑on</b> (e.g., OA+OD, KA+KD). Treatments (Polarized / Tinted / Transitions) are selected explicitly and never treated as materials.
       </div>
     </div>
     <div class="row" style="align-items:center">
@@ -51,6 +50,7 @@
           <label>Lens type
             <select id="lensType">
               <option value="SV">Single Vision (SV)</option>
+              <option value="LINED">Lined Bi/Tri (Bifocal)</option>
               <option value="MF">Progressive / Multifocal (MF)</option>
             </select>
           </label>
@@ -61,8 +61,8 @@
               <option value="">No preference</option>
               <option value="PLASTIC">Plastic</option>
               <option value="POLYCARBONATE">Polycarbonate</option>
-              <option value="HI67">Hi-Index 1.67</option>
-              <option value="HI70">Hi-Index 1.70</option>
+              <option value="HI67">Hi‑Index 1.67</option>
+              <option value="HI70">Hi‑Index 1.70</option>
               <option value="TRIVEX">Trivex</option>
               <option value="GLASS">Glass</option>
             </select>
@@ -98,7 +98,7 @@
     </section>
 
     <section class="col card">
-      <h3 style="margin-top:0">Line-item Economics</h3>
+      <h3 style="margin-top:0">Line‑item Economics</h3>
       <div id="lineItems"></div>
     </section>
   </main>
@@ -116,7 +116,6 @@ const CSV_URLS = [
   'https://bblaker575.github.io/Revopt-site/vsp_choice_master_v7_full_fixed.csv',
   'https://raw.githubusercontent.com/bblaker575/Revopt-site/main/vsp_choice_master_v7_full_fixed.csv'
 ];
-
 async function loadCSV(){
   const badge = document.getElementById('csvStatus');
   const tried = [];
@@ -124,45 +123,66 @@ async function loadCSV(){
     try{
       const resp = await fetch(url + '?t=' + Date.now(), {cache:'no-store'});
       if(!resp.ok) throw new Error(resp.status + ': ' + resp.statusText);
-      const text = await (await resp.blob()).text();   // works even if served as attachment
+      const text = await (await resp.blob()).text();
       const rows = parseCSV(text);
       badge.textContent = 'CSV: loaded from GitHub Pages';
       badge.style.borderColor = '#6cf';
       return rows;
-    }catch(e){
-      tried.push(url + ' → ' + (e.message || e));
-    }
+    }catch(e){ tried.push(url + ' → ' + (e.message||e)); }
   }
   badge.textContent = 'CSV: not loaded';
   badge.style.borderColor = '#f66';
   const diag = document.getElementById('diag');
-  if (diag) diag.textContent = `Tried URLs:\n- ${tried.join('\n- ')}`;
+  if(diag) diag.textContent = `Tried URLs:
+- ${tried.join('
+- ')}`;
   return [];
 }
-
+  }
+  badge.textContent = 'CSV: not loaded';
+  badge.style.borderColor = '#f66';
+  const diag = document.getElementById('diag');
+  if(diag) diag.textContent = 'Tried URLs:
+- ' + tried.join('
+- ');
+  return [];
+}
 function parseCSV(text){
-  const rows=[]; let i=0, cur=''; let inQ=false; let row=[];
-  const push=()=>{ row.push(cur); cur=''; };
+  const rows=[]; let i=0, cur=''; let inQ=false; let row=[]; const push=()=>{ row.push(cur); cur=''; };
   while(i<text.length){
     const c=text[i++];
-    if(c === '"'){ if(inQ && text[i] === '"'){ cur+='"'; i++; } else inQ = !inQ; }
-    else if(c === ',' && !inQ){ push(); }
-    else if((c === '\n' || c === '\r') && !inQ){ if(cur!=='' || row.length){ push(); rows.push(row); row=[]; } }
-    else { cur += c; }
+    if(c==='"'){
+      if(inQ && text[i]==='"'){ cur+='"'; i++; } else inQ=!inQ;
+    } else if(c===',' && !inQ){
+      push();
+    } else if((c==='
+'||c==='
+') && !inQ){
+      if(cur!==''||row.length){ push(); rows.push(row); row=[]; }
+    } else {
+      cur+=c;
+    }
   }
-  if(cur!=='' || row.length){ push(); rows.push(row); }
+  if(cur!==''||row.length){ push(); rows.push(row); }
   const headers = rows.shift().map(h=>h.trim());
-  return rows
-    .filter(r=>r.length && r.some(x=>String(x).trim()!==''))
-    .map(r=>{ const o={}; headers.forEach((h,idx)=>o[h] = r[idx] ?? ''); return o; });
+  return rows.filter(r=>r.length && r.some(x=>String(x).trim()!==''))
+             .map(r=>{ const o={}; headers.forEach((h,idx)=>o[h]=r[idx]??''); return o; });
 }
-
+    else if(c===',' && !inQ){ push(); }
+    else if((c==='
+'||c==='
+') && !inQ){ if(cur!==''||row.length){ push(); rows.push(row); row=[]; } }
+    else cur+=c; }
+  if(cur!==''||row.length){ push(); rows.push(row); }
+  const headers = rows.shift().map(h=>h.trim());
+  return rows.filter(r=>r.length && r.some(x=>String(x).trim()!==''))
+             .map(r=>{ const o={}; headers.forEach((h,idx)=>o[h]=r[idx]??''); return o; });
+}
 const uc = s=>String(s||'').toUpperCase();
 const num = x=>{ const n=Number(String(x).replace(/[^0-9.\-]/g,'')); return Number.isFinite(n)?n:0; };
 const truthy = x=>{ x=String(x||'').trim().toLowerCase(); return x===''||x==='1'||x==='y'||x==='yes'||x==='true'; };
 const falsy  = x=>{ x=String(x||'').trim().toLowerCase(); return x==='0'||x==='n'||x==='no'||x==='false'; };
 const byProfitDesc=(a,b)=>b.profit-a.profit;
-
 function normalizeMaterial(txt){
   const t=uc(txt);
   if(t.includes('POLY')) return 'POLYCARBONATE';
@@ -171,9 +191,8 @@ function normalizeMaterial(txt){
   if(t.includes('TRIVEX')) return 'TRIVEX';
   if(t.includes('GLASS')) return 'GLASS';
   if(t.includes('PLASTIC')) return 'PLASTIC';
-  return t || 'PLASTIC';
+  return t||'PLASTIC';
 }
-
 function detectTreatment(text){
   const t=uc(text);
   if(t.includes('POLAR')) return 'POLARIZED';
@@ -184,10 +203,8 @@ function detectTreatment(text){
 
 /* ========================= CLASSIFY ========================= */
 function computeProfit(row){ return num(row.vsp); }
-
 function classify(row){
   if('active' in row && falsy(row.active)) return null;
-
   const applies = uc(row.applies_to);
   let lensType = 'BOTH';
   if(applies.includes('MF') && !applies.includes('SV') && !applies.includes('ALL')) lensType='MF';
@@ -202,7 +219,8 @@ function classify(row){
 
   const isBaseSV = group.includes('MATERIAL') && (exkey.includes('BASE')||exkey.includes('MATERIAL')||exkey==='');
 
-  const isProgressive = group.includes('PROGRESSIVE');
+  const isProgressive = group.includes('PROGRESSIVE') && !code.startsWith('D');
+  const isLined = group.includes('BIFOCAL') || code.startsWith('D');
   let family='', variant='';
   if(isProgressive && code.length>=2){ family=code[0]; variant=code[1]; }
   const isBaseMF = isProgressive && variant==='A';
@@ -220,6 +238,9 @@ function classify(row){
     TREATMENT: !!treatment
   };
 
+  // override lensType classification for bifocals
+  if(isLined) lensType = 'LINED';
+
   return {
     lensType,
     material: isBaseSV ? normalizeMaterial(materialTxt) : (isProgressive ? mfMaterial : ''),
@@ -233,12 +254,10 @@ function classify(row){
     family, variant
   };
 }
-
 function buildUniverse(rows){
   const mapped=rows.map(classify).filter(Boolean);
   return mapped.filter(it=> it.baseKind ? true : (!('composable' in it.raw) || truthy(it.raw.composable)));
 }
-
 function applyGlobalToggles(items, toggles){
   return items.filter(it=>{
     if(!toggles.AR && (it.enhancement.includes('AR')||it.f.AR)) return false;
@@ -253,10 +272,46 @@ function applyGlobalToggles(items, toggles){
 function pickBundles(universe, lensType, materialPref, toggles, treatmentSel){
   const pool=applyGlobalToggles(universe.filter(u=>!lensType || u.lensType===lensType || u.lensType==='BOTH'), toggles);
   const isMF=lensType==='MF';
+  const isLINED=lensType==='LINED';
 
   // choose one treatment based on dropdown
   const treatmentPick = (treatmentSel && treatmentSel!=='CLEAR') ? treatmentSel : '';
   const treatmentItem = treatmentPick ? pool.filter(x=>!x.baseKind && x.f.TREATMENT && x.treatment===treatmentPick).sort(byProfitDesc)[0] : null;
+
+  if(isLINED){
+    // Lined bifocals: treat family 'D' (DA base + material add-ons)
+    const basesByFamily={};
+    const addOnByFamilyMaterial={};
+    for(const x of pool.filter(x=>x.raw.code && x.raw.code.startsWith('D'))){
+      if(x.variant==='A'){ basesByFamily['D']=x; }
+      else{ const mat=x.material||'PLASTIC'; (addOnByFamilyMaterial['D'] ||= {})[mat]=x; }
+    }
+    const baseA=basesByFamily['D'];
+    if(baseA){
+      const materialsSet=new Set(['PLASTIC','POLYCARBONATE','HI67','HI70','TRIVEX','GLASS']);
+      for(const m of Object.keys(addOnByFamilyMaterial['D']||{})) materialsSet.add(m);
+      const allMaterials=Array.from(materialsSet);
+      const candidateMaterials=(materialPref && allMaterials.includes(materialPref))?[materialPref]:allMaterials;
+      const enhPool=pool.filter(x=>!x.baseKind && !x.f.TREATMENT);
+      const bestAR = toggles.AR ? enhPool.filter(e=>e.f.AR).sort(byProfitDesc)[0] : null;
+      const bestOversize = toggles.OVERSIZE ? enhPool.filter(e=>e.f.OVERSIZE).sort(byProfitDesc)[0] : null;
+      const bundles=[];
+      for(const mat of candidateMaterials){
+        const parts=[baseA];
+        const add=(addOnByFamilyMaterial['D']||{})[mat];
+        if(add && add!==baseA) parts.push(add);
+        if(treatmentItem) parts.push(treatmentItem);
+        if(bestAR) parts.push(bestAR);
+        if(bestOversize) parts.push(bestOversize);
+        const seen=new Set(); let profit=0; const lines=[];
+        for(const p of parts){ const key=(p.raw.code||'')+'|'+(p.desc||''); if(seen.has(key)) continue; seen.add(key); lines.push(p); profit+=p.profit; }
+        bundles.push({ material:mat, family:'D', parts:lines, profit });
+      }
+      bundles.sort(byProfitDesc);
+      const best=bundles[0]; const mid=bundles[1]||best; const good=bundles[bundles.length-1]||best;
+      return {good,mid,best,poolSize:bundles.length};
+    }
+  }
 
   if(isMF){
     const basesByFamily={};
@@ -345,14 +400,13 @@ function renderBundles(picks){
   };
   el.innerHTML = make(picks.good,'good','Good') + make(picks.mid,'mid','Mid') + make(picks.best,'best','Best');
 }
-
 function renderLineItems(universe, lensType){
   const el=document.getElementById('lineItems');
   const list=universe.filter(u=>!lensType || u.lensType===lensType || u.lensType==='BOTH').sort(byProfitDesc).slice(0,200);
   if(!list.length){ el.innerHTML='<div class="muted">No items.</div>'; return; }
   el.innerHTML=`<table>
-    <thead><tr><th>Type</th><th>Family</th><th>Material</th><th>Enhancement</th><th>Code</th><th>Description</th><th class="right">VSP fee (profit)</th></tr></thead>
-    <tbody>${list.map(r=>`<tr><td>${r.lensType||'—'}</td><td>${r.family||'—'}</td><td>${r.material||'—'}</td><td>${r.enhancement||(r.treatment?('TREAT:'+r.treatment):'—')}</td><td>${r.raw.code||'—'}</td><td>${r.desc||''}</td><td class="right">$${Number(r.profit).toFixed(2)}</td></tr>`).join('')}</tbody>
+    <thead><tr><th>Type</th><th>Family</th><th>Material</th><th>Treatment</th><th>Enhancement</th><th>Code</th><th>Description</th><th class="right">VSP fee (profit)</th></tr></thead>
+    <tbody>${list.map(r=>`<tr><td>${r.lensType||'—'}</td><td>${r.family||'—'}</td><td>${r.material||'—'}</td><td>${r.treatment||'—'}</td><td>${r.enhancement||'—'}</td><td>${r.raw.code||'—'}</td><td>${r.desc||''}</td><td class="right">$${Number(r.profit).toFixed(2)}</td></tr>`).join('')}</tbody>
   </table>`;
 }
 
@@ -370,12 +424,8 @@ async function recalc(){
   };
   const picks=pickBundles(UNIVERSE, lensType, materialPref, toggles, treatmentSel);
   renderBundles(picks); renderLineItems(UNIVERSE, lensType);
-  document.getElementById('diag').textContent = JSON.stringify(
-    {lensType, materialPref, treatment:treatmentSel, toggles, universe:UNIVERSE.length, poolCandidates:picks.poolSize},
-    null, 2
-  );
+  document.getElementById('diag').textContent = JSON.stringify({lensType, materialPref, treatment:treatmentSel, toggles, universe:UNIVERSE.length, poolCandidates:picks.poolSize}, null, 2);
 }
-
 (async function init(){
   const raw = await loadCSV();
   UNIVERSE = buildUniverse(raw);
