@@ -58,7 +58,6 @@
     select:focus{ box-shadow:0 0 0 3px rgba(114,168,255,.25) }
     #status{ margin-left:auto; padding:6px 10px; border-radius:999px; border:1px dashed var(--line); background:#0b1422; color:var(--muted) }
 
-    /* Cards */
     .stack{ display:grid; gap:18px; grid-template-columns:repeat(auto-fit, minmax(320px,1fr)); align-items:stretch; margin-top:16px }
     .tier{ background:linear-gradient(180deg, #0f1726, #0c1422); border:1px solid var(--line); border-radius:var(--radius); box-shadow: var(--shadow-lg); padding:16px; transition:.25s }
     .tierHead{display:grid; grid-template-columns:1fr auto; align-items:center; gap:10px; margin-bottom:12px}
@@ -77,20 +76,10 @@
     .code{font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size:12px; color:#cfe1ff}
     .money{font-weight:800}
 
-    /* compact per-code breakdown under a single description row */
-    .break {
-      margin: 6px 0 10px;
-      background:#0b1424;
-      border:1px solid var(--line);
-      border-radius:10px;
-    }
+    .break { margin:6px 0 10px; background:#0b1424; border:1px solid var(--line); border-radius:10px; }
     .break table{ width:100%; border-collapse:collapse; }
     .break th,.break td{ border:0; padding:6px 8px; text-align:left; font-size:12px; }
-    .break .codepill{
-      display:inline-block; padding:2px 8px; border:1px solid var(--line);
-      border-radius:999px; font-family:ui-monospace,Menlo,Consolas,monospace;
-      font-size:12px; color:#cfe1ff; background:#0e1a30;
-    }
+    .break .codepill{ display:inline-block; padding:2px 8px; border:1px solid var(--line); border-radius:999px; font-family:ui-monospace,Menlo,Consolas,monospace; font-size:12px; color:#cfe1ff; background:#0e1a30; }
     .break .colhed{ color:var(--muted); font-weight:600; }
 
     :focus-visible{ outline:2px solid var(--accent); outline-offset:2px; border-radius:8px }
@@ -142,9 +131,8 @@
     <div id="stack" class="stack"></div>
   </main>
 
-  <!-- Error overlay for runtime issues -->
   <script>
-    if (!window.__PAYEREDGE_V11__) {
+    if (!window.__PAYEREDGE_V12__) {
       (function(){
         function showErrorOverlay(err, where){
           const wrap = document.createElement('div');
@@ -160,18 +148,17 @@
   </script>
 
   <script>
-  if (window.__PAYEREDGE_V11__) {
+  if (window.__PAYEREDGE_V12__) {
     console.warn('PayerEdge script already loaded; skipping second init.');
   } else {
-    window.__PAYEREDGE_V11__ = true;
+    window.__PAYEREDGE_V12__ = true;
 
     /* ================== Config & utils ================== */
-    const DEFAULT_CSV = 'data/vsp_choice_master_v7_full_fixed.csv'; // swap to signature CSV when needed
+    const DEFAULT_CSV = 'data/vsp_choice_master_v7_full_fixed.csv';
 
-    /* Price-anchored tiers (Best→Better→Good→Cheapest) */
-    const BETTER_CAP_OF_MAX = 0.75; // ≤75% of MaxPrice
-    const GOOD_CAP_OF_MAX   = 0.50; // ≤50% of MaxPrice
-    const CAP_RELAX_FACTOR  = 0.90; // fallback relaxer
+    const BETTER_CAP_OF_MAX = 0.75;
+    const GOOD_CAP_OF_MAX   = 0.50;
+    const CAP_RELAX_FACTOR  = 0.90;
 
     const el = (id)=>document.getElementById(id);
     const sum = (a)=>a.reduce((x,y)=>x+y,0);
@@ -184,23 +171,15 @@
     const isGlassBase = row => /glass/i.test(N(row?.enhancement || row?.subtype || ''));
     const preferPhotoCodeForBase = row => (isGlassBase(row) ? 'PM' : 'PR');
 
-    /* ---- Parsing helpers ---- */
-    // Split "NA + ND", "JA+JB", "NA/NJ", "OA,OD" etc.
-    const splitCodes = (s)=>{
-      return String(s||'')
-        .toUpperCase()
-        .replace(/[^\w+&/,\s-]/g,'')
-        .split(/[\s+&/,\-]+/)
-        .map(t=>t.trim())
-        .filter(Boolean);
-    };
-    // Extract numbers in order from copay like "$175 + $35" => [175,35]
+    const splitCodes = (s)=> String(s||'')
+      .toUpperCase().replace(/[^\w+&/,\s-]/g,'')
+      .split(/[\s+&/,\-]+/).map(t=>t.trim()).filter(Boolean);
+
     function parseCopayNumbers(copayStr){
       const m = String(copayStr||'').match(/[0-9]+(?:\.[0-9]{1,2})?/g);
       return m ? m.map(x=>parseFloat(x)) : [];
     }
 
-    /* CSV parsing & cache */
     function parseCSV(text){
       const rows=[]; let row=[], field='', q=false;
       for(let i=0;i<text.length;i++){
@@ -216,15 +195,15 @@
         const o={}; headers.forEach((h,i)=>o[h]=(r[i]||'').replace(/^\"|\"$/g,'').trim()); return o;
       });
     }
+
     const CACHE_KEY='rev-vsp-choice-csv-v1';
     const META_KEY='rev-vsp-choice-meta-v1';
     const setCache=(t,m)=>{ localStorage.setItem(CACHE_KEY,t); localStorage.setItem(META_KEY,JSON.stringify(m)); };
     const getCache=()=>({ text: localStorage.getItem(CACHE_KEY), meta: JSON.parse(localStorage.getItem(META_KEY)||'{}') });
     const clearCacheStorage=()=>{ localStorage.removeItem(CACHE_KEY); localStorage.removeItem(META_KEY); };
 
-    /* Build a robust standalone index: code -> array of single-code rows (not composites) */
     let DATA=[];
-    let SIMPLE_BY_CODE = new Map(); // code -> array<row>
+    let SIMPLE_BY_CODE = new Map(); // code -> array<single-code rows>
 
     function buildSimpleIndex(){
       SIMPLE_BY_CODE = new Map();
@@ -238,32 +217,14 @@
       }
     }
 
-    /* Choose the best standalone "base" row for a code (prefer Plastic, MF context, etc.) */
-    function pickStandaloneBase(baseCode, contextRow){
+    // **** EXACT base-row picker (A-code base) ****
+    function pickBaseByExactCode(baseCode){
       const list = SIMPLE_BY_CODE.get(baseCode) || [];
       if (!list.length) return null;
-
-      const fam = String(contextRow?.applies_to || '').toUpperCase(); // e.g., MF for Progressives
-      const scored = list.map(r => {
-        const s = N(r.enhancement || r.subtype || '');
-        let score = 0;
-
-        // Prefer progressive rows when we're in MF
-        if (fam.includes('MF') && /progressive/.test(s)) score += 4;
-
-        // Prefer "plastic" that is not "high"
-        if (s.includes('plastic') && !s.includes('high')) score += 3;
-
-        // Avoid obviously high-index bases for the base code
-        if (/polycarb|trivex|1\.6|1\.7|high/.test(s)) score -= 2;
-
-        // Small nudge if this looks like a base/material bucket
-        if (/base|material/.test(String(r.exclusive_key || '').toLowerCase())) score += 1;
-
-        return { r, score };
-      }).sort((a,b) => b.score - a.score);
-
-      return scored[0]?.r || null;
+      const score = s => (s.includes('plastic') && !s.includes('high') ? 2 : 0);
+      return list
+        .map(r => ({ r, s: (r.enhancement || r.subtype || '').toLowerCase() }))
+        .sort((a,b) => score(b.s) - score(a.s))[0].r;
     }
 
     async function loadCSV(){
@@ -296,7 +257,6 @@
       el('version').textContent = `plan=${meta.plan||'VSP_plan'} • rows=${count||0} • version=${meta.version||'—'} • source=${meta.source||'—'} • sha=${meta.sha||'—'}`;
     }
 
-    /* Data filters */
     const byKey=(k)=>DATA.filter(r=>(r.active||'yes').toLowerCase()==='yes' && (r.exclusive_key||'').toLowerCase()===k);
     function applies(row, fam){
       const a=(row.applies_to||'ALL').toUpperCase();
@@ -307,61 +267,48 @@
       return true;
     }
 
-    /* ===== COMPOSITE / LINE MATH FIX =====
-       - Base part (first code) uses the *standalone* row (prefer Plastic).
-       - If composite copay is a single total (no "+"), add-on copay = total − base copay.
-       - Add-on holdback = composite row’s chargeback (if >1 add-on and no split, divide evenly).
-       - Service fee per part = copay − holdback.
-    */
+    // ====== LINE MATH with exact base selection ======
     function line(row){
       const desc = row.enhancement || row.subtype || '—';
       const codeStr = String(row.code||'').trim().toUpperCase();
       const partsCodes = splitCodes(codeStr);
 
-      // Simple row (not composite)
+      // Simple (single code) row
       if (partsCodes.length === 1){
         const cop = num(row.copay), cb = num(row.chargeback);
         return { name:desc, code:codeStr, copay:cop, chargeback:cb, profit:cop-cb, parts:[] };
       }
 
-      // Composite row
-      const compositeCopayNums = parseCopayNumbers(row.copay); // e.g., [175,35] or [210]
-      const compositeTotalCopay = num(row.copay);              // works for "$210" or "210"
-      const compositeAddOnCB = num(row.chargeback);            // CB on composite row refers to add-on
+      // Composite: Base = exact A code row; Add-on = remainder (or explicit split)
+      const compositeCopayNums = parseCopayNumbers(row.copay);
+      const compositeTotalCopay = num(row.copay);
+      const compositeAddOnCB = num(row.chargeback);
 
       const parts = [];
 
-      // Base (first) code from standalone schedule
+      // Base part (first code)
       const baseCode = partsCodes[0];
-      const baseRow  = pickStandaloneBase(baseCode, row);
-      const baseCop  = baseRow ? num(baseRow.copay) : (compositeCopayNums[0] ?? compositeTotalCopay);
+      const baseRow  = pickBaseByExactCode(baseCode);
+      const baseCop  = baseRow ? num(baseRow.copay)      : (compositeCopayNums[0] ?? compositeTotalCopay);
       const baseCB   = baseRow ? num(baseRow.chargeback) : 0;
       parts.push({ code:baseCode, copay:baseCop, chargeback:baseCB, profit:baseCop-baseCB });
 
-      // Remaining add-ons
+      // Add-ons
       const addonCount = partsCodes.length - 1;
 
-      // Determine add-on copays:
-      //  - If copay string has explicit splits (≥ parts), use them in order.
-      //  - Else compute remaining = total − base and split across add-ons (usually one).
       let addonCopays = [];
       if (compositeCopayNums.length >= partsCodes.length){
-        // [base, a1, a2, ...]
-        addonCopays = compositeCopayNums.slice(1);
+        addonCopays = compositeCopayNums.slice(1); // explicit "+ $xx"
       } else {
         const remaining = Math.max(compositeTotalCopay - baseCop, 0);
         if (addonCount <= 1){
           addonCopays = [remaining];
         } else {
-          // split evenly if multiple add-ons but no explicit split
           const each = remaining / addonCount;
           addonCopays = Array.from({length:addonCount}, ()=>each);
         }
       }
 
-      // Distribute add-on chargeback:
-      //  - If single add-on, all CB goes to that add-on.
-      //  - If multiple add-ons, divide evenly to preserve totals.
       const addonCBEach = addonCount <= 1 ? compositeAddOnCB : (compositeAddOnCB / addonCount);
 
       for (let i=1;i<partsCodes.length;i++){
@@ -387,7 +334,6 @@
       return { label, lines, copay:cop, chargeback:cb, profit:pr, ratio };
     }
 
-    /* ===== UI helpers & render ===== */
     function animateNumber(el,to){
       const from=parseFloat(el.getAttribute('data-prev')||'0'); const start=performance.now(); const dur=380;
       function step(t){ const k=Math.min(1,(t-start)/dur); const v=from+(to-from)*(0.5-Math.cos(Math.PI*k)/2); el.textContent=`$${v.toFixed(2)}`; if(k<1)requestAnimationFrame(step); else el.setAttribute('data-prev',to); }
@@ -484,7 +430,6 @@
       for(const row of rows){ stack.appendChild(renderTier(row)); }
     }
 
-    /* ===== material & sun helpers (regex hardened) ===== */
     function materialKey(label) {
       const s = N(label);
       if (s.includes('polycarb')) return 'poly';
@@ -534,7 +479,6 @@
       return null;
     }
 
-    /* ===== Compute bundles ===== */
     function computeBundles(){
       if(!DATA.length){ el('stack').innerHTML=''; return; }
 
@@ -545,7 +489,6 @@
       const wantGlass = el('includeGlass').checked;
       const tintSel = el('lensTint').value;
 
-      // Sun pool (for polarized-as-material and tints)
       const sunAll = byKey('sun_tech').filter(r=>applies(r,fam)).filter(r=>{
         const n=N(r.enhancement);
         if(!wantGlass && n.includes('glass')) return false;
@@ -555,7 +498,6 @@
       const isCustomMeasure = (row) => /custom\s*measure/i.test(N(row?.enhancement || row?.subtype || ''));
       const customPool = DATA.filter(r => applies(r, 'PAL')).filter(isCustomMeasure);
 
-      // Base candidates
       let base = [];
       if (fam === 'PAL') {
         base = byKey('progressive_level').filter(r=>applies(r,fam)).filter(r=>{
@@ -563,12 +505,11 @@
           if(!wantAsp && name.includes('aspheric')) return false;
           if(!wantGlass && name.includes('glass'))  return false;
           if(isCustomMeasure(r)) return false;
-          if (tintSel==='polarized') return /polariz/.test(name); // polarized material
+          if (tintSel==='polarized') return /polariz/.test(name);
           return !/(photochrom|polariz|tint|tinted|sunglass|gradient)/.test(name);
         });
       } else {
         if (tintSel==='polarized') {
-          // SV & LINED: polarized is a D-code *material*
           base = sunAll.filter(r => /polariz/.test(N(r.enhancement)) && isDCode(r));
         } else {
           const pool = (fam==='SV' ? byKey('base_material') : byKey('occupational'));
@@ -582,12 +523,11 @@
         }
       }
 
-      // AR ranked by grade then profit
       function rankAR(ars){
         const gradeVal = (s)=>{ const m=String(s||'').match(/\b([A-D])\b/i); if(!m) return null; return {A:1,B:2,C:3,D:4}[m[1].toUpperCase()]||null; };
         return [...ars].sort((a,b)=>{
           const ga=gradeVal(a.enhancement)||-1, gb=gradeVal(b.enhancement)||-1;
-          if(ga!==gb) return gb-ga;   // D..A (A best)
+          if(ga!==gb) return gb-ga;
           const pa=num(a.copay)-num(a.chargeback);
           const pb=num(b.copay)-num(b.chargeback);
           return pb-pa;
@@ -612,7 +552,6 @@
         return;
       }
 
-      // Tier selection
       const MaxPrice = Math.max(...all.map(b => b.copay));
       function mostProfit(arr){
         let pick=null;
@@ -631,7 +570,6 @@
           }
         }
         if (pick) return pick;
-        // relax once
         const looser = cap / CAP_RELAX_FACTOR;
         for(const b of all){
           if (b.copay <= looser){
@@ -654,7 +592,6 @@
         return pick;
       }
 
-      // Left→Right: Best / Better / Good / Cheapest
       const best = mostProfit(all);
       const used = new Set(best ? [best.label] : []);
       const better = mostProfitUnderCap(MaxPrice*BETTER_CAP_OF_MAX, used);
@@ -672,7 +609,6 @@
       ]);
     }
 
-    /* Wire-up */
     el('forceRefresh').onclick=()=>{ clearCacheStorage(); loadCSV(); };
     el('clearCache').onclick =()=>{ clearCacheStorage(); el('status').textContent=' cache cleared — click Force Refresh to reload'; };
     ['lensFamily','lensTint','includeAR','includeAspheric','includeOversize','includeGlass','includeCM']
