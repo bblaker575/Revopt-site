@@ -1,443 +1,363 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>Revopt — Profit-First Choice Configurator</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>RevSight AI — VSP Choice Tiering (Good/Better/Best by Profit)</title>
   <style>
-    :root{--bg:#0B1020;--card:#12162A;--ink:#E6E9F5;--muted:#9CA3AF;--line:#1E2450;--line2:#242947;--btn:#0E1530;--primary:#4F46E5}
-    html,body{margin:0;height:100%}
-    body{font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--ink)}
-    .wrap{max-width:1100px;margin:0 auto;padding:16px}
-    .card{background:var(--card);border:1px solid var(--line2);border-radius:14px;padding:14px;margin:10px 0}
-    .row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
-    label{display:inline-flex;gap:8px;align-items:center}
-    select,button{background:var(--btn);border:1px solid var(--line2);border-radius:10px;color:var(--ink);padding:8px 10px}
-    input[type=checkbox]{margin-left:6px;transform:scale(1.05)}
-    button.primary{background:var(--primary);border:none;font-weight:700;color:var(--bg)}
-    table{width:100%;border-collapse:collapse}
-    th,td{border-bottom:1px solid var(--line);padding:8px;font-size:14px;text-align:left;vertical-align:top}
-    th{color:#C7CBF5}
-    small{color:var(--muted)}
-    .kpi{display:inline-block;margin-right:12px;background:var(--btn);border:1px solid var(--line);border-radius:12px;padding:8px 10px}
-    .badges{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:6px}
-    .items-cell{max-width:800px}
-    .warn{color:#ffd966}
+    :root{
+      --bg:#0b0f14;--panel:#121822;--border:#2a3444;--text:#e7eefc;--muted:#9fb3d2;--accent:#7aa2ff;--good:#1fbf75;--mid:#f6c343;--best:#9867ff;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--bg);color:var(--text);font:16px/1.45 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial}
+    header{padding:18px 16px;border-bottom:1px solid var(--border);display:flex;gap:12px;align-items:center;justify-content:space-between}
+    h1{margin:0;font-size:18px}
+    .sub{font-size:12px;color:var(--muted)}
+    .row{display:flex;gap:12px;flex-wrap:wrap}
+    .col{flex:1 1 320px}
+    .card{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:14px}
+    label{display:flex;align-items:center;gap:8px;margin:8px 0;font-size:14px;color:var(--muted)}
+    input[type="checkbox"]{width:18px;height:18px}
+    select,button{background:#0f1520;color:var(--text);border:1px solid var(--border);border-radius:10px;padding:10px 12px;font:inherit}
+    button{cursor:pointer}
+    .pill{display:inline-flex;align-items:center;gap:8px;padding:6px 10px;border-radius:999px;border:1px solid var(--border);font-size:12px;color:var(--muted)}
+    .bundle{border-left:4px solid var(--border);padding-left:10px;margin:6px 0}
+    .bundle.good{border-color:var(--good)}
+    .bundle.mid{border-color:var(--mid)}
+    .bundle.best{border-color:var(--best)}
+    .kv{display:grid;grid-template-columns:140px 1fr;gap:4px 8px;font-size:13px;color:var(--muted)}
+    .muted{color:var(--muted)}
+    table{width:100%;border-collapse:collapse;font-size:14px}
+    th,td{padding:8px;border-bottom:1px solid var(--border)}
+    th{color:var(--muted);font-weight:600;text-align:left}
+    .right{text-align:right}
+    .tag{display:inline-block;padding:2px 6px;border-radius:6px;background:#0e1622;border:1px solid var(--border);font-size:12px;margin-right:6px;color:var(--muted)}
+    .ok{color:var(--good)}.warn{color:var(--mid)}.boom{color:var(--best)}
+    .foot{opacity:.7;font-size:12px;padding:10px 2px}
+    .err{color:#ff7a7a}
   </style>
 </head>
 <body>
-<div class="wrap">
-  <h1>Revopt — Profit-First Choice Configurator</h1>
-
-  <div class="card">
-    <small>This build is <b>GitHub Pages–ready</b>. It auto-loads
-      <code>vsp_choice_master_v7_full_fixed.csv</code> from the same folder.
-      Optional: override via <code>?csv=FULL_URL</code>.
-    </small>
-    <div id="csvStatus" class="warn" style="margin-top:6px"></div>
-  </div>
-
-  <div class="card">
-    <div class="row">
-      <label>Track
-        <select id="t">
-          <option value="SV">SV</option>
-          <option value="MF" selected>Progressive (MF)</option>
-          <option value="OCC">Occupational</option>
-        </select>
-      </label>
-
-      <label>Sun
-        <select id="s">
-          <option value="Clear" selected>Clear</option>
-          <option>SolidTint</option>
-          <option>GradientTint</option>
-          <option>Mirror</option>
-          <option>Photochromic</option>
-          <option>Polarized</option>
-        </select>
-      </label>
-
-      <label>Rimless
-        <select id="r">
-          <option selected>None</option>
-          <option>Drill</option>
-          <option>Groove</option>
-        </select>
-      </label>
-
-      <label>Oversize <input id="chkOver" type="checkbox"/></label>
-      <label>Include AR <input id="chkAR" type="checkbox" checked/></label>
-      <label>Include Aspheric <input id="chkAsph" type="checkbox"/></label>
-      <label>Include Glass <input id="chkGlass" type="checkbox"/></label>
-
-      <button class="primary" id="go">Build tiers</button>
+  <header>
+    <div>
+      <h1>RevSight AI — VSP Choice Profit Engine</h1>
+      <div class="sub">Good/Better/Best picks are ranked by <b>profit</b>. Toggles are enforced: OFF = not selected anywhere.</div>
     </div>
-  </div>
+    <div class="row" style="align-items:center">
+      <span class="pill" id="csvStatus">CSV: not loaded</span>
+      <button id="forceRefresh">Recalc</button>
+    </div>
+  </header>
 
-  <div class="card" id="tiers" style="display:none">
-    <div id="k" class="badges"></div>
-    <table>
-      <thead>
-      <tr>
-        <th>Tier</th>
-        <th>Items</th>
-        <th style="text-align:right">Copay</th>
-        <th style="text-align:right">VSP</th>
-        <th style="text-align:right">Chargeback</th>
-        <th style="text-align:right">Revenue</th>
-      </tr>
-      </thead>
-      <tbody id="tb"></tbody>
-    </table>
-  </div>
+  <main class="row" style="padding:16px">
+    <section class="col card">
+      <h3 style="margin-top:0">Inputs</h3>
+      <div class="row">
+        <div class="col">
+          <label>Lens type
+            <select id="lensType">
+              <option value="SV">Single Vision (SV)</option>
+              <option value="MF">Progressive / Multifocal (MF)</option>
+            </select>
+          </label>
+        </div>
+        <div class="col">
+          <label>Material preference (optional)
+            <select id="materialPref">
+              <option value="">No preference</option>
+              <option value="POLY">Polycarbonate</option>
+              <option value="HI_INDEX">High Index</option>
+              <option value="PLASTIC">CR-39 / Standard</option>
+              <option value="TRIVEX">Trivex</option>
+              <option value="GLASS">Glass</option>
+              <option value="ASPHERIC">Aspheric</option>
+            </select>
+          </label>
+        </div>
+      </div>
 
-  <div class="card">
-    <details open>
-      <summary>Master rows (from CSV)</summary>
-      <table>
-        <thead>
-        <tr>
-          <th>Group</th><th>Subtype</th><th>Enhancement</th><th>Code</th><th>Notes</th>
-          <th style="text-align:right">Copay</th>
-          <th style="text-align:right">VSP</th>
-          <th style="text-align:right">Chargeback</th>
-          <th>Exclusive</th><th>Applies</th>
-        </tr>
-        </thead>
-        <tbody id="m"></tbody>
-      </table>
+      <div class="row" style="margin-top:6px">
+        <div class="col">
+          <div class="sub" style="margin-bottom:6px">Global Toggles (default states per spec)</div>
+          <label><input id="toggleOversize" type="checkbox"> Oversize (default OFF)</label>
+          <label><input id="toggleAR" type="checkbox" checked> AR Coating (default ON)</label>
+          <label><input id="toggleAspheric" type="checkbox"> Aspheric (default OFF)</label>
+          <label><input id="toggleGlass" type="checkbox"> Glass (default OFF)</label>
+        </div>
+      </div>
+
+      <div class="foot">Note: If a toggle is OFF, that category will be excluded from <i>all</i> bundles and will never appear as a line‑item.</div>
+    </section>
+
+    <section class="col card">
+      <h3 style="margin-top:0">Recommended Bundles (by profit)</h3>
+      <div id="bundles"></div>
+    </section>
+
+    <section class="col card">
+      <h3 style="margin-top:0">Line‑item Economics</h3>
+      <div id="lineItems"></div>
+    </section>
+  </main>
+
+  <section class="card" style="margin:16px">
+    <details>
+      <summary>Data/Diagnostics</summary>
+      <div id="diag" class="muted" style="white-space:pre-wrap"></div>
     </details>
-  </div>
-</div>
+    <div class="foot">Autoload order: <code>localStorage.snapshot</code> → <code>./vsp_choice_master_v7_full_fixed.csv</code>. If online load succeeds, a fresh offline snapshot is saved automatically.</div>
+  </section>
 
-<script>
-(function () {
-  const fmt = Intl.NumberFormat('en-US', { style:'currency', currency:'USD' });
-  const money = n => fmt.format(+n || 0);
-
-  let MASTER = [];
-
-  const q  = s => s == null ? "" : String(s).trim();
-  const up = s => q(s).toUpperCase();
-
-  function parseQS() {
-    const p = new URLSearchParams(location.search);
-    return { csv: p.get('csv') };
-  }
-
-  function splitCSVLine(line) {
-    const out = []; let cur = ""; let inQ = false;
-    for (let i=0;i<line.length;i++) {
-      const ch=line[i];
-      if (inQ) {
-        if (ch==='"' && line[i+1]==='"') { cur+='"'; i++; }
-        else if (ch === '"') inQ=false;
-        else cur+=ch;
-      } else {
-        if (ch===',') { out.push(cur); cur=""; }
-        else if (ch==='"') inQ=true;
-        else cur+=ch;
+  <script>
+    // --- Minimal CSV parser that handles quoted fields (commas within quotes) ---
+    function parseCSV(text){
+      const rows=[]; let i=0, cur=''; let inQ=false; const push=()=>{ row.push(cur); cur=''; };
+      let row=[];
+      while(i<text.length){
+        const c=text[i++];
+        if(c==='"'){
+          if(inQ && text[i]==='"'){ cur+='"'; i++; }
+          else inQ=!inQ;
+        }else if(c===',' && !inQ){ push(); }
+        else if((c==='\n' || c==='\r') && !inQ){ if(cur!=='' || row.length){ push(); rows.push(row); row=[]; } }
+        else cur+=c;
       }
+      if(cur!=='' || row.length){ push(); rows.push(row); }
+      // Convert to objects
+      const headers = rows.shift().map(h=>h.trim());
+      return rows.filter(r=>r.length && r.some(x=>String(x).trim()!=='')).map(r=>{
+        const o={}; headers.forEach((h,idx)=>o[h]=r[idx]===undefined?'' : r[idx]); return o;
+      });
     }
-    out.push(cur);
-    return out;
-  }
 
-  function parseCSV(text) {
-    const lines = text.replace(/\r/g,'').split('\n').filter(x=>x.trim().length);
-    if (!lines.length) return [];
-    const headers = splitCSVLine(lines[0]).map(h=>h.trim().toLowerCase());
-    const rows = [];
-    for (let i=1;i<lines.length;i++){
-      const cells = splitCSVLine(lines[i]);
-      const row = {};
-      headers.forEach((h,idx)=> row[h] = cells[idx] ?? "");
-      rows.push(row);
+    // --- Heuristics to locate semantic fields across CSV variants ---
+    const Field = {
+      category: ["Category","Type","LensType","Family"],
+      material: ["Material","LensMaterial","Mat"],
+      enhancement: ["Enhancement","AddOn","Option","Feature"],
+      arFlag: ["AR","AntiReflective","AR_Included"],
+      asphericFlag: ["Aspheric","Asph","AsphericFlag"],
+      glassFlag: ["Glass","GlassFlag"],
+      oversizeFlag: ["Oversize","OS","OversizeFlag"],
+      svFlag: ["SV","SingleVision"], mfFlag: ["MF","Progressive","PAL"],
+      desc: ["Description","Desc","Name"],
+      qty: ["Qty","Quantity"],
+      price: ["OfficePrice","Retail","Charge","UCR","Price"],
+      copay: ["PatientCopay","Copay","PtCopay"],
+      remb: ["VSPReimbursement","Allowance","VSPPays","InsurancePays"],
+      chargeback: ["Chargeback","LabBill","Cost","COGS"],
+      profit: ["Profit","OfficeProfit","Net"]
+    };
+    function pick(obj, keys){ for(const k of keys){ if(k in obj && obj[k]!=="") return obj[k]; } return ""; }
+
+    function computeProfit(row){
+      const explicit = pick(row, Field.profit);
+      if(explicit!=="") return Number(explicit)||0;
+      const copay = Number(pick(row, Field.copay))||0;
+      const remb  = Number(pick(row, Field.remb))||0;
+      const cb    = Number(pick(row, Field.chargeback))||0;
+      const price = Number(pick(row, Field.price))||0;
+      // Try common structures in order
+      // 1) Profit provided -> handled above
+      // 2) (Copay + Reimb - Chargeback)
+      let p = copay + remb - cb;
+      // 3) If none present, fallback (Retail - Chargeback) or 0
+      if(!Number.isFinite(p) || (copay===0 && remb===0 && cb===0)) p = price - cb;
+      return Number.isFinite(p) ? p : 0;
     }
-    return rows;
-  }
 
-  function ignoreRow(r) {
-    const t = `${r.enhancement||""} ${r.notes||""}`.toLowerCase();
-    return t.includes('custom measurement');
-  }
+    function norm(v){ return String(v||"").trim().toUpperCase(); }
 
-  function appliesTo(r, track) {
-    if (!r || !r.applies_to_tokens) return true;
-    const T = (track||'').toUpperCase();
-    return r.applies_to_tokens.includes('ALL') || r.applies_to_tokens.includes(T);
-  }
-
-  function exclusive(items) {
-    const seen = new Set();
-    return items.filter(r=>{
-      const k=(r.exclusive_key||'').trim();
-      if (!k) return true;
-      if (seen.has(k)) return false;
-      seen.add(k);
-      return true;
-    });
-  }
-
-  const sum = (a,k)=> a.reduce((s,r)=> s + (+r[k]||0), 0);
-  const totals = items => {
-    const copay = sum(items,'copay'), vsp = sum(items,'vsp'), cb = sum(items,'chargeback');
-    return { copay, vsp, cb, revenue: copay + vsp - cb };
-  };
-
-  // Pickers
-  function pickAR(level) {
-    const ars = MASTER.filter(r=>r.group==='AR');
-    if (!ars.length) return null;
-    const sorted = [...ars].sort((a,b)=> b.copay - a.copay);
-    if (level==='BEST') return sorted[0];
-    if (level==='BASIC') return sorted[sorted.length-1];
-    return sorted[Math.max(0, Math.floor(sorted.length/2)-1)];
-  }
-  const pickSun   = t => !t||t==='Clear' ? null : (MASTER.find(r=>r.group==='SUN' && (r.subtype||'')===t) || null);
-  const pickOver  = flag => flag ? (MASTER.find(r=>r.group==='OVERSIZE') || null) : null;
-  function pickRim(t){
-    if (t==='Drill')  return MASTER.find(r=>r.group==='RIMLESS' && /drill/i.test(r.subtype||'')) || null;
-    if (t==='Groove') return MASTER.find(r=>r.group==='RIMLESS' && /groove/i.test(r.subtype||''))|| null;
-    return null;
-  }
-
-  function bundle(base, ar, shared){
-    const bases = Array.isArray(base) ? base : [base];
-    return exclusive(bases.filter(Boolean).concat(ar ? [ar] : []).concat(shared.filter(Boolean)));
-  }
-  function stats(base, ar, shared){
-    const items = bundle(base, ar, shared);
-    return { items, ...totals(items) };
-  }
-
-  function keyBaseFor(s){
-    // identity by main base row(s)
-    const b = s.items.find(x=>x.group==='PROGRESSIVE') ||
-              s.items.find(x=>x.group==='MATERIAL')   ||
-              s.items.find(x=>x.group==='OCCUPATIONAL') || {};
-    return `${b.group||''}|${b.subtype||''}|${b.enhancement||''}|${b.code||''}`;
-  }
-
-  // Candidate helpers with filters
-  const notAspheric = x => !/aspher(?:ic|ical)/i.test(`${x.enhancement||''} ${x.subtype||''} ${x.notes||''}`);
-  const notGlass    = x => !/glass/i.test(`${x.enhancement||''} ${x.subtype||''} ${x.notes||''}`);
-
-  function candidatesForTrack(track, allowAsph, allowGlass){
-    if (track === 'OCC') {
-      let c = MASTER.filter(r=> r.group==='OCCUPATIONAL' && appliesTo(r,'OCC') && !ignoreRow(r));
-      if (!allowAsph) c = c.filter(notAspheric);
-      // glass toggle not relevant for OCC base, but we leave as-is
-      if (!c.length) c = MASTER.filter(r=> r.group==='OCCUPATIONAL' && !ignoreRow(r));
-      return c;
+    function flags(row){
+      // Accept multiple representations (Yes/No, 1/0, True/False, strings)
+      const toBool = (x)=>{ x=String(x||"").trim().toLowerCase(); return x==="1"||x==="y"||x==="yes"||x==="true"; };
+      return {
+        AR: toBool(pick(row, Field.arFlag)),
+        ASPHERIC: toBool(pick(row, Field.asphericFlag)),
+        GLASS: toBool(pick(row, Field.glassFlag)),
+        OVERSIZE: toBool(pick(row, Field.oversizeFlag))
+      };
     }
-    if (track === 'SV') {
-      let c = MASTER.filter(r=> r.group==='MATERIAL' && appliesTo(r,'SV') && !ignoreRow(r));
-      if (!allowAsph) c = c.filter(notAspheric);
-      if (!allowGlass) c = c.filter(notGlass);
-      if (!c.length) c = MASTER.filter(r=> r.group==='MATERIAL' && !ignoreRow(r));
-      return c;
+
+    function classify(row){
+      const ltSV = norm(pick(row, Field.svFlag));
+      const ltMF = norm(pick(row, Field.mfFlag));
+      let lt = "";
+      if(ltSV==="1"||ltSV==="Y"||ltSV==="YES"||ltSV==="TRUE"||ltSV==="SV"||ltSV==="SINGLEVISION") lt="SV";
+      if(ltMF==="1"||ltMF==="Y"||ltMF==="YES"||ltMF==="TRUE"||ltMF==="MF"||ltMF==="PROGRESSIVE"||ltMF==="PAL") lt="MF";
+      if(!lt){ const cat = norm(pick(row, Field.category)); if(cat.includes("SV")) lt="SV"; if(cat.includes("PROG")||cat.includes("PAL")||cat.includes("MF")) lt="MF"; }
+      return {
+        lensType: lt||"",
+        material: norm(pick(row, Field.material)),
+        enhancement: norm(pick(row, Field.enhancement)),
+        desc: pick(row, Field.desc) || pick(row,["Item","SKU"]) || "",
+        profit: computeProfit(row),
+        raw: row,
+        f: flags(row)
+      };
     }
-    // MF handled separately
-    return [];
-  }
 
-  function tiers(track, sun, overFlag, includeAR, allowAsph, allowGlass, rim){
-    const shared = [ pickSun(sun), pickOver(overFlag), pickRim(rim) ].filter(Boolean);
-    const arB = includeAR ? pickAR('BEST')  : null;
-    const arM = includeAR ? pickAR('MID')   : null;
-    const arL = includeAR ? pickAR('BASIC') : null;
+    function byProfitDesc(a,b){ return b.profit - a.profit; }
 
-    // === MF (Progressive) : EXACTLY 1 PROGRESSIVE + 1 MATERIAL ===
-    if (track === 'MF') {
-      let P = MASTER.filter(r => r.group==='PROGRESSIVE' && appliesTo(r,'MF') && !ignoreRow(r));
-      let M = MASTER.filter(r => r.group==='MATERIAL'    && appliesTo(r,'MF') && !ignoreRow(r));
+    function buildUniverse(rows){
+      return rows.map(classify).filter(r=>Number.isFinite(r.profit));
+    }
 
-      if (!allowAsph) {
-        P = P.filter(notAspheric);   // no aspheric progressives
-        M = M.filter(notAspheric);   // no aspheric materials
-      }
-      if (!allowGlass) {
-        M = M.filter(notGlass);      // no glass materials
+    function applyGlobalToggles(items, toggles){
+      // Exclude any line-items that conflict with toggles, at selection time.
+      return items.filter(it=>{
+        if(!toggles.AR && (it.enhancement.includes("AR") || it.f.AR)) return false;
+        if(!toggles.ASPHERIC && (it.material.includes("ASPHERIC") || it.f.ASPHERIC)) return false;
+        if(!toggles.GLASS && (it.material.includes("GLASS") || it.f.GLASS)) return false;
+        if(!toggles.OVERSIZE && (it.enhancement.includes("OVERSIZE") || it.f.OVERSIZE)) return false;
+        return true;
+      });
+    }
+
+    function pickBundles(universe, lensType, materialPref, toggles){
+      const pool = applyGlobalToggles(universe.filter(u=>!lensType || u.lensType===lensType), toggles);
+
+      // Split by materials and enhancements for combinatorics
+      const materials = pool.filter(x=>x.material).reduce((m,x)=>{ (m[x.material]??=[]).push(x); return m; },{});
+      const enhancements = pool.filter(x=>x.enhancement).reduce((m,x)=>{ (m[x.enhancement]??=[]).push(x); return m; },{});
+
+      // Define allowable base materials set based on toggles
+      const disallowed = new Set();
+      if(!toggles.ASPHERIC) disallowed.add("ASPHERIC");
+      if(!toggles.GLASS) disallowed.add("GLASS");
+
+      const materialKeys = Object.keys(materials).filter(k=>!disallowed.has(k));
+      // If preference is set, prefer that material but still compute ranks globally for mid pick
+      const baseCandidates = (materialPref && materialKeys.includes(materialPref)) ? [materialPref] : materialKeys;
+
+      // Construct candidate bundles: one base material + optional AR + optional Oversize (if toggles on)
+      function topBy(arr){ return [...arr].sort(byProfitDesc)[0]; }
+      const arTop = toggles.AR && enhancements["AR"] ? topBy(enhancements["AR"]) : null;
+      const oversizeTop = toggles.OVERSIZE && enhancements["OVERSIZE"] ? topBy(enhancements["OVERSIZE"]) : null;
+
+      const bundles = [];
+      for(const mat of materialKeys){
+        const base = topBy(materials[mat]||[]); if(!base) continue;
+        // Build a bundle with strictly one base material + permitted enhancements
+        const parts = [base];
+        if(arTop) parts.push(arTop);
+        if(oversizeTop) parts.push(oversizeTop);
+        // Profit is sum of distinct line‑items (avoid duplicates)
+        const seen = new Set();
+        let profit = 0; const lines=[];
+        for(const p of parts){
+          const key = (p.material||"")+"|"+(p.enhancement||"")+"|"+p.desc;
+          if(seen.has(key)) continue; seen.add(key);
+          lines.push(p);
+          profit += p.profit;
+        }
+        bundles.push({ material:mat, parts:lines, profit });
       }
 
-      if (!P.length) P = MASTER.filter(r=> r.group==='PROGRESSIVE' && !ignoreRow(r));
-      if (!M.length) M = MASTER.filter(r=> r.group==='MATERIAL'    && !ignoreRow(r));
+      // Rank bundles by profit
+      bundles.sort((a,b)=>b.profit-a.profit);
+      // Ensure unique materials for good/mid/best (no duplicate materials)
+      const uniq=[]; const seenMat=new Set();
+      for(const b of bundles){ if(!seenMat.has(b.material)){ uniq.push(b); seenMat.add(b.material);} }
 
-      if (!P.length || !M.length) {
-        return [
-          { name:'BEST',  items:[], copay:0, vsp:0, cb:0, revenue:0 },
-          { name:'MID',   items:[], copay:0, vsp:0, cb:0, revenue:0 },
-          { name:'BASIC', items:[], copay:0, vsp:0, cb:0, revenue:0 },
-        ];
+      const best = uniq[0];
+      const mid  = uniq[1] || uniq[0];
+      const good = uniq[uniq.length-1] || uniq[0];
+
+      // If materialPref provided, try to align mid with 2nd best overall even if different material; best remains top profit.
+      return { good, mid, best, poolSize:bundles.length };
+    }
+
+    function fmtCurrency(n){ return n==null?"—": "$"+ (Number(n).toFixed(2)); }
+
+    function renderBundles(picks){
+      const el = document.getElementById('bundles');
+      if(!picks || !picks.best){ el.innerHTML = '<div class="muted">No bundles available with current filters.</div>'; return; }
+      const make = (b,cls,label)=>{
+        if(!b) return `<div class="bundle ${cls}"><div class="muted">No ${label} bundle available</div></div>`;
+        const rows = b.parts.map(p=>`<tr><td>${p.desc || (p.material||p.enhancement)}</td><td class="right">${fmtCurrency(p.profit)}</td></tr>`).join('');
+        return `<div class="bundle ${cls}">
+          <div class="row" style="align-items:center;justify-content:space-between">
+            <div class="tag">${label}</div>
+            <div class="tag">Material: ${b.material||'—'}</div>
+            <div class="tag">Bundle Profit: ${fmtCurrency(b.profit)}</div>
+          </div>
+          <table><thead><tr><th>Line Item</th><th class="right">Profit</th></tr></thead><tbody>${rows}</tbody></table>
+        </div>`;
+      };
+      el.innerHTML = make(picks.good,'good','Good') + make(picks.mid,'mid','Mid') + make(picks.best,'best','Best');
+    }
+
+    function renderLineItems(universe, lensType){
+      const el = document.getElementById('lineItems');
+      const list = universe.filter(u=>!lensType || u.lensType===lensType).sort(byProfitDesc).slice(0,100);
+      if(!list.length){ el.innerHTML = '<div class="muted">No items.</div>'; return; }
+      el.innerHTML = `<table><thead><tr><th>Type</th><th>Material</th><th>Enhancement</th><th>Description</th><th class="right">Profit</th></tr></thead><tbody>
+      ${list.map(r=>`<tr><td>${r.lensType||'—'}</td><td>${r.material||'—'}</td><td>${r.enhancement||'—'}</td><td>${r.desc||''}</td><td class="right">${fmtCurrency(r.profit)}</td></tr>`).join('')}
+      </tbody></table>`;
+    }
+
+    function saveSnapshot(csvText){ try{ localStorage.setItem('vsp_choice_snapshot_v7', csvText); }catch(e){} }
+    function loadSnapshot(){ try{ return localStorage.getItem('vsp_choice_snapshot_v7'); }catch(e){ return null; } }
+
+    async function loadCSV(){
+      const badge = document.getElementById('csvStatus');
+      // 1) Offline snapshot first
+      const snap = loadSnapshot();
+      if(snap){
+        badge.textContent = 'CSV: offline snapshot';
+        badge.style.borderColor = '#3c6';
+        return parseCSV(snap);
       }
+      // 2) Try same-origin file
+      try{
+        const resp = await fetch('./vsp_choice_master_v7_full_fixed.csv', {cache:'no-store'});
+        if(resp.ok){
+          const text = await resp.text();
+          saveSnapshot(text);
+          badge.textContent = 'CSV: loaded from /vsp_choice_master_v7_full_fixed.csv';
+          badge.style.borderColor = '#6cf';
+          return parseCSV(text);
+        }
+      }catch(err){ /* fallthrough */ }
+      badge.textContent = 'CSV: not found';
+      badge.style.borderColor = '#f66';
+      return [];
+    }
 
-      const combos = [];
-      P.forEach(p => M.forEach(m => combos.push([p,m])));
+    let UNIVERSE = [];
 
-      const A = combos.map(c => ({ tier:'BEST',  ...stats(c, arB, shared) }));
-      const B = combos.map(c => ({ tier:'MID',   ...stats(c, arM, shared) }));
-      const C = combos.map(c => ({ tier:'BASIC', ...stats(c, arL, shared) }));
-
-      A.sort((a,b)=> b.revenue - a.revenue);
-      B.sort((a,b)=> b.revenue - a.revenue);
-
-      const baseSig = (items)=>{
-        const p = (items.find(x=>x.group==='PROGRESSIVE')||{}).enhancement||'';
-        const m = (items.find(x=>x.group==='MATERIAL')   ||{}).enhancement||'';
-        return p + '||' + m;
+    async function recalc(){
+      const lensType = document.getElementById('lensType').value;
+      const materialPref = document.getElementById('materialPref').value;
+      const toggles = {
+        OVERSIZE: document.getElementById('toggleOversize').checked,
+        AR: document.getElementById('toggleAR').checked,
+        ASPHERIC: document.getElementById('toggleAspheric').checked,
+        GLASS: document.getElementById('toggleGlass').checked,
       };
 
-      const best = A[0];
-      const bestKey = baseSig(best.items);
-      let mid = B.find(x => baseSig(x.items) !== bestKey) || B[0];
+      const picks = pickBundles(UNIVERSE, lensType, materialPref, toggles);
+      renderBundles(picks);
+      renderLineItems(UNIVERSE, lensType);
 
-      C.sort((a,b)=> a.copay - b.copay);
-      const used = new Set([ baseSig(best.items), baseSig(mid.items) ]);
-      const basic = C.find(x => !used.has(baseSig(x.items))) || C[0];
-
-      return [
-        { name:'BEST',  items:best.items,  ...totals(best.items)  },
-        { name:'MID',   items:mid.items,   ...totals(mid.items)   },
-        { name:'BASIC', items:basic.items, ...totals(basic.items) },
-      ];
+      // Diagnostics
+      const diag = document.getElementById('diag');
+      diag.textContent = JSON.stringify({ lensType, materialPref, toggles, universe: UNIVERSE.length, poolCandidates: picks.poolSize }, null, 2);
     }
 
-    // === SV or OCC (single base row) ===
-    const B = candidatesForTrack(track, allowAsph, allowGlass);
-    if (!B.length) {
-      return [
-        { name:'BEST',  items:[], copay:0, vsp:0, cb:0, revenue:0 },
-        { name:'MID',   items:[], copay:0, vsp:0, cb:0, revenue:0 },
-        { name:'BASIC', items:[], copay:0, vsp:0, cb:0, revenue:0 },
-      ];
-    }
-
-    const L1 = B.map(b => ({ tier:'BEST',  ...stats(b, arB, shared) }));
-    const L2 = B.map(b => ({ tier:'MID',   ...stats(b, arM, shared) }));
-    const L3 = B.map(b => ({ tier:'BASIC', ...stats(b, arL, shared) }));
-
-    L1.sort((a,b)=> b.revenue - a.revenue);
-    L2.sort((a,b)=> b.revenue - a.revenue);
-
-    const best = L1[0];
-    const bestKey = keyBaseFor(best);
-
-    let mid = L2.find(x => keyBaseFor(x) !== bestKey) || L2[0];
-
-    L3.sort((a,b)=> a.copay - b.copay);
-    const used = new Set([ bestKey, keyBaseFor(mid) ]);
-    const basic = L3.find(x => !used.has(keyBaseFor(x))) || L3[0];
-
-    return [
-      { name:'BEST',  items:best.items,  ...totals(best.items)  },
-      { name:'MID',   items:mid.items,   ...totals(mid.items)   },
-      { name:'BASIC', items:basic.items, ...totals(basic.items) },
-    ];
-  }
-
-  // Rendering
-  function renderTiers(list){
-    document.getElementById('tiers').style.display = 'block';
-    const tb = document.getElementById('tb'); tb.innerHTML = '';
-    const k  = document.getElementById('k');  k.innerHTML  = '';
-
-    list.forEach(tt=>{
-      const names = tt.items.map(i=> i.enhancement).join(', ');
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td><b>${tt.name}</b></td>
-        <td class="items-cell">${names}</td>
-        <td style="text-align:right">${money(tt.copay)}</td>
-        <td style="text-align:right">${money(tt.vsp)}</td>
-        <td style="text-align:right">${money(tt.cb)}</td>
-        <td style="text-align:right"><b>${money(tt.revenue)}</b></td>
-      `;
-      tb.appendChild(tr);
-
-      const badge = document.createElement('span');
-      badge.className = 'kpi';
-      badge.innerHTML = `<small>${tt.name} revenue</small> <b>${money(tt.revenue)}</b>`;
-      k.appendChild(badge);
-    });
-  }
-
-  function renderMaster(){
-    const tb = document.getElementById('m'); tb.innerHTML = '';
-    MASTER.forEach(r=>{
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td>${r.group||''}</td>
-        <td>${r.subtype||''}</td>
-        <td>${r.enhancement||''}</td>
-        <td>${r.code||''}</td>
-        <td>${r.notes||''}</td>
-        <td style="text-align:right">${money(r.copay)}</td>
-        <td style="text-align:right">${money(r.vsp)}</td>
-        <td style="text-align:right">${money(r.chargeback)}</td>
-        <td>${r.exclusive_key||''}</td>
-        <td>${(r.applies_to_tokens||[]).join(', ')}</td>
-      `;
-      tb.appendChild(tr);
-    });
-  }
-
-  function mapRows(rows){
-    return rows.map(r=>({
-      group: up(r.group||r.category||r.type||r.bucket),
-      subtype: q(r.subtype||r.sub_type),
-      enhancement: q(r.enhancement||r.name||r.item||r.description),
-      code: q(r.code||r.sku),
-      notes: q(r.notes||r.note||r.remark||r.comments),
-      exclusive_key: q(r.exclusive_key||r.exclusive||r.family||r.mutex).toLowerCase(),
-      applies_to_tokens: (()=>{
-        const tok = up(r.applies_to||r.applies||r.track||'ALL').split(/[,;\s]+/).filter(Boolean);
-        return tok.length ? tok : ['ALL'];
-      })(),
-      copay: (+q(r.copay||r.patient||r.patient_pay).replace(/[^0-9.\-]/g,'')) || 0,
-      vsp: (+q(r.vsp||r.vsp_reimb||r.vsp_payment||r.allowance||r.reimbursement).replace(/[^0-9.\-]/g,'')) || 0,
-      chargeback: (+q(r.chargeback||r.charge_back||r.cb||r.lab||r.lab_fee).replace(/[^0-9.\-]/g,'')) || 0
-    })).filter(r=> r.group && !ignoreRow(r));
-  }
-
-  // Boot (GitHub Pages auto-load)
-  async function boot(){
-    const status = document.getElementById('csvStatus');
-    const { csv } = parseQS();
-    const DATA_CSV = csv || './vsp_choice_master_v7_full_fixed.csv';
-    try{
-      status.textContent = 'Loading ' + DATA_CSV + ' …';
-      const res = await fetch(DATA_CSV, { cache:'no-store' });
-      if (!res.ok) throw new Error('Fetch failed: ' + res.status + ' ' + res.statusText);
-      const text = await res.text();
-      const raw  = parseCSV(text);
-      MASTER = mapRows(raw);
-      status.textContent = 'Loaded ' + DATA_CSV + ' · ' + MASTER.length + ' rows';
-      renderMaster();
-    }catch(err){
-      status.textContent = 'Could not load ' + DATA_CSV + ' — place the CSV next to index.html or pass ?csv=FULL_URL';
-      console.error(err);
-      MASTER = [];
-      renderMaster();
-    }
-  }
-
-  // Wire UI
-  document.getElementById('go').addEventListener('click', ()=>{
-    const track = document.getElementById('t').value;
-    const sun   = document.getElementById('s').value;
-    const rim   = document.getElementById('r').value;
-    const over  = document.getElementById('chkOver').checked;
-    const incAR = document.getElementById('chkAR').checked;
-    const asph  = document.getElementById('chkAsph').checked;
-    const glass = document.getElementById('chkGlass').checked;
-
-    renderTiers( tiers(track, sun, over, incAR, asph, glass, rim) );
-  });
-
-  boot();
-})();
-</script>
+    (async function init(){
+      const raw = await loadCSV();
+      UNIVERSE = buildUniverse(raw);
+      document.getElementById('forceRefresh').addEventListener('click', recalc);
+      document.getElementById('lensType').addEventListener('change', recalc);
+      document.getElementById('materialPref').addEventListener('change', recalc);
+      document.getElementById('toggleOversize').addEventListener('change', recalc);
+      document.getElementById('toggleAR').addEventListener('change', recalc);
+      document.getElementById('toggleAspheric').addEventListener('change', recalc);
+      document.getElementById('toggleGlass').addEventListener('change', recalc);
+      recalc();
+    })();
+  </script>
 </body>
 </html>
