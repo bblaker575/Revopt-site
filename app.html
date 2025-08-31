@@ -68,14 +68,14 @@
       <label class="switch"><input type="checkbox" id="addTransitions"> Add Transitions®</label>
       <label class="switch"><input type="checkbox" id="addPolarized"> Add Polarized</label>
       <label class="switch">CSV
-        <input id="csvUrl" class="input" style="width:320px" placeholder="/path/to/vsp_choice_master_v7_full_fixed.csv"/>
+        <input id="csvUrl" class="input" style="width:320px" placeholder="data/vsp_choice_master_v7.csv"/>
       </label>
       <button class="btn" id="loadCsv">Load CSV</button>
       <span class="sub" id="status"></span>
     </div>
 
     <div class="grid">
-      <div class="card w6">
+      <div class="card w12">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
           <div class="sub">Computed Bundles</div>
           <div class="sub" id="bundleCount">—</div>
@@ -92,23 +92,6 @@
               <th class="nowrap">Profit/Copay</th>
             </tr>
           </thead>
-          <tbody></tbody>
-        </table>
-      </div>
-      <div class="card w6">
-        <div class="sub" style="margin-bottom:8px">Diagnostics</div>
-        <div class="kvs">
-          <div>Rows loaded</div><div id="rowsLoaded">0</div>
-          <div>Active filter</div><div id="activeFilter">—</div>
-          <div>Hash</div><div id="hash">—</div>
-        </div>
-        <div style="height:8px"></div>
-        <div class="diag" id="diag">Ready.</div>
-      </div>
-      <div class="card w12">
-        <div class="sub" style="margin-bottom:8px">Raw Data (filtered)</div>
-        <table id="rawTable">
-          <thead></thead>
           <tbody></tbody>
         </table>
       </div>
@@ -169,44 +152,63 @@
           const cached = getCache();
           if(cached.text){ text=cached.text; source='cache'; }
           else {
-            // Try default relative path; if that fails, fall back to embedded tiny sample
-            try {
-              const res = await fetch('vsp_choice_master_v7_full_fixed.csv', {cache:'no-store'});
-              if(!res.ok) throw new Error('no-default');
-              text = await res.text();
-            } catch(e){
-              text = 'group,subtype,enhancement,code,notes,copay,vsp,chargeback,exclusive_key,applies_to,composable,active\n' +
-                     'Material,CR,Aspheric Plastic 1.50,AA,,0,0,10,material,SV,OCC,yes\n' +
-                     'Material,Mid,High-index Plastic 1.53–1.60/Trivex,AB,,0,0,33,material,SV,OCC,yes\n' +
-                     'Material,Hi67,High-index Plastic 1.66/1.67,AH,,0,0,48,material,SV,OCC,yes\n' +
-                     'AR,Std,AR Standard,AR1,,0,0,20,ar,SV|LINED|PAL,yes,yes\n' +
-                     'AR,Prem,AR Premium,AR2,,0,0,40,ar,SV|LINED|PAL,yes,yes\n' +
-                     'Progressive,Prem,Premium PAL,PP,,0,0,120,progressive,PAL,yes,yes\n' +
-                     'Lined,DA,DA Bifocal,DA,,0,0,60,lined,LINED,yes,yes\n' +
-                     'Photochromic,Std,Transitions,TR,,0,0,80,photochromic,SV|LINED|PAL,yes,yes\n' +
-                     'Polarized,Std,Polarized Tint,PO,,0,0,90,polarized,SV|LINED|PAL,yes,yes\n';
+            // Try defaults; if all fail, fall back to embedded tiny sample
+            const tryPaths = [
+              '/data/vsp_choice_master_v7.csv',
+              '/data/vsp_choice_master_v7_full_fixed.csv',
+              'data/vsp_choice_master_v7.csv',
+              'data/vsp_choice_master_v7_full_fixed.csv',
+              'vsp_choice_master_v7.csv',
+              'vsp_choice_master_v7_full_fixed.csv'
+            ];
+            let ok=false;
+            for(const p of tryPaths){
+              try{
+                const r2 = await fetch(p, {cache:'no-store'});
+                if(r2.ok){ text = await r2.text(); source = 'network:'+p; ok=true; break; }
+              }catch(_){/* continue */}
+            }
+            if(!ok){
+              text = 'group,subtype,enhancement,code,notes,copay,vsp,chargeback,exclusive_key,applies_to,composable,active
+' +
+                     'Material,CR,Aspheric Plastic 1.50,AA,,0,0,10,material,SV,OCC,yes
+' +
+                     'Material,Mid,High-index Plastic 1.53–1.60/Trivex,AB,,0,0,33,material,SV,OCC,yes
+' +
+                     'Material,Hi67,High-index Plastic 1.66/1.67,AH,,0,0,48,material,SV,OCC,yes
+' +
+                     'AR,Std,AR Standard,AR1,,0,0,20,ar,SV|LINED|PAL,yes,yes
+' +
+                     'AR,Prem,AR Premium,AR2,,0,0,40,ar,SV|LINED|PAL,yes,yes
+' +
+                     'Progressive,Prem,Premium PAL,PP,,0,0,120,progressive,PAL,yes,yes
+' +
+                     'Lined,DA,DA Bifocal,DA,,0,0,60,lined,LINED,yes,yes
+' +
+                     'Photochromic,Std,Transitions,TR,,0,0,80,photochromic,SV|LINED|PAL,yes,yes
+' +
+                     'Polarized,Std,Polarized Tint,PO,,0,0,90,polarized,SV|LINED|PAL,yes,yes
+';
               source='embedded-sample';
             }
           }
         }
+      }
         const meta = { plan:'VSP_choice', version:new Date().toISOString().slice(0,10)+'.gbb', source, sha: quickHash(text) };
         setCache(text, meta);
         DATA = parseCSV(text);
         renderMeta();
         status.textContent = `[ok] loaded ${DATA.length} rows`;
-        el('rowsLoaded').textContent = DATA.length;
-        el('diag').textContent = sampleRows(DATA, 8);
+        
         computeBundles();
       }catch(err){
         el('status').textContent = 'Load failed: '+err.message;
         el('diag').textContent = (err.stack||String(err));
       }
     }
-
     function renderMeta(){
       const {meta} = getCache();
       el('version').textContent = `plan=${meta.plan||'VSP_choice'} • version=${meta.version||'—'} • source=${meta.source||'—'} • sha=${meta.sha||'—'}`;
-      el('hash').textContent = meta.sha||'—';
     }
 
     function sampleRows(rows, n){
@@ -259,7 +261,7 @@
 
       const parts = { materials, ars, pals, lined, trans, pol, oversize };
       // Show current filter scope
-      el('activeFilter').textContent = Object.entries(parts).map(([k,v])=>`${k}:${v.length}`).join('  ');
+      
 
       // Build all combinations with 1 material; pick the single most profitable AR when AR is enabled, etc.
       const bestAR = ars.sort((a,b)=> (num(b.copay)-num(b.chargeback)) - (num(a.copay)-num(a.chargeback)) )[0];
@@ -318,21 +320,7 @@
       el('bundleCount').textContent = 'Computed: '+ rows.filter(r=>r[2]).length + ' / 3';
     }
 
-    function renderRawTable(rows){
-      const head = document.querySelector('#rawTable thead');
-      const body = document.querySelector('#rawTable tbody');
-      body.innerHTML=''; head.innerHTML='';
-      if(!rows.length) return;
-      const cols = ['group','subtype','enhancement','code','copay','vsp','chargeback','exclusive_key','applies_to','composable','active'];
-      head.innerHTML = '<tr>'+cols.map(c=>`<th>${c}</th>`).join('')+'</tr>';
-      for(const r of rows.slice(0,150)){ // cap to keep UI snappy
-        const tr = document.createElement('tr');
-        tr.innerHTML = cols.map(c=>`<td>${(r.items? (r[c]||'') : (r[c]||''))}</td>`).join('');
-        body.appendChild(tr);
-      }
-    }
-
-    // ---- Wire-up ----------------------------------------------------------
+        // ---- Wire-up ----------------------------------------------------------
     el('forceRefresh').onclick = ()=> loadCSV(el('csvUrl').value||undefined);
     el('clearCache').onclick = ()=> { clearCache(); renderMeta(); el('status').textContent='cache cleared'; };
     el('lensFamily').onchange = computeBundles;
