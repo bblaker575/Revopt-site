@@ -31,8 +31,8 @@
     <div>
       <h1>RevSight AI — VSP Choice Bundles</h1>
       <div class="sub">
-        Good/Better/Best ranked by <b>practice profit (copay − chargeback)</b>. AR default <b>ON</b>.
-        Polarized/Transitions are <b>add-ons</b>. Offline cache enabled.
+        SV-first. Tiers ranked by <b>practice profit (copay − chargeback)</b>. AR default <b>ON</b> with tier step-down (Best→Better→Good).
+        Sun is <b>mutually exclusive</b>: Clear / Tinted / Polarized / Transitions®. Offline cache enabled.
       </div>
     </div>
     <div class="sub" id="version">loading…</div>
@@ -45,18 +45,27 @@
 
       <label class="switch">Lens family
         <select id="lensFamily">
-          <option value="SV">Single Vision</option>
+          <option value="SV" selected>Single Vision</option>
           <option value="LINED">Lined Bi/Tri</option>
           <option value="PAL">Progressive</option>
         </select>
       </label>
 
-      <label class="switch"><input type="checkbox" id="includeAR" checked> Include AR</label>
+      <label class="switch"><input type="checkbox" id="includeAR" checked> Include AR (tiered)</label>
       <label class="switch"><input type="checkbox" id="includeAspheric"> Aspheric</label>
       <label class="switch"><input type="checkbox" id="includeOversize"> Oversize</label>
       <label class="switch"><input type="checkbox" id="includeGlass"> Glass</label>
-      <label class="switch"><input type="checkbox" id="addTransitions"> Add Transitions®</label>
-      <label class="switch"><input type="checkbox" id="addPolarized"> Add Polarized</label>
+
+      <!-- Mutually exclusive sun selection -->
+      <label class="switch">Lens tint
+        <select id="lensTint">
+          <option value="clear" selected>Clear</option>
+          <option value="tinted">Tinted</option>
+          <option value="polarized">Polarized</option>
+          <option value="transitions">Transitions®</option>
+        </select>
+      </label>
+
       <span class="sub" id="status"></span>
     </div>
 
@@ -74,7 +83,7 @@
             <th class="nowrap">Patient Copay</th>
             <th class="nowrap">Chargeback</th>
             <th class="nowrap">Profit</th>
-            <th class="nowrap">Profit/Copay</th>
+            <!-- Profit/Copay removed from UI (still computed internally) -->
           </tr>
         </thead>
         <tbody></tbody>
@@ -155,7 +164,7 @@
     }
 
     // ---------------- Business Logic ------------------
-    const byKey=(k)=>DATA.filter(r=>(r.active||'yes').toLowerCase()==='yes' && (r.exclusive_key||'').toLowerCase()===k);
+    const byKey = (k)=>DATA.filter(r=>(r.active||'yes').toLowerCase()==='yes' && (r.exclusive_key||'').toLowerCase()===k);
 
     function applies(row, fam){
       const a=(row.applies_to||'ALL').toUpperCase();
@@ -166,13 +175,36 @@
       return true;
     }
 
-    function profitOf(row){
-      return num(row.copay) - num(row.chargeback); // LOCKED: copay − chargeback
+    const profitOf = (row)=> num(row.copay) - num(row.chargeback); // LOCKED: copay − chargeback
+
+    // Rank AR by explicit grade D>C>B>A when present; fallback to profit
+    function rankAR(ars){
+      const gradeVal = (s)=>{
+        const m = String(s||'').match(/\b([A-D])\b/i);
+        if(!m) return null;
+        const g = m[1].toUpperCase();
+        return {A:1,B:2,C:3,D:4}[g]||null; // larger is better
+      };
+      return [...ars].sort((a,b)=>{
+        const ga = gradeVal(a.enhancement)||-1;
+        const gb = gradeVal(b.enhancement)||-1;
+        if(ga!==gb) return gb-ga;   // D..A
+        return profitOf(b)-profitOf(a);
+      });
     }
 
-    function pickBest(arr){
-      if(!arr || !arr.length) return null;
-      return [...arr].sort((a,b)=> profitOf(b) - profitOf(a))[0];
+    // Pick best by profit from subset
+    const pickBest = (arr)=> (arr && arr.length ? [...arr].sort((a,b)=>profitOf(b)-profitOf(a))[0] : null);
+
+    // Build a bundle for a specific base + fixed add-ons
+    function makeBundle(base, addOns){
+      const items=[base, ...addOns.filter(Boolean)];
+      const cop = sum(items.map(x=>num(x.copay)));
+      const cb  = sum(items.map(x=>num(x.chargeback)));
+      const pr  = cop - cb;
+      const ratio = cop>0 ? (pr/cop) : 0; // internal only
+      const label = base.enhancement || base.subtype || base.code || 'Base';
+      return { label, items, copay:cop, chargeback:cb, profit:pr, ratio };
     }
 
     function computeBundles(){
@@ -183,10 +215,9 @@
       const wantAsp = el('includeAspheric').checked;
       const wantOS  = el('includeOversize').checked;
       const wantGlass = el('includeGlass').checked;
-      const addTR = el('addTransitions').checked;
-      const addPO = el('addPolarized').checked;
+      const tintSel = el('lensTint').value; // clear|tinted|polarized|transitions
 
-      // Base candidates by family
+      // -------- Base candidates by family --------
       let base = [];
       if(fam==='SV'){
         base = byKey('base_material').filter(r=>applies(r,fam));
@@ -196,93 +227,116 @@
         base = byKey('progressive_level').filter(r=>applies(r,fam));
       }
 
-      // Filters on base choices
+      // Base filters
       base = base.filter(r=>{
         const name=(r.enhancement||'').toLowerCase();
         if(!wantAsp   && name.includes('aspheric')) return false;
         if(!wantGlass && name.includes('glass'))    return false;
-        // For PAL: polarized selection handled as base variant
-        if(fam==='PAL'){
-          const isPol = /polariz/.test(name);
-          if(addPO  && !isPol) return false;
-          if(!addPO &&  isPol) return false;
-        }
-        // Exclude photochromic/polarized as base for SV/LINED (they’re add-ons there)
-        if(fam!=='PAL' && (/photochrom/.test(name) || /polariz/.test(name))) return false;
+        // Keep base independent of sun; sun comes from dropdown
         return true;
       });
 
-      // Add-ons
-      const ars   = wantAR ? byKey('ar_level').filter(r=>applies(r,fam)) : [];
-      const bestAR = pickBest(ars);
+      // -------- Add-ons (global pools) --------
+      // AR pool
+      const arPool = wantAR ? byKey('ar_level').filter(r=>applies(r,fam)) : [];
+      const arRanked = wantAR ? rankAR(arPool) : [];
 
+      // Sun tech pool (independent, mutually exclusive)
       const sunAll = byKey('sun_tech').filter(r=>applies(r,fam)).filter(r=>{
         const n=(r.enhancement||'').toLowerCase();
         if(!wantGlass && n.includes('glass')) return false;
         return true;
       });
-      const trans = addTR ? sunAll.filter(r=>/photochrom/.test((r.enhancement||'').toLowerCase())) : [];
-      const pol   = addPO && fam!=='PAL' ? sunAll.filter(r=>/polariz/.test((r.enhancement||'').toLowerCase())) : []; // PAL uses base variants
-      const bestTR = pickBest(trans);
-      const bestPO = pickBest(pol);
+      const sunPick = (()=> {
+        const N = (x)=>String(x||'').toLowerCase();
+        if(tintSel==='clear') return null;
+        if(tintSel==='transitions') return pickBest(sunAll.filter(r=>/photochrom/.test(N(r.enhancement))));
+        if(tintSel==='polarized')   return pickBest(sunAll.filter(r=>/polariz/.test(N(r.enhancement))));
+        if(tintSel==='tinted')      return pickBest(sunAll.filter(r=>{
+          const n=N(r.enhancement);
+          return !/photochrom|polariz/.test(n) && /tint|tinted|solid|gradient|sunglass/.test(n);
+        }));
+        return null;
+      })();
 
-      const overs = wantOS ? byKey('oversize').filter(r=>applies(r,fam)).filter(r=>{
+      // Oversize
+      const overs = wantOS ? pickBest(byKey('oversize').filter(r=>applies(r,fam)).filter(r=>{
         const n=(r.enhancement||'').toLowerCase();
         if(!wantGlass && n.includes('glass')) return false;
         return true;
-      }) : [];
-      const bestOS = pickBest(overs);
+      })) : null;
 
-      // Build bundles
-      const bundles = base.map(m=>{
-        const items=[m];
-        if(bestAR) items.push(bestAR);
-        if(bestTR) items.push(bestTR);
-        if(bestPO) items.push(bestPO);
-        if(bestOS) items.push(bestOS);
+      // Helper to pick AR by tier index with fallback
+      function arForTier(idx){
+        if(!wantAR || !arRanked.length) return null;
+        if(idx < arRanked.length) return arRanked[idx];
+        return arRanked[arRanked.length-1]; // fallback to best available if fewer than 3
+      }
 
-        const cop = sum(items.map(x=>num(x.copay)));
-        const cb  = sum(items.map(x=>num(x.chargeback)));
-        const pr  = cop - cb; // LOCKED definition
-        const label = m.enhancement || m.subtype || m.code || 'Base';
-        return { label, items, copay:cop, chargeback:cb, profit:pr, ratio: cop>0 ? (pr/cop) : 0 };
-      });
+      // -------- Tier selection strategy (SV-first, applies to others too) --------
+      // Best: max profit with highest AR grade (idx 0), fixed sun+oversize
+      // Better: max profit on remaining materials with mid AR (idx 1)
+      // Good: lowest copay on remaining materials with lowest AR (idx 2)
+      function selectBest(candidates, arRow){
+        let best=null;
+        for(const m of candidates){
+          const b = makeBundle(m, [arRow, sunPick, overs]);
+          if(!best || b.profit>best.profit || (b.profit===best.profit && b.ratio>best.ratio)) best=b;
+        }
+        return best;
+      }
+      function selectMaxProfit(candidates, arRow, excludeLabels){
+        let best=null;
+        for(const m of candidates){
+          const lbl=(m.enhancement||m.subtype||m.code||'Base');
+          if(excludeLabels.has(lbl)) continue;
+          const b = makeBundle(m, [arRow, sunPick, overs]);
+          if(!best || b.profit>best.profit || (b.profit===best.profit && b.ratio>best.ratio)) best=b;
+        }
+        return best;
+      }
+      function selectMinCopay(candidates, arRow, excludeLabels){
+        let best=null;
+        for(const m of candidates){
+          const lbl=(m.enhancement||m.subtype||m.code||'Base');
+          if(excludeLabels.has(lbl)) continue;
+          const b = makeBundle(m, [arRow, sunPick, overs]);
+          if(!best || b.copay<best.copay || (b.copay===best.copay && b.profit>best.profit)) best=b;
+        }
+        return best;
+      }
 
-      // Rank & pick tiers (distinct labels when possible)
-      const byProfit=[...bundles].sort((a,b)=>b.profit-a.profit);
-      const byCopay=[...bundles].sort((a,b)=>a.copay-b.copay);
-      const best = byProfit[0] || null;
-      const mid  = byProfit.find(b=>best && b.label!==best.label) || byProfit[1] || null;
-      let good   = byCopay.find(b=>{
-        if(!best) return true;
-        if(mid && b.label!==best.label && b.label!==mid.label) return true;
-        if(!mid && b.label!==best.label) return true;
-        return false;
-      }) || byCopay[0] || null;
+      const bestAR = arForTier(0), midAR = arForTier(1), lowAR = arForTier(2);
 
-      // Render
+      const best = selectBest(base, bestAR);
+      const used = new Set(best ? [best.label] : []);
+      const mid  = selectMaxProfit(base, midAR, used) || selectMaxProfit(base, bestAR, used);
+      if(mid) used.add(mid.label);
+      const good = selectMinCopay(base, lowAR, used) || selectMinCopay(base, midAR||bestAR, used);
+
+      // -------- Render --------
       const tbody=document.querySelector('#bundleTable tbody');
       tbody.innerHTML='';
-      for(const [name,cls,b] of [['Good','good',good],['Better','better',mid],['Best','best',best]]){
+      const rows=[['Good','good',good],['Better','better',mid],['Best','best',best]];
+      for(const [name,cls,b] of rows){
         const tr=document.createElement('tr');
-        if(!b){ tr.innerHTML=`<td>${name}</td><td colspan=6 class="sub">no viable bundle</td>`; tbody.appendChild(tr); continue; }
+        if(!b){ tr.innerHTML=`<td>${name}</td><td colspan=5 class="sub">no viable bundle</td>`; tbody.appendChild(tr); continue; }
         const addons=b.items.slice(1);
         tr.innerHTML=`<td><span class="badge ${cls}">${name}</span></td>
           <td>${b.label}</td>
           <td>${addons.map(a=>`<span class="badge">${a.enhancement||a.subtype||a.code}</span>`).join(' ') || '<span class="sub">—</span>'}</td>
           <td class="money">${money(b.copay)}</td>
           <td class="money">${money(b.chargeback)}</td>
-          <td class="money">${money(b.profit)}</td>
-          <td>${b.ratio.toFixed(2)}</td>`;
+          <td class="money">${money(b.profit)}</td>`;
         tbody.appendChild(tr);
       }
-      el('bundleCount').textContent='Computed: '+[good,mid,best].filter(Boolean).length+' / 3';
+      el('bundleCount').textContent='Computed: '+rows.filter(([,,b])=>!!b).length+' / 3';
     }
 
     // ---------------- Wire-up ----------------
     el('forceRefresh').onclick=()=>{ clearCache(); loadCSV(); };
     el('clearCache').onclick =()=>{ clearCache(); el('status').textContent=' cache cleared — click Force Refresh to reload'; };
-    ['lensFamily','includeAR','includeAspheric','includeOversize','includeGlass','addTransitions','addPolarized']
+    ['lensFamily','includeAR','includeAspheric','includeOversize','includeGlass','lensTint']
       .forEach(id=> el(id).onchange=computeBundles );
 
     // Boot
