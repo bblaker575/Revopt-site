@@ -61,7 +61,6 @@
       <label class="switch"><input type="checkbox" id="includeOversize"> Oversize</label>
       <label class="switch"><input type="checkbox" id="includeGlass"> Glass</label>
 
-      <!-- Mutually exclusive sun selection -->
       <label class="switch">Lens tint
         <select id="lensTint">
           <option value="clear" selected>Clear</option>
@@ -81,7 +80,7 @@
     // ---------------- Config ----------------
     const DEFAULT_CSV = 'data/vsp_choice_master_v7_full_fixed.csv';
 
-    // Policy: enforce D-coded polarized add-ons for SV & LINED
+    // Enforce D-coded polarized add-ons for SV & LINED
     const REQUIRE_D_CODES_FOR_SV_AND_LINED_POLARIZED = true;
 
     // ---------------- Utils -----------------
@@ -91,8 +90,8 @@
     const num = (v)=>{ const x=parseFloat(String(v??'').replace(/[^0-9.-]/g,'')); return isFinite(x)?x:0; };
     const quickHash=(s)=>{ let h=2166136261>>>0; for(let i=0;i<s.length;i++){ h^=s.charCodeAt(i); h=Math.imul(h,16777619)>>>0; } return ('00000000'+h.toString(16)).slice(-8); };
     const N = s => String(s||'').toLowerCase();
-    const isDCode = r => /^D/i.test((r.code||'').trim());
-    const isPPhoto = r => /^P(M|R)/i.test((r.code||'').trim()); // PM/PR
+    const isDCode  = r => /^d/i.test((r.code||'').trim());
+    const isPPhoto = r => /^p(m|r)/i.test((r.code||'').trim()); // PM/PR
 
     // CSV parser with "" escape handling
     function parseCSV(text){
@@ -186,6 +185,31 @@
       });
     }
 
+    // Normalize base material to a coarse key to match sun tech
+    function materialKey(label) {
+      const s = N(label);
+      if(/polycarb/.test(s)) return 'poly';
+      if(/trivex/.test(s)) return 'trivex';
+      if(/1\.74|1\.75/.test(s)) return 'hi174';
+      if(/1\.70|1\.71|above/.test(s)) return 'hi70';
+      if(/1\.66|1\.67/.test(s)) return 'hi167';
+      if(/cr[- ]?39|plastic(?!.*high)/.test(s)) return 'cr39';
+      return 'other';
+    }
+    function sunMatchesBase(sunRow, baseRow) {
+      const mk = materialKey(baseRow.enhancement || baseRow.subtype || '');
+      const t = N(sunRow.enhancement);
+      switch (mk) {
+        case 'poly':   return /polycarb/.test(t);
+        case 'trivex': return /trivex/.test(t);
+        case 'hi174':  return /(1\.74|1\.75)/.test(t);
+        case 'hi70':   return /(1\.70|1\.71|above)/.test(t);
+        case 'hi167':  return /(1\.66|1\.67)/.test(t);
+        case 'cr39':   return /(cr[- ]?39|plastic(?!.*high))/.test(t);
+        default:       return true; // allow generic match if unclassifiable
+      }
+    }
+
     function line(row){
       const cop = num(row.copay), cb=num(row.chargeback), pr=cop-cb;
       return { name: row.enhancement||row.subtype||'—', code: row.code||'', copay:cop, chargeback:cb, profit:pr };
@@ -197,7 +221,7 @@
       const cop = sum(lines.map(x=>x.copay));
       const cb  = sum(lines.map(x=>x.chargeback));
       const pr  = cop - cb;
-      const ratio = cop>0 ? (pr/cop) : 0; // internal only
+      const ratio = cop>0 ? (pr/cop) : 0; // internal only (tie-breaker)
       const label = base.enhancement || base.subtype || base.code || 'Base';
       return { label, lines, copay:cop, chargeback:cb, profit:pr, ratio };
     }
@@ -229,7 +253,6 @@
 
         // Otherwise exclude any base rows that already bake in sun
         if(/photochrom|polariz|tint|tinted|sunglass|gradient/.test(name)) return false;
-
         return true;
       });
 
@@ -238,39 +261,42 @@
       const arPool = wantAR ? byKey('ar_level').filter(r=>applies(r,fam)) : [];
       const arRanked = wantAR ? rankAR(arPool) : [];
 
-      // Sun tech (mutually exclusive; PAL+polarized handled in base)
+      // Sun tech pool (common pool; actual pick will be per-base)
       const sunAll = byKey('sun_tech').filter(r=>applies(r,fam)).filter(r=>{
         if(!wantGlass && N(r.enhancement).includes('glass')) return false;
         return true;
       });
 
-      let sunPick = null;
-      if (tintSel==='clear') {
-        sunPick = null;
-      } else if (tintSel==='polarized') {
-        if (fam==='PAL') {
-          // Already handled as base material
-          sunPick = null;
-        } else {
-          // SV & LINED: use D-coded polarized add-ons only
-          let pool = sunAll.filter(r=>/polariz/.test(N(r.enhancement)));
-          if (REQUIRE_D_CODES_FOR_SV_AND_LINED_POLARIZED) {
-            pool = pool.filter(isDCode);
-          }
-          sunPick = pickBest(pool);
+      // Choose sun add-on for a specific base (mutually exclusive)
+      function chooseSunFor(baseRow) {
+        if (tintSel === 'clear') return null;
+
+        if (tintSel === 'polarized') {
+          // PAL + Polarized handled as base material
+          if (fam === 'PAL') return null;
+          // SV/LINED: D-coded polarized add-on that matches the base material
+          let pool = sunAll.filter(r => /polariz/.test(N(r.enhancement)) && sunMatchesBase(r, baseRow));
+          if (REQUIRE_D_CODES_FOR_SV_AND_LINED_POLARIZED) pool = pool.filter(isDCode);
+          return pickBest(pool);
         }
-      } else if (tintSel==='transitions') {
-        // Photochromic P-codes preferred (PR/PM)
-        let pool = sunAll.filter(r=>/photochrom/.test(N(r.enhancement)));
-        const pPool = pool.filter(isPPhoto);
-        sunPick = pickBest(pPool.length ? pPool : pool);
-      } else if (tintSel==='tinted') {
-        sunPick = pickBest(
-          sunAll.filter(r=>{
-            const n=N(r.enhancement);
-            return !/photochrom|polariz/.test(n) && /tint|tinted|solid|gradient|sunglass/.test(n);
-          })
-        );
+
+        if (tintSel === 'transitions') {
+          // Photochromic (prefer P-codes PR/PM) that matches base material
+          let pool = sunAll.filter(r => /photochrom/.test(N(r.enhancement)) && sunMatchesBase(r, baseRow));
+          const pPool = pool.filter(isPPhoto);
+          return pickBest(pPool.length ? pPool : pool);
+        }
+
+        if (tintSel === 'tinted') {
+          // Tinted that matches base material (exclude polar/photochromic)
+          let pool = sunAll.filter(r => {
+            const n = N(r.enhancement);
+            return sunMatchesBase(r, baseRow) && !/photochrom|polariz/.test(n) && /tint|tinted|solid|gradient|sunglass/.test(n);
+          });
+          return pickBest(pool);
+        }
+
+        return null;
       }
 
       // Oversize (single best)
@@ -285,15 +311,15 @@
         if(!wantAR || !arRanked.length) return null;
         if(idx < arRanked.length) return arRanked[idx];
         return arRanked[arRanked.length-1];
-        }
+      }
 
-      // Selection helpers
+      // Selection helpers (ensure distinct base labels across tiers)
       function selectMaxProfit(candidates, arRow, excludeLabels=new Set()){
         let best=null;
         for(const m of candidates){
           const lbl=(m.enhancement||m.subtype||m.code||'Base');
           if(excludeLabels.has(lbl)) continue;
-          const b = makeBundle(m, [arRow, sunPick, overs]);
+          const b = makeBundle(m, [arRow, chooseSunFor(m), overs]);
           if(!best || b.profit>best.profit || (b.profit===best.profit && b.ratio>best.ratio)) best=b;
         }
         return best;
@@ -303,7 +329,7 @@
         for(const m of candidates){
           const lbl=(m.enhancement||m.subtype||m.code||'Base');
           if(excludeLabels.has(lbl)) continue;
-          const b = makeBundle(m, [arRow, sunPick, overs]);
+          const b = makeBundle(m, [arRow, chooseSunFor(m), overs]);
           if(!best || b.copay<best.copay || (b.copay===best.copay && b.profit>best.profit)) best=b;
         }
         return best;
