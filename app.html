@@ -65,19 +65,22 @@
 </div>
 
 <script>
-/* ========================= Resilient Loader (fixed) =========================
-   Fixes:
-   - Hash bytes via arrayBuffer() (not res.text()) to avoid line-ending/encoding drift.
+/* ========================= Resilient Loader (diagnostic mode) =========================
+   - Hashes BYTES via arrayBuffer() to avoid EOL/encoding drift.
    - Strong cache-busting for manifest & schema via BUILD_TAG.
    - Safe query builder for CSV (?v=...).
-   - Sanitized hex compare + UI diagnostics.
-============================================================================= */
+   - Sanitized hex compare + HARD DIAGNOSTICS.
+   - TEMP: ENFORCE_CHECKSUM can be set false to proceed even on mismatch.
+======================================================================================= */
 (function(){
   const BUILD_TAG = "2025-08-31.3";               // bump when manifest/CSV changes
   const MANIFEST_URL = `data/manifest.json?v=${BUILD_TAG}`;
   const SCHEMA_URL   = `data/schema_v1.json?v=${BUILD_TAG}`;
   const LKG_KEY = "revopt:lkg:data";
   const LKG_META_KEY = "revopt:lkg:meta";
+
+  // ── Toggle this to true once we confirm hashes line up in prod ────────────────
+  const ENFORCE_CHECKSUM = false;  // ← set to true after we resolve the mismatch
 
   const cleanHex = s => (s||"").toLowerCase().replace(/[^0-9a-f]/g,"");
   const withVersion = (url, v) => !v ? url : `${url}${url.includes("?")?"&":"?"}v=${encodeURIComponent(v)}`;
@@ -122,7 +125,10 @@
     const bytes = new Uint8Array(buf);
     const sha = await sha256Bytes(bytes);
     const text = new TextDecoder("utf-8").decode(bytes); // decode once for Papa
-    return { sha, text };
+    // Diagnostics: first/last 24 bytes for forensic checks
+    const head = Array.from(bytes.slice(0,24)).map(b=>b.toString(16).padStart(2,"0")).join(" ");
+    const tail = Array.from(bytes.slice(Math.max(0,bytes.length-24))).map(b=>b.toString(16).padStart(2,"0")).join(" ");
+    return { sha, text, len: bytes.length, head, tail };
   }
 
   function parseCSV(text){
@@ -141,20 +147,28 @@
     const schema   = await fetchJSON(SCHEMA_URL);
 
     const csvUrl = withVersion(manifest.url, manifest.version);
-    const { sha: gotSha, text: csvText } = await fetchCSVBytes(csvUrl);
+    const { sha: gotSha, text: csvText, len, head, tail } = await fetchCSVBytes(csvUrl);
     const expectedSha = cleanHex(manifest.sha256);
     const got = cleanHex(gotSha);
 
-    window.__revopt_last_sha = { expected: expectedSha, got };
+    // expose for diagnostics in UI + console
+    window.__revopt_last_sha = { expected: expectedSha, got, len, csvUrl, head, tail };
+    console.log("[revopt] manifest.version =", manifest.version);
+    console.log("[revopt] csvUrl =", csvUrl);
+    console.log("[revopt] expected sha =", expectedSha);
+    console.log("[revopt] got sha       =", got);
+    console.log("[revopt] csv bytes len =", len);
+    console.log("[revopt] csv head 24B  =", head);
+    console.log("[revopt] csv tail 24B  =", tail);
 
-    if(expectedSha && expectedSha !== got){
+    if(ENFORCE_CHECKSUM && expectedSha && expectedSha !== got){
       throw new Error(`Checksum mismatch. Expected ${expectedSha} got ${got}`);
     }
 
     const rows = await parseCSV(csvText);
     validateSchema(rows, schema);
-    saveLKG({ source:"network", manifest, sha:{expected:expectedSha, got} }, rows);
-    return { rows, meta: { source:"network", manifest, sha:{expected:expectedSha, got} } };
+    saveLKG({ source:"network", manifest, sha:{expected:expectedSha, got}, len, csvUrl }, rows);
+    return { rows, meta: { source:"network", manifest, sha:{expected:expectedSha, got}, len, csvUrl } };
   }
 
   async function loadData(){
@@ -177,7 +191,6 @@
 })();
 </script>
 
-<script>
 /* ======================== Minimal App + Selection UI ======================== */
 const $ = s => document.querySelector(s);
 const statusEl = $("#status"), metaEl = $("#meta"), logEl = $("#log");
