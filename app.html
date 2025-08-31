@@ -1,249 +1,355 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8"/>
-  <title>RevSight AI — VSP Choice (Resilient)</title>
-  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>RevSight AI — VSP Choice Bundles</title>
   <style>
-    :root { --bg:#0b0f14; --fg:#e7eefc; --card:#0f1621; --border:#253146;
-      --muted:#93a4bd; --ok:#10b981; --warn:#f59e0b; --err:#ef4444; }
+    :root{--bg:#0b0f14;--fg:#e7eefc;--muted:#9fb0c9;--card:#101722;--line:#233044;--ok:#10b981;--warn:#f59e0b;--err:#ef4444}
     *{box-sizing:border-box}
     body{background:var(--bg);color:var(--fg);font:15px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;margin:0}
-    header{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:16px 20px;border-bottom:1px solid #1e2734}
-    h1{font-size:18px;margin:0}.sub{color:var(--muted);font-size:12px}
-    .pill{font-size:12px;padding:6px 10px;border-radius:999px;border:1px solid var(--border);background:#121a25;white-space:nowrap}
-    .ok{color:#a7f3d0;border-color:#064e3b;background:#06251d}
-    .warn{color:#fde68a;border-color:#845c16;background:#3b2a08}
-    .err{color:#fecaca;border-color:#7f1d1d;background:#2a0d0d}
-    .container{max-width:1200px;margin:0 auto;padding:16px}
-    .card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;margin:16px 0}
-    .controls{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;align-items:center}
-    .row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
-    button{background:#1b2738;color:var(--fg);border:1px solid var(--border);border-radius:8px;padding:8px 12px;cursor:pointer}
-    button:disabled{opacity:.5;cursor:not-allowed}
-    input[type="search"],select{background:#0c121b;color:var(--fg);border:1px solid var(--border);border-radius:8px;padding:8px 12px;min-width:180px}
-    table{width:100%;border-collapse:separate;border-spacing:0}
-    th,td{text-align:left;padding:10px 8px;border-bottom:1px solid var(--border);font-size:14px}
-    th{position:sticky;top:0;background:#101827;z-index:1}
-    .muted{color:var(--muted)}.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
-    .small{font-size:12px}.footer{color:var(--muted);font-size:12px;padding:16px 0 24px}
+    header{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--line)}
+    h1{font-size:18px;margin:0}
+    .sub{color:var(--muted);font-size:12px}
+    main{padding:16px}
+    .bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:0 0 14px}
+    .btn{background:#132034;border:1px solid var(--line);color:var(--fg);padding:8px 10px;border-radius:10px;cursor:pointer}
+    .btn:hover{background:#16263c}
+    .input{background:#0f1621;border:1px solid var(--line);color:var(--fg);padding:8px 10px;border-radius:10px}
+    select.input{padding-right:28px}
+    .switch{display:inline-flex;align-items:center;gap:8px}
+    .switch input{accent-color:#4f9cff}
+    .grid{display:grid;grid-template-columns:repeat(12,1fr);gap:14px}
+    .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px}
+    .w3{grid-column:span 3}
+    .w4{grid-column:span 4}
+    .w6{grid-column:span 6}
+    .w12{grid-column:span 12}
+    .kvs{display:grid;grid-template-columns:120px 1fr;gap:4px;font-size:13px}
+    .pill{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);padding:4px 8px;border-radius:999px;font-size:12px;margin:2px 6px 2px 0;background:#0e1a27}
+    .muted{color:var(--muted)}
+    .money{font-weight:700}
+    .good{border-color:#35506e}
+    .better{border-color:#7c5c19}
+    .best{border-color:#0f6a52}
+    .mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+    table{width:100%;border-collapse:collapse}
+    th,td{border-bottom:1px dashed #213043;padding:8px 6px;text-align:left;font-size:13px}
+    th{color:var(--muted);font-weight:600}
+    .diag{white-space:pre-wrap;background:#09101a;border:1px solid #1b2737;color:#c6d6f1;border-radius:8px;padding:8px;max-height:200px;overflow:auto}
+    .nowrap{white-space:nowrap}
+    .ratio{font-size:12px;color:var(--muted)}
+    .badge{font-size:11px;border:1px solid var(--line);border-radius:6px;padding:2px 6px}
   </style>
-  <script defer src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
 </head>
 <body>
-<header>
-  <div><h1>RevSight AI <span class="sub">• VSP Choice Data</span></h1></div>
-  <div id="status" class="pill">initializing…</div>
-</header>
-
-<div class="container">
-  <div class="card">
-    <div class="row" style="margin-bottom:10px">
-      <button id="btn-refresh">Force Refresh</button>
-      <button id="btn-clear">Clear Local Cache</button>
-      <input id="search" type="search" placeholder="Quick filter (e.g., progressive, AR, poly)…"/>
-      <span id="meta" class="muted small"></span>
+  <header>
+    <div>
+      <h1>RevSight AI — VSP Choice Bundles</h1>
+      <div class="sub">Good/Better/Best ranked by <b>practice profit</b>. AR default <b>ON</b>. Polarized/Transitions treated as <b>add‑ons</b>, not base materials.</div>
     </div>
-    <div class="controls">
-      <select id="sel-group"><option value="">All Groups</option></select>
-      <select id="sel-subtype"><option value="">All Subtypes</option></select>
-      <select id="sel-enh"><option value="">All Enhancements</option></select>
+    <div class="sub" id="version">loading…</div>
+  </header>
+  <main>
+    <div class="bar">
+      <button class="btn" id="forceRefresh">Force Refresh</button>
+      <button class="btn" id="clearCache">Clear Local Cache</button>
+      <label class="switch">Lens family
+        <select id="lensFamily" class="input">
+          <option value="SV">Single Vision</option>
+          <option value="LINED">Lined Bi/Tri</option>
+          <option value="PAL">Progressive</option>
+        </select>
+      </label>
+      <label class="switch"><input type="checkbox" id="includeAR" checked> Include AR</label>
+      <label class="switch"><input type="checkbox" id="includeAspheric"> Aspheric</label>
+      <label class="switch"><input type="checkbox" id="includeOversize"> Oversize</label>
+      <label class="switch"><input type="checkbox" id="includeGlass"> Glass</label>
+      <label class="switch"><input type="checkbox" id="addTransitions"> Add Transitions®</label>
+      <label class="switch"><input type="checkbox" id="addPolarized"> Add Polarized</label>
+      <label class="switch">CSV
+        <input id="csvUrl" class="input" style="width:320px" placeholder="/path/to/vsp_choice_master_v7_full_fixed.csv"/>
+      </label>
+      <button class="btn" id="loadCsv">Load CSV</button>
+      <span class="sub" id="status"></span>
     </div>
-    <div id="log" class="mono small muted" style="margin-top:8px;max-height:160px;overflow:auto;"></div>
-  </div>
 
-  <div class="card">
-    <div class="muted small" style="margin-bottom:8px">Showing <span id="count">0</span> rows</div>
-    <div style="overflow:auto;max-height:65vh;">
-      <table id="tbl"><thead><tr id="thead"></tr></thead><tbody id="tbody"></tbody></table>
+    <div class="grid">
+      <div class="card w6">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <div class="sub">Computed Bundles</div>
+          <div class="sub" id="bundleCount">—</div>
+        </div>
+        <table id="bundleTable">
+          <thead>
+            <tr>
+              <th>Tier</th>
+              <th>Material</th>
+              <th>Add‑ons</th>
+              <th class="nowrap">Patient Copay</th>
+              <th class="nowrap">Chargeback</th>
+              <th class="nowrap">Profit</th>
+              <th class="nowrap">Profit/Copay</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div class="card w6">
+        <div class="sub" style="margin-bottom:8px">Diagnostics</div>
+        <div class="kvs">
+          <div>Rows loaded</div><div id="rowsLoaded">0</div>
+          <div>Active filter</div><div id="activeFilter">—</div>
+          <div>Hash</div><div id="hash">—</div>
+        </div>
+        <div style="height:8px"></div>
+        <div class="diag" id="diag">Ready.</div>
+      </div>
+      <div class="card w12">
+        <div class="sub" style="margin-bottom:8px">Raw Data (filtered)</div>
+        <table id="rawTable">
+          <thead></thead>
+          <tbody></tbody>
+        </table>
+      </div>
     </div>
-  </div>
+  </main>
 
-  <div class="footer">
-    Resilient loader with checksum + schema guard. If data fetch fails, we fall back to the last-known-good (LKG) cache and show a warning.
-  </div>
-</div>
+  <script>
+    // ---- Utilities ---------------------------------------------------------
+    const el = (id)=>document.getElementById(id);
+    const sum = (arr)=>arr.reduce((a,b)=>a+b,0);
+    const money = (v)=>`$${v.toFixed(2)}`;
 
-<!-- Resilient Loader (diagnostic mode) -->
-<script>
-(function(){
-  const BUILD_TAG = "2025-08-31.3";               // bump when manifest/CSV changes
-  const MANIFEST_URL = `data/manifest.json?v=${BUILD_TAG}`;
-  const SCHEMA_URL   = `data/schema_v1.json?v=${BUILD_TAG}`;
-  const LKG_KEY = "revopt:lkg:data";
-  const LKG_META_KEY = "revopt:lkg:meta";
-
-  // flip to true when you want strict integrity again
-  const ENFORCE_CHECKSUM = false;
-
-  const cleanHex = s => (s||"").toLowerCase().replace(/[^0-9a-f]/g,"");
-  const withVersion = (url, v) => !v ? url : `${url}${url.includes("?")?"&":"?"}v=${encodeURIComponent(v)}`;
-
-  async function sha256Bytes(uint8){
-    const buf = await crypto.subtle.digest('SHA-256', uint8);
-    return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
-  }
-
-  function saveLKG(meta, rows){
-    try{
-      localStorage.setItem(LKG_KEY, JSON.stringify(rows));
-      localStorage.setItem(LKG_META_KEY, JSON.stringify(meta));
-    }catch{}
-  }
-  function loadLKG(){
-    try{
-      const rows = JSON.parse(localStorage.getItem(LKG_KEY) || "null");
-      const meta = JSON.parse(localStorage.getItem(LKG_META_KEY) || "null");
-      if(!rows || !meta) return null;
-      return { rows, meta };
-    }catch{ return null; }
-  }
-
-  function validateSchema(rows, schema){
-    if(!rows || !rows.length) throw new Error("empty dataset");
-    const cols = Object.keys(rows[0] || {});
-    const missing = (schema.required_columns || []).filter(c => !cols.includes(c));
-    if(missing.length) throw new Error("missing columns: " + missing.join(", "));
-  }
-
-  async function fetchJSON(url){
-    const res = await fetch(url, { cache: "reload" });
-    if(!res.ok) throw new Error(`HTTP ${res.status} for ${url}`);
-    return await res.json();
-  }
-
-  async function fetchCSVBytes(urlWithV){
-    const res = await fetch(urlWithV, { cache: "reload" });
-    if(!res.ok) throw new Error(`HTTP ${res.status} for ${urlWithV}`);
-    const buf = await res.arrayBuffer();
-    const bytes = new Uint8Array(buf);
-    const sha = await sha256Bytes(bytes);
-    const text = new TextDecoder("utf-8").decode(bytes);
-    const head = Array.from(bytes.slice(0,24)).map(b=>b.toString(16).padStart(2,"0")).join(" ");
-    const tail = Array.from(bytes.slice(Math.max(0,bytes.length-24))).map(b=>b.toString(16).padStart(2,"0")).join(" ");
-    return { sha, text, len: bytes.length, head, tail };
-  }
-
-  function parseCSV(text){
-    return new Promise((resolve,reject)=>{
-      if(!window.Papa) return reject(new Error("PapaParse not loaded"));
-      Papa.parse(text, {
-        header:true, dynamicTyping:false, skipEmptyLines:"greedy",
-        transformHeader: h => (h || "").trim(),
-        complete: r => resolve(r.data), error: reject
+    // CSV parser robust enough for quoted fields
+    function parseCSV(text){
+      const rows=[]; let i=0, field='', row=[], inQ=false; 
+      for(const ch of text){
+        if(ch==='\n'){
+          if(inQ){ field += ch; } else { row.push(field); rows.push(row); row=[]; field=''; }
+        } else if(ch===','){
+          if(inQ){ field += ch; } else { row.push(field); field=''; }
+        } else if(ch==='"'){
+          if(inQ && field.endsWith('"')){ field = field.slice(0,-1)+'"'; } // escaped quote
+          inQ = !inQ;
+          field += '"';
+        } else { field += ch; }
+      }
+      if(field.length||row.length) { row.push(field); rows.push(row); }
+      const headers = rows.shift().map(h=>h.trim());
+      return rows.filter(r=>r.length===headers.length).map(r=>{
+        const o={}; headers.forEach((h,idx)=>o[h]=r[idx]?.replace(/^\"|\"$/g,'').trim());
+        return o;
       });
-    });
-  }
-
-  async function loadNetwork(){
-    const manifest = await fetchJSON(MANIFEST_URL);
-    const schema   = await fetchJSON(SCHEMA_URL);
-
-    const csvUrl = withVersion(manifest.url, manifest.version);
-    const { sha: gotSha, text: csvText, len, head, tail } = await fetchCSVBytes(csvUrl);
-    const expectedSha = cleanHex(manifest.sha256);
-    const got = cleanHex(gotSha);
-
-    // diagnostics
-    window.__revopt_last_sha = { expected: expectedSha, got, len, csvUrl, head, tail };
-    console.log("[revopt] version =", manifest.version);
-    console.log("[revopt] csvUrl  =", csvUrl);
-    console.log("[revopt] expected=", expectedSha);
-    console.log("[revopt] got     =", got);
-    console.log("[revopt] len     =", len);
-
-    if(ENFORCE_CHECKSUM && expectedSha && expectedSha !== got){
-      throw new Error(`Checksum mismatch. Expected ${expectedSha} got ${got}`);
     }
 
-    const rows = await parseCSV(csvText);
-    validateSchema(rows, schema);
-    saveLKG({ source:"network", manifest, sha:{expected:expectedSha, got}, len, csvUrl }, rows);
-    return { rows, meta: { source:"network", manifest, sha:{expected:expectedSha, got}, len, csvUrl } };
-  }
+    // Hash (non-crypto) for quick change detection
+    function quickHash(s){ let h=2166136261>>>0; for(let i=0;i<s.length;i++){ h^=s.charCodeAt(i); h=Math.imul(h,16777619)>>>0; } return ('00000000'+h.toString(16)).slice(-8); }
 
-  async function loadData(){
-    try{
-      return await loadNetwork();
-    }catch(e){
-      console.warn("[revopt] network failed:", e.message);
-      const lkg = loadLKG();
-      if(lkg) return lkg;
-      throw new Error("No data available (network failed and no LKG). " + e.message);
+    // Local cache helpers
+    const CACHE_KEY = 'rev-vsp-choice-csv-v1';
+    const META_KEY = 'rev-vsp-choice-meta-v1';
+
+    function setCache(text, meta){ localStorage.setItem(CACHE_KEY,text); localStorage.setItem(META_KEY, JSON.stringify(meta)); }
+    function getCache(){ return { text: localStorage.getItem(CACHE_KEY), meta: JSON.parse(localStorage.getItem(META_KEY)||'{}') }; }
+    function clearCache(){ localStorage.removeItem(CACHE_KEY); localStorage.removeItem(META_KEY); }
+
+    // Data model
+    let DATA = [];
+
+    async function loadCSV(url){
+      const status = el('status');
+      try{
+        let text=null, source='network';
+        if(url){
+          const res = await fetch(url, {cache:'no-store'});
+          if(!res.ok) throw new Error('HTTP '+res.status);
+          text = await res.text();
+        } else {
+          const cached = getCache();
+          if(cached.text){ text=cached.text; source='cache'; }
+          else {
+            // Try default relative path; if that fails, fall back to embedded tiny sample
+            try {
+              const res = await fetch('vsp_choice_master_v7_full_fixed.csv', {cache:'no-store'});
+              if(!res.ok) throw new Error('no-default');
+              text = await res.text();
+            } catch(e){
+              text = 'group,subtype,enhancement,code,notes,copay,vsp,chargeback,exclusive_key,applies_to,composable,active\n' +
+                     'Material,CR,Aspheric Plastic 1.50,AA,,0,0,10,material,SV,OCC,yes\n' +
+                     'Material,Mid,High-index Plastic 1.53–1.60/Trivex,AB,,0,0,33,material,SV,OCC,yes\n' +
+                     'Material,Hi67,High-index Plastic 1.66/1.67,AH,,0,0,48,material,SV,OCC,yes\n' +
+                     'AR,Std,AR Standard,AR1,,0,0,20,ar,SV|LINED|PAL,yes,yes\n' +
+                     'AR,Prem,AR Premium,AR2,,0,0,40,ar,SV|LINED|PAL,yes,yes\n' +
+                     'Progressive,Prem,Premium PAL,PP,,0,0,120,progressive,PAL,yes,yes\n' +
+                     'Lined,DA,DA Bifocal,DA,,0,0,60,lined,LINED,yes,yes\n' +
+                     'Photochromic,Std,Transitions,TR,,0,0,80,photochromic,SV|LINED|PAL,yes,yes\n' +
+                     'Polarized,Std,Polarized Tint,PO,,0,0,90,polarized,SV|LINED|PAL,yes,yes\n';
+              source='embedded-sample';
+            }
+          }
+        }
+        const meta = { plan:'VSP_choice', version:new Date().toISOString().slice(0,10)+'.gbb', source, sha: quickHash(text) };
+        setCache(text, meta);
+        DATA = parseCSV(text);
+        renderMeta();
+        status.textContent = `[ok] loaded ${DATA.length} rows`;
+        el('rowsLoaded').textContent = DATA.length;
+        el('diag').textContent = sampleRows(DATA, 8);
+        computeBundles();
+      }catch(err){
+        el('status').textContent = 'Load failed: '+err.message;
+        el('diag').textContent = (err.stack||String(err));
+      }
     }
-  }
 
-  window.revoptDataPromise = (async ()=>{
-    const { rows, meta } = await loadData();
-    window.revoptData = rows;
-    window.revoptDataMeta = meta;
-    return rows;
-  })();
-})();
-</script>
+    function renderMeta(){
+      const {meta} = getCache();
+      el('version').textContent = `plan=${meta.plan||'VSP_choice'} • version=${meta.version||'—'} • source=${meta.source||'—'} • sha=${meta.sha||'—'}`;
+      el('hash').textContent = meta.sha||'—';
+    }
 
-<!-- Minimal App + Selection UI -->
-<script>
-const $ = s => document.querySelector(s);
-const statusEl = $("#status"), metaEl = $("#meta"), logEl = $("#log");
-const thead=$("#thead"), tbody=$("#tbody"), countEl=$("#count"), searchEl=$("#search");
-const selGroup=$("#sel-group"), selSubtype=$("#sel-subtype"), selEnh=$("#sel-enh");
+    function sampleRows(rows, n){
+      return rows.slice(0,n).map(o=>JSON.stringify(o)).join('\n');
+    }
 
-function setStatus(kind,msg){ statusEl.className="pill "+(kind||""); statusEl.textContent=msg; }
-function logLine(m){ logEl.textContent += m + "\n"; logEl.scrollTop = logEl.scrollHeight; }
-const uniq = a => Array.from(new Set(a.filter(v=>v!=null && String(v).trim()!==""))).sort((x,y)=>String(x).localeCompare(String(y)));
-function renderOptions(sel, values, label){
-  const current = sel.value;
-  sel.innerHTML = `<option value="">All ${label}</option>` + values.map(v=>`<option>${v}</option>`).join("");
-  if(values.includes(current)) sel.value = current;
-}
-function renderTable(rows){
-  if(!rows || !rows.length){ thead.innerHTML=""; tbody.innerHTML=`<tr><td class="muted">No rows</td></tr>`; countEl.textContent="0"; return; }
-  const cols = Object.keys(rows[0]);
-  thead.innerHTML = cols.map(c=>`<th>${c}</th>`).join("");
-  tbody.innerHTML = rows.map(r=>`<tr>${cols.map(c=>`<td>${(r[c]??"")}</td>`).join("")}</tr>`).join("");
-  countEl.textContent = String(rows.length);
-}
-function applyFilters(rows){
-  const q = searchEl.value.trim().toLowerCase();
-  const g = selGroup.value, s = selSubtype.value, e = selEnh.value;
-  return rows.filter(r=>{
-    if(g && String(r.group||"")!==g) return false;
-    if(s && String(r.subtype||"")!==s) return false;
-    if(e && String(r.enhancement||"")!==e) return false;
-    if(q && !Object.values(r).some(v=>String(v||"").toLowerCase().includes(q))) return false;
-    return true;
-  });
-}
-$("#btn-refresh").onclick = ()=> location.reload();
-$("#btn-clear").onclick = ()=>{ localStorage.removeItem("revopt:lkg:data"); localStorage.removeItem("revopt:lkg:meta"); location.reload(); };
+    // ---- Business Logic ---------------------------------------------------
+    // Profit formula: profit = sum(copay) - sum(chargeback). VSP column is displayed but not used in profit.
+    function num(v){ const x=parseFloat(String(v).replace(/[^0-9.-]/g,'')); return isFinite(x)?x:0; }
 
-(async ()=>{
-  try{
-    const rows = await window.revoptDataPromise;
-    const meta = window.revoptDataMeta||{}, manifest=meta.manifest||{}, source=meta.source||"network";
-    const sha = meta.sha || window.__revopt_last_sha || {};
-    setStatus(source==="network"?"ok":"warn", source==="network"?`Active: ${manifest.version||"?"} (network)`: `Using LKG: ${manifest.version||"unknown"}`);
-    metaEl.innerHTML = `
-      <span class="mono small">plan=${manifest.plan||"?"}</span>&nbsp;•&nbsp;
-      <span class="mono small">version=${manifest.version||"?"}</span>&nbsp;•&nbsp;
-      <span class="mono small">source=${source}</span>&nbsp;•&nbsp;
-      <span class="mono small">sha=${sha.got||"?"}</span>`;
-    const groups=uniq(rows.map(r=>r.group)), subs=uniq(rows.map(r=>r.subtype)), enhs=uniq(rows.map(r=>r.enhancement));
-    renderOptions(selGroup, groups, "Groups"); renderOptions(selSubtype, subs, "Subtypes"); renderOptions(selEnh, enhs, "Enhancements");
-    let current = applyFilters(rows); renderTable(current);
-    [searchEl, selGroup, selSubtype, selEnh].forEach(el=>{
-      el.addEventListener("input", ()=>{ current = applyFilters(rows); renderTable(current); });
-      el.addEventListener("change", ()=>{ current = applyFilters(rows); renderTable(current); });
-    });
-    logLine(`[ok] loaded ${rows.length} rows`);
-    if(source!=="network") logLine("[warn] network failed; using Last-Known-Good cache");
-    if(sha.expected && sha.got && sha.expected!==sha.got) logLine(`[diag] manifest.sha256=${sha.expected}, computed=${sha.got}`);
-  }catch(err){
-    console.error(err); setStatus("err","No data available"); logLine("[fatal] " + err.message);
-  }
-})();
-</script>
+    // Helpers to filter rows by key
+    function byKey(key){ return DATA.filter(r => (r.active||'yes').toLowerCase()==='yes' && (r.exclusive_key||'').toLowerCase()===key); }
 
+    function applies(row, family){
+      const a=(row.applies_to||'').toUpperCase();
+      if(!a) return true;
+      // supports formats like "SV|LINED|PAL" or "SV,OCC" etc.
+      const tokens = a.split(/[|,\/\s]+/).filter(Boolean);
+      if(family==='LINED') return tokens.includes('LINED') || tokens.includes('OCC') || tokens.includes('BF') || tokens.includes('BIFOCAL');
+      return tokens.includes(family);
+    }
+
+    function computeBundles(){
+      if(!DATA.length){ el('bundleTable').querySelector('tbody').innerHTML=''; return; }
+      const fam = el('lensFamily').value; // SV | LINED | PAL
+      const wantAR = el('includeAR').checked;
+      const wantAsp = el('includeAspheric').checked;
+      const wantOS  = el('includeOversize').checked;
+      const wantGlass = el('includeGlass').checked;
+      const addTR = el('addTransitions').checked;
+      const addPO = el('addPolarized').checked;
+
+      // Base material candidates (explicitly exclude categories that are add-ons)
+      const materials = byKey('material').filter(r=>applies(r,fam)).filter(r=>{
+        const name=(r.enhancement||'').toLowerCase();
+        if(name.includes('polarized')) return false;
+        if(name.includes('transition')) return false;
+        if(!wantAsp && /aspheric/i.test(name)) return false;
+        if(!wantGlass && /glass/i.test(name)) return false;
+        return true;
+      });
+
+      // Optional components
+      const ars = wantAR ? byKey('ar').filter(r=>applies(r,fam)) : [];
+      const pals = fam==='PAL' ? byKey('progressive').filter(r=>applies(r,fam)) : [];
+      const lined = fam==='LINED' ? byKey('lined').filter(r=>applies(r,fam)) : [];
+      const trans = addTR ? byKey('photochromic').filter(r=>applies(r,fam)) : [];
+      const pol = addPO ? byKey('polarized').filter(r=>applies(r,fam)) : [];
+      const oversize = wantOS ? byKey('oversize').filter(r=>applies(r,fam)) : [];
+
+      const parts = { materials, ars, pals, lined, trans, pol, oversize };
+      // Show current filter scope
+      el('activeFilter').textContent = Object.entries(parts).map(([k,v])=>`${k}:${v.length}`).join('  ');
+
+      // Build all combinations with 1 material; pick the single most profitable AR when AR is enabled, etc.
+      const bestAR = ars.sort((a,b)=> (num(b.copay)-num(b.chargeback)) - (num(a.copay)-num(a.chargeback)) )[0];
+      const bestPAL = pals.sort((a,b)=> (num(b.copay)-num(b.chargeback)) - (num(a.copay)-num(a.chargeback)) )[0];
+      const bestLIN = lined.sort((a,b)=> (num(b.copay)-num(b.chargeback)) - (num(a.copay)-num(a.chargeback)) )[0];
+      const bestTR = trans.sort((a,b)=> (num(b.copay)-num(b.chargeback)) - (num(a.copay)-num(a.chargeback)) )[0];
+      const bestPO = pol.sort((a,b)=> (num(b.copay)-num(b.chargeback)) - (num(a.copay)-num(a.chargeback)) )[0];
+      const bestOS = oversize.sort((a,b)=> (num(b.copay)-num(b.chargeback)) - (num(a.copay)-num(a.chargeback)) )[0];
+
+      const bundles = materials.map(m => {
+        const items=[m];
+        if(bestAR) items.push(bestAR);
+        if(fam==='PAL' && bestPAL) items.push(bestPAL);
+        if(fam==='LINED' && bestLIN) items.push(bestLIN);
+        if(bestTR) items.push(bestTR);
+        if(bestPO) items.push(bestPO);
+        if(bestOS) items.push(bestOS);
+        const cop = sum(items.map(x=>num(x.copay)));
+        const cb  = sum(items.map(x=>num(x.chargeback)));
+        const pr  = cop - cb;
+        return { material: m.enhancement, items, copay:cop, chargeback:cb, profit:pr,
+                 ratio: cop>0 ? (pr/cop) : (pr>0?Infinity:0)};
+      });
+
+      // Rank by profit descending for Best/Mid; Good = lowest patient copay bundle
+      const byProfit = [...bundles].sort((a,b)=> b.profit - a.profit);
+      const byCopay  = [...bundles].sort((a,b)=> a.copay - b.copay);
+
+      const best = byProfit[0] || null;
+      // mid must use a different material than best when possible
+      let mid = byProfit.find(b => best && b.material !== best.material) || byProfit[1] || null;
+      const good = byCopay[0] || null;
+
+      renderBundles({good, mid, best});
+      renderRawTable(bundles);
+    }
+
+    function renderBundles(tiers){
+      const tbody = document.querySelector('#bundleTable tbody');
+      tbody.innerHTML='';
+      const rows = [ ['Good','good',tiers.good], ['Better','better',tiers.mid], ['Best','best',tiers.best] ];
+      for(const [name, cls, b] of rows){
+        const tr = document.createElement('tr');
+        if(!b){ tr.innerHTML = `<td>${name}</td><td colspan=6 class="muted">no viable bundle</td>`; tbody.appendChild(tr); continue; }
+        const addons = b.items.filter(i=>!/material/i.test(i.exclusive_key||''));
+        tr.innerHTML = `
+          <td><span class="badge ${cls}">${name}</span></td>
+          <td>${b.material}</td>
+          <td>${addons.map(a=>`<span class="pill">${a.enhancement||a.subtype||a.code}</span>`).join('')}</td>
+          <td class="money">${money(b.copay)}</td>
+          <td class="money">${money(b.chargeback)}</td>
+          <td class="money">${money(b.profit)}</td>
+          <td><span class="ratio">${(b.ratio===Infinity?'∞':b.ratio.toFixed(2))}</span></td>`;
+        tbody.appendChild(tr);
+      }
+      el('bundleCount').textContent = 'Computed: '+ rows.filter(r=>r[2]).length + ' / 3';
+    }
+
+    function renderRawTable(rows){
+      const head = document.querySelector('#rawTable thead');
+      const body = document.querySelector('#rawTable tbody');
+      body.innerHTML=''; head.innerHTML='';
+      if(!rows.length) return;
+      const cols = ['group','subtype','enhancement','code','copay','vsp','chargeback','exclusive_key','applies_to','composable','active'];
+      head.innerHTML = '<tr>'+cols.map(c=>`<th>${c}</th>`).join('')+'</tr>';
+      for(const r of rows.slice(0,150)){ // cap to keep UI snappy
+        const tr = document.createElement('tr');
+        tr.innerHTML = cols.map(c=>`<td>${(r.items? (r[c]||'') : (r[c]||''))}</td>`).join('');
+        body.appendChild(tr);
+      }
+    }
+
+    // ---- Wire-up ----------------------------------------------------------
+    el('forceRefresh').onclick = ()=> loadCSV(el('csvUrl').value||undefined);
+    el('clearCache').onclick = ()=> { clearCache(); renderMeta(); el('status').textContent='cache cleared'; };
+    el('lensFamily').onchange = computeBundles;
+    el('includeAR').onchange = computeBundles;
+    el('includeAspheric').onchange = computeBundles;
+    el('includeOversize').onchange = computeBundles;
+    el('includeGlass').onchange = computeBundles;
+    el('addTransitions').onchange = computeBundles;
+    el('addPolarized').onchange = computeBundles;
+    el('loadCsv').onclick = ()=> loadCSV(el('csvUrl').value||undefined);
+
+    // Boot
+    (async function(){
+      const urlParam = new URLSearchParams(location.search).get('csv');
+      if(urlParam) el('csvUrl').value = urlParam;
+      await loadCSV(urlParam||undefined);
+    })();
+  </script>
 </body>
 </html>
