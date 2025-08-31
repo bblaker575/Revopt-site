@@ -1,8 +1,0 @@
-{
-  "plan": "VSP_Choice",
-  "version": "2025-08-31.1",
-  "format": "csv",
-  "schema_version": "1.0",
-  "sha256": "ee773beeb1cc4449749b90d9b376c20b39cd0548252d7bb485c5e478d3ee4bb6",
-  "url": "data/vsp_choice_master_v7_full_fixed.csv"
-}
