@@ -40,7 +40,7 @@
   <header>
     <div>
       <h1>RevSight AI — VSP Choice Profit Engine</h1>
-      <div class="sub">Tiers ranked by <b>profit</b> where profit is the <b>sum of VSP service fees</b> for items in the bundle. Toggles are enforced globally (OFF = excluded everywhere).</div>
+      <div class="sub">Tiers ranked by <b>profit</b> where profit is the <b>sum of VSP service fees</b> for items in the bundle. Toggles are enforced globally (OFF = excluded everywhere). Flexible header matching for your CSV.</div>
     </div>
     <div class="row" style="align-items:center">
       <span class="pill" id="csvStatus">CSV: not loaded</span>
@@ -117,7 +117,9 @@
         if(c==='"'){
           if(inQ && text[i]==='"'){ cur+='"'; i++; } else inQ=!inQ;
         } else if(c===',' && !inQ){ push(); }
-        else if((c==='\n'||c==='\r') && !inQ){ if(cur!==''||row.length){ push(); rows.push(row); row=[]; } }
+        else if((c==='
+'||c==='
+') && !inQ){ if(cur!==''||row.length){ push(); rows.push(row); row=[]; } }
         else cur+=c;
       }
       if(cur!==''||row.length){ push(); rows.push(row); }
@@ -129,23 +131,27 @@
 
     // --- Helpers ---
     function num(x){ const n=Number(String(x).replace(/[^0-9.\-]/g,'')); return Number.isFinite(n)?n:0; }
-    function truthy(x){ x=String(x||'').trim().toLowerCase(); return x==='1'||x==='y'||x==='yes'||x==='true'; }
+    function truthy(x){ x=String(x||'').trim().toLowerCase(); if(x==='') return true; return x==='1'||x==='y'||x==='yes'||x==='true'; }
+    function falsy(x){ x=String(x||'').trim().toLowerCase(); return x==='0'||x==='n'||x==='no'||x==='false'; }
     function uc(s){ return String(s||'').toUpperCase(); }
 
     // PROFIT: per your rule, profit for a selectable line == VSP service fee on that line
     function computeProfit(row){ return num(row.vsp); }
 
     function classify(row){
-      // Filter non-active rows early
-      if('active' in row && !truthy(row.active)) return null;
+      // Skip rows explicitly marked inactive
+      if('active' in row && falsy(row.active)) return null;
 
-      // Determine lensType from applies_to (e.g., "SV", "MF", "SV,MF"). If unspecified, default to SV.
+      // Determine lensType from applies_to; blank means BOTH
       const applies = uc(row.applies_to);
-      const lensType = applies.includes('MF') ? 'MF' : 'SV';
+      let lensType = 'BOTH';
+      if(applies.includes('MF') && !applies.includes('SV')) lensType = 'MF';
+      else if(applies.includes('SV') && !applies.includes('MF')) lensType = 'SV';
 
-      // Material vs Enhancement: in this master, base materials live under group=="Material" with exclusive_key=="base_material"
-      const group = String(row.group||'');
-      const isBaseMaterial = (group==='Material' && String(row.exclusive_key||'')==='base_material');
+      // Normalize grouping keys (robust to case / variants)
+      const group = uc(row.group);
+      const exkey = uc(row.exclusive_key);
+      const isBaseMaterial = (group.includes('MATERIAL') && (exkey.includes('BASE') || exkey.includes('MATERIAL') || exkey===''));
 
       const materialTxt    = uc(row.subtype);
       const enhancementTxt = uc(row.enhancement);
@@ -154,7 +160,7 @@
       // Feature flags for global toggles (derived from text)
       const t = (materialTxt + ' ' + enhancementTxt);
       const flags = {
-        AR: t.includes(' AR') || t.startsWith('AR') || t.includes('ANTI-REFLECT') || t.includes('ANTIRELECT'),
+        AR: t.includes(' AR') || t.startsWith('AR') || t.includes('ANTI-REFLECT'),
         ASPHERIC: t.includes('ASPHERIC'),
         GLASS: t.includes('GLASS'),
         OVERSIZE: t.includes('OVERSIZE') || t.includes('OVR')
@@ -174,16 +180,13 @@
     function byProfitDesc(a,b){ return b.profit - a.profit; }
 
     function buildUniverse(rows){
-      // Keep only active + composable items. Materials are allowed regardless of composable; enhancements require composable.
       const mapped = rows.map(classify).filter(Boolean);
       return mapped.filter(it=>{
         if(it.material){
-          // base materials: require active only
-          return true;
+          return true; // base materials allowed
         }
-        // enhancements: require composable true when present
-        const c = it.raw.composable;
-        return c === undefined || truthy(c);
+        // enhancements: only drop if explicitly non-composable
+        return !('composable' in it.raw) || truthy(it.raw.composable);
       });
     }
 
@@ -198,10 +201,13 @@
     }
 
     function pickBundles(universe, lensType, materialPref, toggles){
-      const pool = applyGlobalToggles(universe.filter(u=>!lensType || u.lensType===lensType), toggles);
+      const pool = applyGlobalToggles(
+        universe.filter(u=> !lensType || u.lensType===lensType || u.lensType==='BOTH'),
+        toggles
+      );
 
       // Partition by semantics
-      const bases = pool.filter(x => x.material && x.raw.group==='Material' && String(x.raw.exclusive_key||'')==='base_material');
+      const bases = pool.filter(x => x.material && uc(x.raw.group).includes('MATERIAL'));
       const enh   = pool.filter(x => !x.material); // non-materials
 
       // Buckets for materials
@@ -265,7 +271,7 @@
 
     function renderLineItems(universe, lensType){
       const el = document.getElementById('lineItems');
-      const list = universe.filter(u=>!lensType || u.lensType===lensType).sort(byProfitDesc).slice(0,200);
+      const list = universe.filter(u=>!lensType || u.lensType===lensType || u.lensType==='BOTH').sort(byProfitDesc).slice(0,200);
       if(!list.length){ el.innerHTML = '<div class="muted">No items.</div>'; return; }
       el.innerHTML = `<table><thead><tr><th>Type</th><th>Material</th><th>Enhancement</th><th>Description</th><th class="right">VSP fee (profit)</th></tr></thead><tbody>
       ${list.map(r=>`<tr><td>${r.lensType||'—'}</td><td>${r.material||'—'}</td><td>${r.enhancement||'—'}</td><td>${r.desc||''}</td><td class="right">${fmtCurrency(r.profit)}</td></tr>`).join('')}
@@ -314,7 +320,6 @@
       renderBundles(picks);
       renderLineItems(UNIVERSE, lensType);
 
-      // Diagnostics
       const diag = document.getElementById('diag');
       diag.textContent = JSON.stringify({ lensType, materialPref, toggles, universe: UNIVERSE.length, poolCandidates: picks.poolSize }, null, 2);
     }
