@@ -1,4 +1,149 @@
-<script>
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>PayerEdge — VSP Choice Bundles</title>
+
+  <!-- Typography -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+
+  <style>
+    :root{
+      --bg:#090e16; --bg-elev:#0c1320; --fg:#eaf1ff; --muted:#9fb0c9; --line:#263448;
+      --accent:#72a8ff; --accent-2:#7be0c3;
+      --tier-best:#ffd166; --tier-better:#a9c2ff; --tier-good:#7be0c3;
+      --shadow-lg:0 18px 40px rgba(0,0,0,.35); --shadow-md:0 10px 26px rgba(0,0,0,.28);
+      --radius:18px; --radius-sm:12px;
+      --fz-12:12px; --fz-13:13px; --fz-15:15px; --fz-18:18px; --fz-20:20px; --fz-36:36px;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      background:
+        radial-gradient(1200px 600px at 20% -10%, rgba(90,168,255,.12), transparent 60%),
+        radial-gradient(900px 500px at 110% 10%, rgba(123,224,195,.10), transparent 60%),
+        var(--bg);
+      color:var(--fg);
+      font:var(--fz-15)/1.45 Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
+      font-variant-numeric: tabular-nums;
+    }
+
+    header{
+      position:sticky; top:0; z-index:20; display:flex; justify-content:space-between; align-items:center; gap:14px;
+      padding:16px 20px; background:linear-gradient(180deg, rgba(9,14,22,.95), rgba(9,14,22,.78));
+      border-bottom:1px solid var(--line); backdrop-filter: blur(10px);
+    }
+    h1{margin:0; font-weight:800; font-size:var(--fz-20); letter-spacing:.2px}
+    .sub{color:var(--muted); font-size:var(--fz-12)}
+    .version{color:var(--muted)}
+    main{padding:18px}
+
+    .bar{
+      display:flex; align-items:center; flex-wrap:wrap; gap:10px 14px;
+      background:linear-gradient(180deg, var(--bg-elev), #0b1220);
+      border:1px solid var(--line); border-radius:var(--radius); padding:12px 12px;
+      box-shadow: var(--shadow-md);
+    }
+    .group{display:flex; gap:10px; align-items:center; padding:6px 10px; border-radius:999px; background:#0b1424}
+    .btn{ background:#121f35; border:1px solid var(--line); color:var(--fg); padding:8px 12px; border-radius:var(--radius-sm); cursor:pointer; font-weight:600; transition:.15s }
+    .btn:hover{ background:#162844; border-color:#2e4260 }
+    .switch{display:inline-flex; align-items:center; gap:8px}
+    .switch select, .switch input[type="checkbox"]{ accent-color:var(--accent) }
+    select{ background:#0e1a30; color:var(--fg); border:1px solid var(--line); border-radius:10px; padding:6px 8px; outline:none }
+    select:focus{ box-shadow:0 0 0 3px rgba(114,168,255,.25) }
+    #status{ margin-left:auto; padding:6px 10px; border-radius:999px; border:1px dashed var(--line); background:#0b1422; color:var(--muted) }
+
+    .stack{ display:grid; gap:18px; grid-template-columns:repeat(auto-fit, minmax(320px,1fr)); align-items:stretch; margin-top:16px }
+    .tier{ background:linear-gradient(180deg, #0f1726, #0c1422); border:1px solid var(--line); border-radius:var(--radius); box-shadow: var(--shadow-lg); padding:16px; transition:.25s }
+    .tierHead{display:grid; grid-template-columns:1fr auto; align-items:center; gap:10px; margin-bottom:12px}
+    .stars{font-weight:800; display:flex; align-items:center; gap:8px}
+    .stars .tag{font-size:var(--fz-12); color:var(--muted); padding:2px 8px; border:1px solid var(--line); border-radius:999px; background:#0c1424}
+    .stars.best{color:var(--tier-best)} .stars.better{color:var(--tier-better)} .stars.good{color:var(--tier-good)}
+
+    /* Scoreboard: Copay is hero, Service Fee secondary */
+    .figures{ text-align:right; display:grid; gap:2px }
+    .hero{ font-size:var(--fz-36); font-weight:800; line-height:1.0; letter-spacing:.2px; color:#cfe6ff; text-shadow: 0 6px 18px rgba(114,168,255,.18) }
+    .caption{ color:var(--muted); font-size:var(--fz-12) }
+    .svc{ font-weight:800; color:var(--accent-2) }
+
+    table{width:100%; border-collapse:collapse; margin-top:12px}
+    th,td{border-bottom:1px dashed #203043; padding:9px 6px; text-align:left; font-size:var(--fz-13)}
+    th{color:var(--muted); font-weight:700}
+    .code{font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size:12px; color:#cfe1ff}
+    .money{font-weight:800}
+    :focus-visible{ outline:2px solid var(--accent); outline-offset:2px; border-radius:8px }
+    @media print{ header,.bar{display:none} body{background:#fff; color:#000} .tier{break-inside:avoid; border:1px solid #000; box-shadow:none} table, th, td{border-color:#000} }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <h1>PayerEdge — VSP Choice Bundles</h1>
+      <div class="sub">Scoreboard shows <b>patient copay</b> and <b>service fee</b> for the practice (Copay − Holdback). Sun choices are exclusive.</div>
+    </div>
+    <div class="version sub" id="version">loading…</div>
+  </header>
+
+  <main>
+    <div class="bar" role="toolbar" aria-label="Bundle controls">
+      <div class="group">
+        <button class="btn" id="forceRefresh" title="Reload CSV and recompute">Force Refresh</button>
+        <button class="btn" id="clearCache" title="Clear local CSV cache">Clear Cache</button>
+      </div>
+      <div class="group">
+        <label class="switch">Lens family
+          <select id="lensFamily" aria-label="Lens family">
+            <option value="SV" selected>Single Vision</option>
+            <option value="LINED">Lined Bi/Tri</option>
+            <option value="PAL">Progressive</option>
+          </select>
+        </label>
+        <label class="switch">Lens tint
+          <select id="lensTint" aria-label="Lens tint">
+            <option value="clear" selected>Clear</option>
+            <option value="tinted">Tinted</option>
+            <option value="polarized">Polarized</option>
+            <option value="transitions">Transitions®</option>
+          </select>
+        </label>
+      </div>
+      <div class="group">
+        <label class="switch"><input type="checkbox" id="includeAR" checked> Include AR (tiered)</label>
+        <label class="switch"><input type="checkbox" id="includeAspheric"> Aspheric</label>
+        <label class="switch"><input type="checkbox" id="includeOversize"> Oversize</label>
+        <label class="switch"><input type="checkbox" id="includeGlass"> Glass</label>
+        <!-- Global office toggle: default OFF -->
+        <label class="switch"><input type="checkbox" id="includeCM"> Custom measurements (N/O only)</label>
+      </div>
+      <span id="status" aria-live="polite"></span>
+    </div>
+
+    <div id="stack" class="stack"></div>
+  </main>
+
+  <!-- Debug overlay (opt-in via ?debug=1) -->
+  <script>
+    (function(){
+      const debug = new URLSearchParams(location.search).get('debug') === '1';
+      function show(err, where){
+        if(!debug) return;
+        const wrap = document.createElement('div');
+        wrap.style.cssText = 'position:fixed;inset:12px;z-index:99999;background:#0b1220;border:1px solid #f44;box-shadow:0 8px 24px rgba(0,0,0,.5);color:#fff;border-radius:12px;padding:12px;overflow:auto;max-height:90vh;font:12px/1.4 ui-monospace,Menlo,Consolas,monospace';
+        wrap.innerHTML = '<b>JS Error @ '+where+':</b><pre style="white-space:pre-wrap;margin:8px 0 0">'+
+          (err && (err.stack||err.message||String(err))) + '</pre>';
+        document.body.appendChild(wrap);
+      }
+      window.addEventListener('error', e=>show(e.error||e,'window.error'));
+      window.addEventListener('unhandledrejection', e=>show(e.reason||e,'unhandledrejection'));
+    })();
+  </script>
+
+  <script>
   /* ================== Core config & utils ================== */
   const DEFAULT_CSV = 'data/vsp_choice_master_v7_full_fixed.csv';
   const REQUIRE_D_CODES_FOR_SV_AND_LINED_POLARIZED = true;
@@ -225,13 +370,11 @@
     for(const row of rows){ stack.appendChild(renderTier(row)); }
   }
 
-  /* ---------------- Value tier helpers (NEW) ---------------- */
+  /* ---------------- Value tier helpers ---------------- */
   function valueScore(b) {
     if (!b || b.copay <= 0) return -Infinity;
     return b.profit / b.copay;  // profit per $ of copay
   }
-
-  // chooseSunFor & customFor need to be in scope of computeBundles; we'll declare them there.
 
   /* ================== Compute bundles ================== */
   function computeBundles(){
@@ -464,4 +607,6 @@
     }
     loadCSV();
   })();
-</script>
+  </script>
+</body>
+</html>
