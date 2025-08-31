@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>RevSight AI — VSP Choice Bundles</title>
   <style>
-    :root{--bg:#0b0f14;--fg:#e7eefc;--muted:#9fb0c9;--card:#101722;--line:#233044}
+    :root{--bg:#0b0f14;--fg:#e7eefc;--muted:#9fb0c9;--card:#101722;--line:#233044;--ok:#0f6a52;--mid:#7c5c19;--low:#35506e}
     *{box-sizing:border-box}
     body{background:var(--bg);color:var(--fg);font:15px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;margin:0}
     header{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--line)}
@@ -16,14 +16,19 @@
     .btn{background:#132034;border:1px solid var(--line);color:var(--fg);padding:8px 10px;border-radius:10px;cursor:pointer}
     .btn:hover{background:#16263c}
     .switch{display:inline-flex;align-items:center;gap:8px}
-    .switch input{accent-color:#4f9cff}
-    .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px}
-    table{width:100%;border-collapse:collapse}
+    .switch input,select{accent-color:#4f9cff}
+    .stack{display:grid;gap:14px;grid-template-columns:1fr}
+    .tier{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px}
+    .tierHead{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+    .pill{font-size:11px;border:1px solid var(--line);border-radius:999px;padding:2px 8px}
+    .good{border-color:var(--low)} .better{border-color:var(--mid)} .best{border-color:var(--ok)}
+    .totals{display:flex;gap:18px;flex-wrap:wrap}
+    .money{font-weight:700}
+    table{width:100%;border-collapse:collapse;margin-top:8px}
     th,td{border-bottom:1px dashed #213043;padding:8px 6px;text-align:left;font-size:13px}
     th{color:var(--muted);font-weight:600}
-    .badge{font-size:11px;border:1px solid var(--line);border-radius:6px;padding:2px 6px}
-    .good{border-color:#35506e}.better{border-color:#7c5c19}.best{border-color:#0f6a52}
-    .money{font-weight:700}.nowrap{white-space:nowrap}
+    .nowrap{white-space:nowrap}
+    .code{font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size:12px; color:#bcd1f0}
   </style>
 </head>
 <body>
@@ -31,8 +36,8 @@
     <div>
       <h1>RevSight AI — VSP Choice Bundles</h1>
       <div class="sub">
-        SV-first. Tiers ranked by <b>practice profit (copay − chargeback)</b>. AR default <b>ON</b> with tier step-down (Best→Better→Good).
-        Sun is <b>mutually exclusive</b>: Clear / Tinted / Polarized / Transitions®. Offline cache enabled.
+        SV-first. Tiers ranked by <b>practice profit (copay − chargeback)</b>. AR default <b>ON</b> with step-down (Best→Better→Good).
+        <b>Mutually exclusive</b> sun: Clear / Tinted / Polarized / Transitions®. Offline cache enabled.
       </div>
     </div>
     <div class="sub" id="version">loading…</div>
@@ -56,7 +61,6 @@
       <label class="switch"><input type="checkbox" id="includeOversize"> Oversize</label>
       <label class="switch"><input type="checkbox" id="includeGlass"> Glass</label>
 
-      <!-- Mutually exclusive sun selection -->
       <label class="switch">Lens tint
         <select id="lensTint">
           <option value="clear" selected>Clear</option>
@@ -69,26 +73,7 @@
       <span class="sub" id="status"></span>
     </div>
 
-    <div class="card">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-        <div class="sub">Computed Bundles</div>
-        <div class="sub" id="bundleCount">—</div>
-      </div>
-      <table id="bundleTable">
-        <thead>
-          <tr>
-            <th>Tier</th>
-            <th>Material</th>
-            <th>Add-ons</th>
-            <th class="nowrap">Patient Copay</th>
-            <th class="nowrap">Chargeback</th>
-            <th class="nowrap">Profit</th>
-            <!-- Profit/Copay removed from UI (still computed internally) -->
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
-    </div>
+    <div id="stack" class="stack"></div>
   </main>
 
   <script>
@@ -164,7 +149,7 @@
     }
 
     // ---------------- Business Logic ------------------
-    const byKey = (k)=>DATA.filter(r=>(r.active||'yes').toLowerCase()==='yes' && (r.exclusive_key||'').toLowerCase()===k);
+    const byKey=(k)=>DATA.filter(r=>(r.active||'yes').toLowerCase()==='yes' && (r.exclusive_key||'').toLowerCase()===k);
 
     function applies(row, fam){
       const a=(row.applies_to||'ALL').toUpperCase();
@@ -193,22 +178,26 @@
       });
     }
 
-    // Pick best by profit from subset
     const pickBest = (arr)=> (arr && arr.length ? [...arr].sort((a,b)=>profitOf(b)-profitOf(a))[0] : null);
 
-    // Build a bundle for a specific base + fixed add-ons
+    function line(row){
+      const cop = num(row.copay), cb=num(row.chargeback), pr=cop-cb;
+      return { name: row.enhancement||row.subtype||'—', code: row.code||'', copay:cop, chargeback:cb, profit:pr };
+    }
+
     function makeBundle(base, addOns){
       const items=[base, ...addOns.filter(Boolean)];
-      const cop = sum(items.map(x=>num(x.copay)));
-      const cb  = sum(items.map(x=>num(x.chargeback)));
+      const lines = items.map(line);
+      const cop = sum(lines.map(x=>x.copay));
+      const cb  = sum(lines.map(x=>x.chargeback));
       const pr  = cop - cb;
       const ratio = cop>0 ? (pr/cop) : 0; // internal only
       const label = base.enhancement || base.subtype || base.code || 'Base';
-      return { label, items, copay:cop, chargeback:cb, profit:pr, ratio };
+      return { label, lines, copay:cop, chargeback:cb, profit:pr, ratio };
     }
 
     function computeBundles(){
-      if(!DATA.length){ document.querySelector('#bundleTable tbody').innerHTML=''; return; }
+      if(!DATA.length){ el('stack').innerHTML=''; return; }
 
       const fam = el('lensFamily').value;
       const wantAR = el('includeAR').checked;
@@ -217,31 +206,27 @@
       const wantGlass = el('includeGlass').checked;
       const tintSel = el('lensTint').value; // clear|tinted|polarized|transitions
 
-      // -------- Base candidates by family --------
+      // -------- Base candidates --------
       let base = [];
-      if(fam==='SV'){
-        base = byKey('base_material').filter(r=>applies(r,fam));
-      }else if(fam==='LINED'){
-        base = byKey('occupational').filter(r=>applies(r,fam));
-      }else if(fam==='PAL'){
-        base = byKey('progressive_level').filter(r=>applies(r,fam));
-      }
+      if(fam==='SV')       base = byKey('base_material').filter(r=>applies(r,fam));
+      else if(fam==='LINED') base = byKey('occupational').filter(r=>applies(r,fam));
+      else if(fam==='PAL')   base = byKey('progressive_level').filter(r=>applies(r,fam));
 
-      // Base filters
+      // Exclude base rows that already bake in sun tech to avoid double-adding
       base = base.filter(r=>{
         const name=(r.enhancement||'').toLowerCase();
         if(!wantAsp   && name.includes('aspheric')) return false;
         if(!wantGlass && name.includes('glass'))    return false;
-        // Keep base independent of sun; sun comes from dropdown
+        if(/photochrom|polariz|tint|tinted|sunglass|gradient/.test(name)) return false;
         return true;
       });
 
-      // -------- Add-ons (global pools) --------
-      // AR pool
+      // -------- Add-on pools --------
+      // AR pool (tiered)
       const arPool = wantAR ? byKey('ar_level').filter(r=>applies(r,fam)) : [];
       const arRanked = wantAR ? rankAR(arPool) : [];
 
-      // Sun tech pool (independent, mutually exclusive)
+      // Sun pool (mutually exclusive)
       const sunAll = byKey('sun_tech').filter(r=>applies(r,fam)).filter(r=>{
         const n=(r.enhancement||'').toLowerCase();
         if(!wantGlass && n.includes('glass')) return false;
@@ -259,7 +244,7 @@
         return null;
       })();
 
-      // Oversize
+      // Oversize (single best)
       const overs = wantOS ? pickBest(byKey('oversize').filter(r=>applies(r,fam)).filter(r=>{
         const n=(r.enhancement||'').toLowerCase();
         if(!wantGlass && n.includes('glass')) return false;
@@ -270,22 +255,11 @@
       function arForTier(idx){
         if(!wantAR || !arRanked.length) return null;
         if(idx < arRanked.length) return arRanked[idx];
-        return arRanked[arRanked.length-1]; // fallback to best available if fewer than 3
+        return arRanked[arRanked.length-1];
       }
 
-      // -------- Tier selection strategy (SV-first, applies to others too) --------
-      // Best: max profit with highest AR grade (idx 0), fixed sun+oversize
-      // Better: max profit on remaining materials with mid AR (idx 1)
-      // Good: lowest copay on remaining materials with lowest AR (idx 2)
-      function selectBest(candidates, arRow){
-        let best=null;
-        for(const m of candidates){
-          const b = makeBundle(m, [arRow, sunPick, overs]);
-          if(!best || b.profit>best.profit || (b.profit===best.profit && b.ratio>best.ratio)) best=b;
-        }
-        return best;
-      }
-      function selectMaxProfit(candidates, arRow, excludeLabels){
+      // Selection helpers
+      function selectMaxProfit(candidates, arRow, excludeLabels=new Set()){
         let best=null;
         for(const m of candidates){
           const lbl=(m.enhancement||m.subtype||m.code||'Base');
@@ -295,7 +269,7 @@
         }
         return best;
       }
-      function selectMinCopay(candidates, arRow, excludeLabels){
+      function selectMinCopay(candidates, arRow, excludeLabels=new Set()){
         let best=null;
         for(const m of candidates){
           const lbl=(m.enhancement||m.subtype||m.code||'Base');
@@ -308,29 +282,78 @@
 
       const bestAR = arForTier(0), midAR = arForTier(1), lowAR = arForTier(2);
 
-      const best = selectBest(base, bestAR);
+      // Best: max profit with highest AR (or none if AR off)
+      const best = selectMaxProfit(base, bestAR);
       const used = new Set(best ? [best.label] : []);
+
+      // Better: max profit different base with next AR
       const mid  = selectMaxProfit(base, midAR, used) || selectMaxProfit(base, bestAR, used);
       if(mid) used.add(mid.label);
+
+      // Good: min copay different base with lowest AR
       const good = selectMinCopay(base, lowAR, used) || selectMinCopay(base, midAR||bestAR, used);
 
-      // -------- Render --------
-      const tbody=document.querySelector('#bundleTable tbody');
-      tbody.innerHTML='';
-      const rows=[['Good','good',good],['Better','better',mid],['Best','best',best]];
-      for(const [name,cls,b] of rows){
-        const tr=document.createElement('tr');
-        if(!b){ tr.innerHTML=`<td>${name}</td><td colspan=5 class="sub">no viable bundle</td>`; tbody.appendChild(tr); continue; }
-        const addons=b.items.slice(1);
-        tr.innerHTML=`<td><span class="badge ${cls}">${name}</span></td>
-          <td>${b.label}</td>
-          <td>${addons.map(a=>`<span class="badge">${a.enhancement||a.subtype||a.code}</span>`).join(' ') || '<span class="sub">—</span>'}</td>
-          <td class="money">${money(b.copay)}</td>
-          <td class="money">${money(b.chargeback)}</td>
-          <td class="money">${money(b.profit)}</td>`;
-        tbody.appendChild(tr);
+      renderStack([{name:'Good', cls:'good', b:good},
+                   {name:'Better', cls:'better', b:mid},
+                   {name:'Best', cls:'best', b:best}]);
+    }
+
+    // ---------------- Render ------------------
+    function tdMoney(v){ return `<td class="money">${money(v)}</td>`; }
+    function renderTier({name, cls, b}){
+      const div=document.createElement('div'); div.className='tier';
+      if(!b){ div.innerHTML=`<div class="tierHead"><div><span class="pill ${cls}">${name}</span></div><div class="sub">no viable bundle</div></div>`; return div; }
+
+      const head = `
+        <div class="tierHead">
+          <div>
+            <span class="pill ${cls}">${name}</span>
+            <span class="pill" style="margin-left:8px">${b.label}</span>
+          </div>
+          <div class="totals">
+            <div>Copay: <span class="money">${money(b.copay)}</span></div>
+            <div>Chargeback: <span class="money">${money(b.chargeback)}</span></div>
+            <div>Profit: <span class="money">${money(b.profit)}</span></div>
+          </div>
+        </div>`;
+
+      const lines = b.lines.map(li=>`
+        <tr>
+          <td>${li.name}</td>
+          <td class="code">${li.code||'—'}</td>
+          ${tdMoney(li.copay)}
+          ${tdMoney(li.chargeback)}
+          ${tdMoney(li.profit)}
+        </tr>`).join('');
+
+      div.innerHTML = head + `
+        <table>
+          <thead>
+            <tr>
+              <th>Item</th>
+              <th class="nowrap">Code</th>
+              <th class="nowrap">Copay</th>
+              <th class="nowrap">Service Fee</th>
+              <th class="nowrap">Profit</th>
+            </tr>
+          </thead>
+          <tbody>${lines}</tbody>
+          <tfoot>
+            <tr>
+              <th colspan="2" style="text-align:right">Totals</th>
+              ${tdMoney(b.copay)}${tdMoney(b.chargeback)}${tdMoney(b.profit)}
+            </tr>
+          </tfoot>
+        </table>`;
+      return div;
+    }
+
+    function renderStack(rows){
+      const stack = el('stack');
+      stack.innerHTML='';
+      for(const row of rows){
+        stack.appendChild(renderTier(row));
       }
-      el('bundleCount').textContent='Computed: '+rows.filter(([,,b])=>!!b).length+' / 3';
     }
 
     // ---------------- Wire-up ----------------
