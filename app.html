@@ -5,9 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>RevSight AI — VSP Choice Tiering (Profit = sum of VSP service fees)</title>
   <style>
-    :root{
-      --bg:#0b0f14;--panel:#121822;--border:#2a3444;--text:#e7eefc;--muted:#9fb3d2;--accent:#7aa2ff;--good:#1fbf75;--mid:#f6c343;--best:#9867ff;
-    }
+    :root{ --bg:#0b0f14; --panel:#121822; --border:#2a3444; --text:#e7eefc; --muted:#9fb3d2; --accent:#7aa2ff; --good:#1fbf75; --mid:#f6c343; --best:#9867ff; }
     *{box-sizing:border-box}
     body{margin:0;background:var(--bg);color:var(--text);font:16px/1.45 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial}
     header{padding:18px 16px;border-bottom:1px solid var(--border);display:flex;gap:12px;align-items:center;justify-content:space-between}
@@ -25,14 +23,12 @@
     .bundle.good{border-color:var(--good)}
     .bundle.mid{border-color:var(--mid)}
     .bundle.best{border-color:var(--best)}
-    .kv{display:grid;grid-template-columns:140px 1fr;gap:4px 8px;font-size:13px;color:var(--muted)}
     .muted{color:var(--muted)}
     table{width:100%;border-collapse:collapse;font-size:14px}
     th,td{padding:8px;border-bottom:1px solid var(--border)}
     th{color:var(--muted);font-weight:600;text-align:left}
     .right{text-align:right}
     .tag{display:inline-block;padding:2px 6px;border-radius:6px;background:#0e1622;border:1px solid var(--border);font-size:12px;margin-right:6px;color:var(--muted)}
-    .ok{color:var(--good)}.warn{color:var(--mid)}.boom{color:var(--best)}
     .foot{opacity:.7;font-size:12px;padding:10px 2px}
     .err{color:#ff7a7a}
   </style>
@@ -41,11 +37,10 @@
   <header>
     <div>
       <h1>RevSight AI — VSP Choice Profit Engine</h1>
-      <div class="sub">Profit = <b>sum of VSP service fees</b>. Toggles enforced globally (OFF = excluded everywhere). Loader now tries multiple CSV paths + has a cache reset.</div>
+      <div class="sub">Profit = <b>sum of VSP service fees</b>. Toggles enforced globally (OFF = excluded everywhere). CSV loads from a single, stable URL.</div>
     </div>
     <div class="row" style="align-items:center">
       <span class="pill" id="csvStatus">CSV: not loaded</span>
-      <button id="resetCache">Reset Cache</button>
       <button id="forceRefresh">Recalc</button>
     </div>
   </header>
@@ -87,7 +82,7 @@
         </div>
       </div>
 
-      <div class="foot">If a toggle is OFF, that category will be excluded from <i>all</i> bundles and will never appear as a line‑item.</div>
+      <div class="foot">If a toggle is OFF, that category is excluded from <i>all</i> bundles and never appears as a line‑item.</div>
     </section>
 
     <section class="col card">
@@ -106,11 +101,11 @@
       <summary>Data/Diagnostics</summary>
       <div id="diag" class="muted" style="white-space:pre-wrap"></div>
     </details>
-    <div class="foot">Autoload order: <code>localStorage.snapshot</code> → <code>./vsp_choice_master_v7_full_fixed.csv</code> → <code>[page-dir]/vsp_choice_master_v7_full_fixed.csv</code> → <code>/Revopt-site/vsp_choice_master_v7_full_fixed.csv</code>. A successful online load saves a fresh offline snapshot.</div>
+    <div class="foot">CSV source: <code>https://bblaker575.github.io/Revopt-site/vsp_choice_master_v7_full_fixed.csv</code></div>
   </section>
 
   <script>
-    // --- CSV parser (quoted fields supported) ---
+    // ---- tiny CSV parser (supports quotes) ----
     function parseCSV(text){
       const rows=[]; let i=0, cur=''; let inQ=false; const push=()=>{ row.push(cur); cur=''; };
       let row=[];
@@ -119,9 +114,7 @@
         if(c==='"'){
           if(inQ && text[i]==='"'){ cur+='"'; i++; } else inQ=!inQ;
         } else if(c===',' && !inQ){ push(); }
-        else if((c==='
-'||c==='
-') && !inQ){ if(cur!==''||row.length){ push(); rows.push(row); row=[]; } }
+        else if((c==='\n'||c==='\r') && !inQ){ if(cur!==''||row.length){ push(); rows.push(row); row=[]; } }
         else cur+=c;
       }
       if(cur!==''||row.length){ push(); rows.push(row); }
@@ -131,75 +124,66 @@
       });
     }
 
-    // --- Helpers ---
-    function num(x){ const n=Number(String(x).replace(/[^0-9.\-]/g,'')); return Number.isFinite(n)?n:0; }
-    function truthy(x){ x=String(x||'').trim().toLowerCase(); if(x==='') return true; return x==='1'||x==='y'||x==='yes'||x==='true'; }
-    function falsy(x){ x=String(x||'').trim().toLowerCase(); return x==='0'||x==='n'||x==='no'||x==='false'; }
-    function uc(s){ return String(s||'').toUpperCase(); }
+    // ---- helpers ----
+    const uc = s=>String(s||'').toUpperCase();
+    const num = x=>{ const n=Number(String(x).replace(/[^0-9.\-]/g,'')); return Number.isFinite(n)?n:0; };
+    const truthy = x=>{ x=String(x||'').trim().toLowerCase(); return x==='' || x==='1'||x==='y'||x==='yes'||x==='true'; };
+    const falsy  = x=>{ x=String(x||'').trim().toLowerCase(); return x==='0'||x==='n'||x==='no'||x==='false'; };
 
-    // PROFIT: per your rule, profit for a selectable line == VSP service fee on that line
+    // Profit per your rule: VSP service fee column
     function computeProfit(row){ return num(row.vsp); }
 
     function classify(row){
       if('active' in row && falsy(row.active)) return null;
-
       const applies = uc(row.applies_to);
       let lensType = 'BOTH';
-      if(applies.includes('MF') && !applies.includes('SV') && !applies.includes('ALL')) lensType = 'MF';
-      else if(applies.includes('SV') && !applies.includes('MF') && !applies.includes('ALL')) lensType = 'SV';
+      if(applies.includes('MF') && !applies.includes('SV') && !applies.includes('ALL')) lensType='MF';
+      else if(applies.includes('SV') && !applies.includes('MF') && !applies.includes('ALL')) lensType='SV';
 
-      const group = uc(row.group);
-      const exkey = uc(row.exclusive_key);
-
-      const materialTxt    = uc(row.subtype);
-      const enhancementTxt = uc(row.enhancement);
+      const group=uc(row.group), exkey=uc(row.exclusive_key);
+      const materialTxt=uc(row.subtype), enhancementTxt=uc(row.enhancement);
       const desc = row.enhancement || row.subtype || row.code || '';
 
-      // Detect MF base (Progressive) vs SV base (Material)
       const isBaseSV = group.includes('MATERIAL') && (exkey.includes('BASE') || exkey.includes('MATERIAL') || exkey==='');
       const isBaseMF = group.includes('PROGRESSIVE');
 
-      // Parse material hint from progressive description for MF
-      let mfMat = '';
+      let mfMat='';
       if(isBaseMF){
-        const e = enhancementTxt;
-        if(e.includes('POLYCARBONATE')) mfMat = 'POLYCARBONATE';
-        else if(e.includes('1.70')) mfMat = 'HI70';
-        else if(e.includes('1.66') || e.includes('1.67')) mfMat = 'HI67';
-        else if(e.includes('1.53') || e.includes('1.60')) mfMat = 'HI-MID';
-        else if(e.includes('GLASS')) mfMat = 'GLASS';
-        else if(e.includes('PLASTIC')) mfMat = 'PLASTIC';
-        else mfMat = materialTxt || 'PLASTIC';
+        const e=enhancementTxt;
+        if(e.includes('POLYCARBONATE')) mfMat='POLYCARBONATE';
+        else if(e.includes('1.70')) mfMat='HI70';
+        else if(e.includes('1.66')||e.includes('1.67')) mfMat='HI67';
+        else if(e.includes('1.53')||e.includes('1.60')) mfMat='HI-MID';
+        else if(e.includes('GLASS')) mfMat='GLASS';
+        else if(e.includes('PLASTIC')) mfMat='PLASTIC';
+        else mfMat=materialTxt||'PLASTIC';
       }
 
-      const t = (materialTxt + ' ' + enhancementTxt);
-      const flags = {
-        AR: t.includes(' AR') || t.startsWith('AR') || t.includes('ANTI-REFLECT'),
+      const t=(materialTxt+' '+enhancementTxt);
+      const flags={
+        AR: t.includes(' AR')||t.startsWith('AR')||t.includes('ANTI-REFLECT'),
         ASPHERIC: t.includes('ASPHERIC'),
         GLASS: t.includes('GLASS'),
-        OVERSIZE: t.includes('OVERSIZE') || t.includes('OVR') || t.includes('61MM')
+        OVERSIZE: t.includes('OVERSIZE')||t.includes('OVR')||t.includes('61MM'),
       };
 
       return {
         lensType,
-        material: isBaseSV ? materialTxt : (isBaseMF ? (uc(row.subtype||'') + ' ' + mfMat).trim() : ''),
+        material: isBaseSV?materialTxt:(isBaseMF?(uc(row.subtype||'')+' '+mfMat).trim():''),
         enhancement: (!isBaseSV && !isBaseMF) ? enhancementTxt : '',
         desc,
         profit: computeProfit(row),
         raw: row,
         f: flags,
-        baseKind: isBaseMF ? 'MF' : (isBaseSV ? 'SV' : '')
+        baseKind: isBaseMF?'MF':(isBaseSV?'SV':'')
       };
     }
 
-    function byProfitDesc(a,b){ return b.profit - a.profit; }
+    const byProfitDesc=(a,b)=>b.profit-a.profit;
 
     function buildUniverse(rows){
-      const mapped = rows.map(classify).filter(Boolean);
-      return mapped.filter(it=>{
-        if(it.baseKind){ return true; }
-        return !('composable' in it.raw) || truthy(it.raw.composable);
-      });
+      const mapped=rows.map(classify).filter(Boolean);
+      return mapped.filter(it=> it.baseKind ? true : (!('composable' in it.raw) || truthy(it.raw.composable)));
     }
 
     function applyGlobalToggles(items, toggles){
@@ -213,145 +197,76 @@
     }
 
     function pickBundles(universe, lensType, materialPref, toggles){
-      const pool = applyGlobalToggles(
-        universe.filter(u=> !lensType || u.lensType===lensType || u.lensType==='BOTH'),
-        toggles
-      );
-
-      const isMF = lensType==='MF';
-      const bases = pool.filter(x => (isMF ? x.baseKind==='MF' : x.baseKind==='SV'));
-      const enh   = pool.filter(x => !x.baseKind);
-
-      const buckets = bases.reduce((m,x)=>{ const k=x.material||x.desc; (m[k]??=[]).push(x); return m; }, {});
-      const keys = Object.keys(buckets);
-
-      const candidateKeys = (materialPref && keys.includes(materialPref)) ? [materialPref] : keys;
-
-      const bestAR       = toggles.AR       ? enh.filter(e=>e.f.AR).sort(byProfitDesc)[0]       : null;
-      const bestOversize = toggles.OVERSIZE ? enh.filter(e=>e.f.OVERSIZE).sort(byProfitDesc)[0] : null;
-
-      const bundles = [];
-      for(const k of (candidateKeys.length ? candidateKeys : keys)){
-        const base = (buckets[k]||[]).sort(byProfitDesc)[0];
-        if(!base) continue;
-        const parts=[base];
-        if(bestAR) parts.push(bestAR);
-        if(bestOversize) parts.push(bestOversize);
-
+      const pool=applyGlobalToggles(universe.filter(u=>!lensType || u.lensType===lensType || u.lensType==='BOTH'), toggles);
+      const isMF=lensType==='MF';
+      const bases=pool.filter(x=> (isMF ? x.baseKind==='MF' : x.baseKind==='SV'));
+      const enh =pool.filter(x=> !x.baseKind);
+      const buckets=bases.reduce((m,x)=>{ const k=x.material||x.desc; (m[k]??=[]).push(x); return m; },{});
+      const keys=Object.keys(buckets);
+      const candidateKeys=(materialPref && keys.includes(materialPref))?[materialPref]:keys;
+      const bestAR      = toggles.AR       ? enh.filter(e=>e.f.AR).sort(byProfitDesc)[0]       : null;
+      const bestOversize= toggles.OVERSIZE ? enh.filter(e=>e.f.OVERSIZE).sort(byProfitDesc)[0] : null;
+      const bundles=[];
+      for(const k of (candidateKeys.length?candidateKeys:keys)){
+        const base=(buckets[k]||[]).sort(byProfitDesc)[0];
+        if(!base) continue; const parts=[base];
+        if(bestAR) parts.push(bestAR); if(bestOversize) parts.push(bestOversize);
         const seen=new Set(); let profit=0; const lines=[];
-        for(const p of parts){
-          const key=(p.raw.group||'')+'|'+(p.material||'')+'|'+(p.enhancement||'')+'|'+(p.desc||'');
-          if(seen.has(key)) continue; seen.add(key);
-          lines.push(p); profit+=p.profit;
-        }
+        for(const p of parts){ const key=(p.raw.group||'')+'|'+(p.material||'')+'|'+(p.enhancement||'')+'|'+(p.desc||''); if(seen.has(key)) continue; seen.add(key); lines.push(p); profit+=p.profit; }
         bundles.push({ material:k, parts:lines, profit });
       }
-
       bundles.sort((a,b)=>b.profit-a.profit);
       const uniq=[]; const seenKey=new Set();
       for(const b of bundles){ if(!seenKey.has(b.material)){ uniq.push(b); seenKey.add(b.material); } }
-
-      const best = uniq[0];
-      const mid  = uniq[1] || uniq[0];
-      const good = uniq[uniq.length-1] || uniq[0];
-      return { good, mid, best, poolSize: bundles.length };
+      const best=uniq[0]; const mid=uniq[1]||uniq[0]; const good=uniq[uniq.length-1]||uniq[0];
+      return {good,mid,best,poolSize:bundles.length};
     }
 
-    function fmtCurrency(n){ return n==null?"—": "$"+ (Number(n).toFixed(2)); }
+    const CSV_URL='https://bblaker575.github.io/Revopt-site/vsp_choice_master_v7_full_fixed.csv';
+    async function loadCSV(){
+      const badge=document.getElementById('csvStatus');
+      try{
+        const resp=await fetch(CSV_URL+'?t='+Date.now(), {cache:'no-store'});
+        if(!resp.ok) throw new Error(resp.status+': '+resp.statusText);
+        const text=await resp.text();
+        badge.textContent='CSV: loaded from GitHub Pages';
+        badge.style.borderColor='#6cf';
+        return parseCSV(text);
+      }catch(e){
+        badge.textContent='CSV: not loaded';
+        badge.style.borderColor='#f66';
+        document.getElementById('diag').textContent='Error loading CSV: '+(e.message||e)+'\nTried: '+CSV_URL;
+        return [];
+      }
+    }
+
+    let UNIVERSE=[];
+    async function recalc(){
+      const lensType=document.getElementById('lensType').value;
+      const materialPref=document.getElementById('materialPref').value;
+      const toggles={ OVERSIZE:document.getElementById('toggleOversize').checked, AR:document.getElementById('toggleAR').checked, ASPHERIC:document.getElementById('toggleAspheric').checked, GLASS:document.getElementById('toggleGlass').checked };
+      const picks=pickBundles(UNIVERSE, lensType, materialPref, toggles);
+      renderBundles(picks); renderLineItems(UNIVERSE, lensType);
+      document.getElementById('diag').textContent=JSON.stringify({lensType,materialPref,toggles,universe:UNIVERSE.length,poolCandidates:picks.poolSize},null,2);
+    }
 
     function renderBundles(picks){
-      const el = document.getElementById('bundles');
-      if(!picks || !picks.best){ el.innerHTML = '<div class="muted">No bundles available with current filters.</div>'; return; }
-      const make = (b,cls,label)=>{
-        if(!b) return `<div class="bundle ${cls}"><div class="muted">No ${label} bundle available</div></div>`;
-        const rows = b.parts.map(p=>`<tr><td>${p.desc || (p.material||p.enhancement)}</td><td class="right">${fmtCurrency(p.profit)}</td></tr>`).join('');
-        return `<div class="bundle ${cls}">
-          <div class="row" style="align-items:center;justify-content:space-between">
-            <div class="tag">${label}</div>
-            <div class="tag">Material: ${b.material||'—'}</div>
-            <div class="tag">Bundle Profit: ${fmtCurrency(b.profit)}</div>
-          </div>
-          <table><thead><tr><th>Line Item</th><th class="right">Profit</th></tr></thead><tbody>${rows}</tbody></table>
-        </div>`;
-      };
-      el.innerHTML = make(picks.good,'good','Good') + make(picks.mid,'mid','Mid') + make(picks.best,'best','Best');
+      const el=document.getElementById('bundles');
+      if(!picks||!picks.best){ el.innerHTML='<div class="muted">No bundles available with current filters.</div>'; return; }
+      const make=(b,cls,label)=>{ if(!b) return `<div class="bundle ${cls}"><div class="muted">No ${label} bundle available</div></div>`; const rows=b.parts.map(p=>`<tr><td>${p.desc || (p.material||p.enhancement)}</td><td class="right">$${Number(p.profit).toFixed(2)}</td></tr>`).join(''); return `<div class="bundle ${cls}"><div class="row" style="align-items:center;justify-content:space-between"><div class="tag">${label}</div><div class="tag">Material: ${b.material||'—'}</div><div class="tag">Bundle Profit: $${Number(b.profit).toFixed(2)}</div></div><table><thead><tr><th>Line Item</th><th class="right">Profit</th></tr></thead><tbody>${rows}</tbody></table></div>`; };
+      el.innerHTML=make(picks.good,'good','Good')+make(picks.mid,'mid','Mid')+make(picks.best,'best','Best');
     }
 
     function renderLineItems(universe, lensType){
-      const el = document.getElementById('lineItems');
-      const list = universe.filter(u=>!lensType || u.lensType===lensType || u.lensType==='BOTH').sort(byProfitDesc).slice(0,200);
-      if(!list.length){ el.innerHTML = '<div class="muted">No items.</div>'; return; }
-      el.innerHTML = `<table><thead><tr><th>Type</th><th>Material</th><th>Enhancement</th><th>Description</th><th class="right">VSP fee (profit)</th></tr></thead><tbody>
-      ${list.map(r=>`<tr><td>${r.lensType||'—'}</td><td>${r.material||'—'}</td><td>${r.enhancement||'—'}</td><td>${r.desc||''}</td><td class="right">${fmtCurrency(r.profit)}</td></tr>`).join('')}
-      </tbody></table>`;
-    }
-
-    // Snapshot helpers
-    function saveSnapshot(csvText){ try{ localStorage.setItem('vsp_choice_snapshot_v7', csvText); }catch(e){} }
-    function loadSnapshot(){ try{ return localStorage.getItem('vsp_choice_snapshot_v7'); }catch(e){ return null; } }
-    function clearSnapshot(){ try{ localStorage.removeItem('vsp_choice_snapshot_v7'); }catch(e){} }
-
-    // SIMPLE loader (match first script behavior) — try only the two known-good paths
-    async function loadCSV(){
-      const badge = document.getElementById('csvStatus');
-      const tried=[];
-
-      // 1) If snapshot exists, use it (keeps offline behavior)
-      const snap = loadSnapshot();
-      if(snap){
-        badge.textContent = 'CSV: offline snapshot';
-        badge.style.borderColor = '#3c6';
-        return parseCSV(snap);
-      }
-
-      const candidates = [
-        'https://bblaker575.github.io/Revopt-site/vsp_choice_master_v7_full_fixed.csv',
-        './vsp_choice_master_v7_full_fixed.csv',
-        '/Revopt-site/vsp_choice_master_v7_full_fixed.csv'
-      ];
-      for(const u of candidates){
-        try{
-          const r = await fetch(u + '?t=' + Date.now(), {cache:'no-store'});
-          if(!r.ok) throw new Error(r.status+': '+r.statusText);
-          const text = await r.text();
-          saveSnapshot(text);
-          badge.textContent = 'CSV: loaded from ' + u;
-          badge.style.borderColor = '#6cf';
-          return parseCSV(text);
-        }catch(e){ tried.push(u+' -> '+(e.message||e)); }
-      }
-      badge.textContent = 'CSV: not loaded';
-      badge.style.borderColor = '#f66';
-      document.getElementById('diag').textContent = 'Tried URLs:
-- ' + tried.join('
-- ');
-      return [];
-    }
-
-    let UNIVERSE = [];
-
-    async function recalc(){
-      const lensType = document.getElementById('lensType').value;
-      const materialPref = document.getElementById('materialPref').value;
-      const toggles = {
-        OVERSIZE: document.getElementById('toggleOversize').checked,
-        AR: document.getElementById('toggleAR').checked,
-        ASPHERIC: document.getElementById('toggleAspheric').checked,
-        GLASS: document.getElementById('toggleGlass').checked,
-      };
-
-      const picks = pickBundles(UNIVERSE, lensType, materialPref, toggles);
-      renderBundles(picks);
-      renderLineItems(UNIVERSE, lensType);
-
-      const diag = document.getElementById('diag');
-      diag.textContent = JSON.stringify({ lensType, materialPref, toggles, universe: UNIVERSE.length, poolCandidates: picks.poolSize }, null, 2);
+      const el=document.getElementById('lineItems');
+      const list=universe.filter(u=>!lensType || u.lensType===lensType || u.lensType==='BOTH').sort(byProfitDesc).slice(0,200);
+      if(!list.length){ el.innerHTML='<div class="muted">No items.</div>'; return; }
+      el.innerHTML=`<table><thead><tr><th>Type</th><th>Material</th><th>Enhancement</th><th>Description</th><th class="right">VSP fee (profit)</th></tr></thead><tbody>${list.map(r=>`<tr><td>${r.lensType||'—'}</td><td>${r.material||'—'}</td><td>${r.enhancement||'—'}</td><td>${r.desc||''}</td><td class="right">$${Number(r.profit).toFixed(2)}</td></tr>`).join('')}</tbody></table>`;
     }
 
     (async function init(){
-      document.getElementById('resetCache').addEventListener('click', async ()=>{ clearSnapshot(); document.getElementById('csvStatus').textContent='CSV: cache cleared'; UNIVERSE = buildUniverse(await loadCSV()); recalc(); });
-      const raw = await loadCSV();
-      UNIVERSE = buildUniverse(raw);
+      const raw=await loadCSV();
+      UNIVERSE=buildUniverse(raw);
       document.getElementById('forceRefresh').addEventListener('click', recalc);
       document.getElementById('lensType').addEventListener('change', recalc);
       document.getElementById('materialPref').addEventListener('change', recalc);
