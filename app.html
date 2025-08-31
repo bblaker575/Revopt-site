@@ -1,4 +1,4 @@
-el('forceRefresh').onclick = ()=> { clearCache(); loadCSV(el('csvUrl').value||undefined); };<!doctype html>
+el('forceRefresh').onclick = ()=> { clearCache(); loadCSV(DEFAULT_CSV); }; loadCSV(el('csvUrl').value||undefined); };<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8" />
@@ -67,11 +67,7 @@ el('forceRefresh').onclick = ()=> { clearCache(); loadCSV(el('csvUrl').value||un
       <label class="switch"><input type="checkbox" id="includeGlass"> Glass</label>
       <label class="switch"><input type="checkbox" id="addTransitions"> Add Transitions®</label>
       <label class="switch"><input type="checkbox" id="addPolarized"> Add Polarized</label>
-      <label class="switch">CSV
-        <input id="csvUrl" class="input" style="width:320px" placeholder="data/vsp_choice_master_v7.csv"/>
-      </label>
-      <button class="btn" id="loadCsv">Load CSV</button>
-      <span class="sub" id="status"></span>
+      
     </div>
 
     <div class="grid">
@@ -100,6 +96,7 @@ el('forceRefresh').onclick = ()=> { clearCache(); loadCSV(el('csvUrl').value||un
 
   <script>
     // ---- Utilities ---------------------------------------------------------
+    const DEFAULT_CSV = 'data/vsp_choice_master_v7.csv';
     const el = (id)=>document.getElementById(id);
     const sum = (arr)=>arr.reduce((a,b)=>a+b,0);
     const money = (v)=>`$${v.toFixed(2)}`;
@@ -154,51 +151,31 @@ el('forceRefresh').onclick = ()=> { clearCache(); loadCSV(el('csvUrl').value||un
           const cached = getCache();
           if(cached.text){ text=cached.text; source='cache'; }
           else {
-            // Try defaults; if all fail, fall back to embedded tiny sample
-            const tryPaths = [
-              'data/vsp_choice_master_v7.csv',
-              'data/vsp_choice_master_v7_full_fixed.csv',
-              '/Revopt-site/data/vsp_choice_master_v7.csv',
-              '/Revopt-site/data/vsp_choice_master_v7_full_fixed.csv',
-              '/data/vsp_choice_master_v7.csv',
-              '/data/vsp_choice_master_v7_full_fixed.csv',
-              'vsp_choice_master_v7.csv',
-              'vsp_choice_master_v7_full_fixed.csv'
-            ];
-            let ok=false;
-            for(const p of tryPaths){
-              try{
-                const controller2 = new AbortController();
-                const to2 = setTimeout(()=>controller2.abort(), 8000);
-                const r2 = await fetch(p, {cache:'no-store', signal: controller2.signal}).finally(()=>clearTimeout(to2));
-                if(r2.ok){ text = await r2.text(); source = 'network:'+p; ok=true; break; }
-              }catch(_){/* continue */}
-            }
-            if(!ok){
-              text = 'group,subtype,enhancement,code,notes,copay,vsp,chargeback,exclusive_key,applies_to,composable,active
-' +
-                     'Material,CR,Aspheric Plastic 1.50,AA,,0,0,10,material,SV,OCC,yes
-' +
-                     'Material,Mid,High-index Plastic 1.53–1.60/Trivex,AB,,0,0,33,material,SV,OCC,yes
-' +
-                     'Material,Hi67,High-index Plastic 1.66/1.67,AH,,0,0,48,material,SV,OCC,yes
-' +
-                     'AR,Std,AR Standard,AR1,,0,0,20,ar,SV|LINED|PAL,yes,yes
-' +
-                     'AR,Prem,AR Premium,AR2,,0,0,40,ar,SV|LINED|PAL,yes,yes
-' +
-                     'Progressive,Prem,Premium PAL,PP,,0,0,120,progressive,PAL,yes,yes
-' +
-                     'Lined,DA,DA Bifocal,DA,,0,0,60,lined,LINED,yes,yes
-' +
-                     'Photochromic,Std,Transitions,TR,,0,0,80,photochromic,SV|LINED|PAL,yes,yes
-' +
-                     'Polarized,Std,Polarized Tint,PO,,0,0,90,polarized,SV|LINED|PAL,yes,yes
-';
+            // Direct default path; if it fails, fall back to embedded tiny sample
+            try {
+              const controller2 = new AbortController();
+              const to2 = setTimeout(()=>controller2.abort(), 8000);
+              const r2 = await fetch(DEFAULT_CSV, {cache:'no-store', signal: controller2.signal});
+              clearTimeout(to2);
+              if(!r2.ok) throw new Error('HTTP '+r2.status);
+              text = await r2.text();
+              source='network:'+DEFAULT_CSV;
+            } catch(e){
+              text = 'group,subtype,enhancement,code,notes,copay,vsp,chargeback,exclusive_key,applies_to,composable,active\n' +
+                     'Material,CR,Aspheric Plastic 1.50,AA,,0,0,10,material,SV,OCC,yes\n' +
+                     'Material,Mid,High-index Plastic 1.53–1.60/Trivex,AB,,0,0,33,material,SV,OCC,yes\n' +
+                     'Material,Hi67,High-index Plastic 1.66/1.67,AH,,0,0,48,material,SV,OCC,yes\n' +
+                     'AR,Std,AR Standard,AR1,,0,0,20,ar,SV|LINED|PAL,yes,yes\n' +
+                     'AR,Prem,AR Premium,AR2,,0,0,40,ar,SV|LINED|PAL,yes,yes\n' +
+                     'Progressive,Prem,Premium PAL,PP,,0,0,120,progressive,PAL,yes,yes\n' +
+                     'Lined,DA,DA Bifocal,DA,,0,0,60,lined,LINED,yes,yes\n' +
+                     'Photochromic,Std,Transitions,TR,,0,0,80,photochromic,SV|LINED|PAL,yes,yes\n' +
+                     'Polarized,Std,Polarized Tint,PO,,0,0,90,polarized,SV|LINED|PAL,yes,yes\n';
               source='embedded-sample';
             }
           }
         }
+      }
       }
         const meta = { plan:'VSP_choice', version:new Date().toISOString().slice(0,10)+'.gbb', source, sha: quickHash(text) };
         setCache(text, meta);
