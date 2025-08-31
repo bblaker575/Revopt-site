@@ -84,7 +84,7 @@
   <header>
     <div>
       <h1>PayerEdge — VSP Choice Bundles</h1>
-      <div class="sub">Ranked by <b>patient copay</b> (displayed) and <b>service fee</b> for the practice (Copay − Holdback). Sun choices are exclusive.</div>
+      <div class="sub">Scoreboard shows <b>patient copay</b> and <b>service fee</b> for the practice (Copay − Holdback). Sun choices are exclusive.</div>
     </div>
     <div class="version sub" id="version">loading…</div>
   </header>
@@ -117,6 +117,8 @@
         <label class="switch"><input type="checkbox" id="includeAspheric"> Aspheric</label>
         <label class="switch"><input type="checkbox" id="includeOversize"> Oversize</label>
         <label class="switch"><input type="checkbox" id="includeGlass"> Glass</label>
+        <!-- New global office toggle: default OFF -->
+        <label class="switch"><input type="checkbox" id="includeCM"> Custom measurements (N/O only)</label>
       </div>
       <span id="status" aria-live="polite"></span>
     </div>
@@ -125,20 +127,38 @@
   </main>
 
   <script>
-    /* ================== business logic (unchanged) ================== */
+    /* ================== Core config & utils ================== */
     const DEFAULT_CSV = 'data/vsp_choice_master_v7_full_fixed.csv';
     const REQUIRE_D_CODES_FOR_SV_AND_LINED_POLARIZED = true;
+
     const el = (id)=>document.getElementById(id);
     const sum = (a)=>a.reduce((x,y)=>x+y,0);
     const money = (v)=>`$${v.toFixed(2)}`;
     const num = (v)=>{ const x=parseFloat(String(v??'').replace(/[^0-9.-]/g,'')); return isFinite(x)?x:0; };
     const quickHash=(s)=>{ let h=2166136261>>>0; for(let i=0;i<s.length;i++){ h^=s.charCodeAt(i); h=Math.imul(h,16777619)>>>0; } return ('00000000'+h.toString(16)).slice(-8); };
     const N = s => String(s||'').toLowerCase();
+
     const isDCode  = r => /^d/i.test((r.code||'').trim());
     const isPPhoto = r => /^p(m|r)/i.test((r.code||'').trim());
     const isGlassBase = row => /glass/i.test(N(row?.enhancement || row?.subtype || ''));
     const preferPhotoCodeForBase = row => (isGlassBase(row) ? 'PM' : 'PR');
 
+    // -------- Per-office preferences (persisted by URL ?office=slug) --------
+    const OFFICE_ID = new URLSearchParams(location.search).get('office') || 'default';
+    const PREF_KEY  = `pe-prefs-${OFFICE_ID}`;
+    const loadPrefs = () => { try { return JSON.parse(localStorage.getItem(PREF_KEY) || '{}'); } catch { return {}; } };
+    const savePrefs = (p) => localStorage.setItem(PREF_KEY, JSON.stringify(p));
+
+    // ----- Custom Measurements helpers/eligibility -----
+    const isCustomMeasure = (row) => /custom\s*measure/i.test(N(row?.enhancement || row?.subtype || ''));
+    const isProgN = (label) => /\bprogressive\b.*\bN\b/i.test(N(label));
+    const isProgO = (label) => /\bprogressive\b.*\bO\b/i.test(N(label));
+    function cmEligibleForLabel(label){
+      const s = N(label);
+      return isProgN(s) || isProgO(s);  // all N/O potentially eligible; office toggle controls usage
+    }
+
+    // -------- CSV parsing & cache --------
     function parseCSV(text){
       const rows=[]; let row=[], field='', q=false;
       for(let i=0;i<text.length;i++){
@@ -154,11 +174,13 @@
         const o={}; headers.forEach((h,i)=>o[h]=(r[i]||'').replace(/^\"|\"$/g,'').trim()); return o;
       });
     }
+
     const CACHE_KEY='rev-vsp-choice-csv-v1';
     const META_KEY='rev-vsp-choice-meta-v1';
     const setCache=(t,m)=>{ localStorage.setItem(CACHE_KEY,t); localStorage.setItem(META_KEY,JSON.stringify(m)); };
     const getCache=()=>({ text: localStorage.getItem(CACHE_KEY), meta: JSON.parse(localStorage.getItem(META_KEY)||'{}') });
-    const clearCache=()=>{ localStorage.removeItem(CACHE_KEY); localStorage.removeItem(META_KEY); };
+    const clearCacheStorage=()=>{ localStorage.removeItem(CACHE_KEY); localStorage.removeItem(META_KEY); };
+
     let DATA=[];
 
     async function loadCSV(){
@@ -185,10 +207,14 @@
         }
       }
     }
+
     function renderMeta(count, meta){
       el('version').textContent = `plan=${meta.plan||'VSP_choice'} • rows=${count||0} • version=${meta.version||'—'} • source=${meta.source||'—'} • sha=${meta.sha||'—'}`;
     }
+
+    // ---------------- Data selectors & ranking ----------------
     const byKey=(k)=>DATA.filter(r=>(r.active||'yes').toLowerCase()==='yes' && (r.exclusive_key||'').toLowerCase()===k);
+
     function applies(row, fam){
       const a=(row.applies_to||'ALL').toUpperCase();
       if(a.includes('ALL')) return true;
@@ -197,27 +223,65 @@
       if(fam==='PAL')    return a.includes('MF');
       return true;
     }
+
     const profitOf = (row)=> num(row.copay) - num(row.chargeback);
     const pickBest = (arr)=> (arr && arr.length ? [...arr].sort((a,b)=>profitOf(b)-profitOf(a))[0] : null);
 
     function rankAR(ars){
-      const gradeVal = (s)=>{ const m = String(s||'').match(/\b([A-D])\b/i); if(!m) return null; const g = m[1].toUpperCase(); return {A:1,B:2,C:3,D:4}[g]||null; };
-      return [...ars].sort((a,b)=>{ const ga = gradeVal(a.enhancement)||-1, gb = gradeVal(b.enhancement)||-1; if(ga!==gb) return gb-ga; return profitOf(b)-profitOf(a); });
+      const gradeVal = (s)=>{
+        const m = String(s||'').match(/\b([A-D])\b/i);
+        if(!m) return null;
+        const g = m[1].toUpperCase();
+        return {A:1,B:2,C:3,D:4}[g]||null;
+      };
+      return [...ars].sort((a,b)=>{
+        const ga = gradeVal(a.enhancement)||-1, gb = gradeVal(b.enhancement)||-1;
+        if(ga!==gb) return gb-ga;   // D..A
+        return profitOf(b)-profitOf(a);
+      });
     }
-    function materialKey(label){ const s=N(label); if(/polycarb/.test(s))return'poly'; if(/trivex/.test(s))return'trivex'; if(/1\.74|1\.75/.test(s))return'hi174'; if(/1\.70|1\.71|above/.test(s))return'hi70'; if(/1\.66|1\.67/.test(s))return'hi167'; if(/cr[- ]?39|plastic(?!.*high)/.test(s))return'cr39'; return'other'; }
-    function sunMatchesBase(sunRow, baseRow){
-      const mk=materialKey(baseRow.enhancement||baseRow.subtype||''), t=N(sunRow.enhancement);
-      switch(mk){case'poly':return /polycarb/.test(t); case'trivex':return /trivex/.test(t); case'hi174':return /(1\.74|1\.75)/.test(t); case'hi70':return /(1\.70|1\.71|above)/.test(t); case'hi167':return /(1\.66|1\.67)/.test(t); case'cr39':return /(cr[- ]?39|plastic(?!.*high))/.test(t); default:return true;}
+
+    function materialKey(label) {
+      const s = N(label);
+      if(/polycarb/.test(s)) return 'poly';
+      if(/trivex/.test(s)) return 'trivex';
+      if(/1\.74|1\.75/.test(s)) return 'hi174';
+      if(/1\.70|1\.71|above/.test(s)) return 'hi70';
+      if(/1\.66|1\.67/.test(s)) return 'hi167';
+      if(/cr[- ]?39|plastic(?!.*high)/.test(s)) return 'cr39';
+      return 'other';
     }
-    function line(row){ const cop=num(row.copay), cb=num(row.chargeback), pr=cop-cb; return { name:row.enhancement||row.subtype||'—', code:row.code||'', copay:cop, chargeback:cb, profit:pr }; }
+    function sunMatchesBase(sunRow, baseRow) {
+      const mk = materialKey(baseRow.enhancement || baseRow.subtype || '');
+      const t = N(sunRow.enhancement);
+      switch (mk) {
+        case 'poly':   return /polycarb/.test(t);
+        case 'trivex': return /trivex/.test(t);
+        case 'hi174':  return /(1\.74|1\.75)/.test(t);
+        case 'hi70':   return /(1\.70|1\.71|above)/.test(t);
+        case 'hi167':  return /(1\.66|1\.67)/.test(t);
+        case 'cr39':   return /(cr[- ]?39|plastic(?!.*high))/.test(t);
+        default:       return true;
+      }
+    }
+
+    function line(row){
+      const cop = num(row.copay), cb=num(row.chargeback), pr=cop-cb;
+      return { name: row.enhancement||row.subtype||'—', code: row.code||'', copay:cop, chargeback:cb, profit:pr };
+    }
+
     function makeBundle(base, addOns){
-      const items=[base,...addOns.filter(Boolean)], lines=items.map(line);
-      const cop=sum(lines.map(x=>x.copay)), cb=sum(lines.map(x=>x.chargeback)), pr=cop-cb;
-      const ratio=cop>0?(pr/cop):0; const label=base.enhancement||base.subtype||base.code||'Base';
+      const items=[base, ...addOns.filter(Boolean)];
+      const lines = items.map(line);
+      const cop = sum(lines.map(x=>x.copay));
+      const cb  = sum(lines.map(x=>x.chargeback));
+      const pr  = cop - cb;
+      const ratio = cop>0 ? (pr/cop) : 0; // tie-breaker only
+      const label = base.enhancement || base.subtype || base.code || 'Base';
       return { label, lines, copay:cop, chargeback:cb, profit:pr, ratio };
     }
 
-    /* ---- UI helpers (presentation only) ---- */
+    /* ---------------- Presentation helpers ---------------- */
     function animateNumber(el,to){
       const from=parseFloat(el.getAttribute('data-prev')||'0'); const start=performance.now(); const dur=380;
       function step(t){ const k=Math.min(1,(t-start)/dur); const v=from+(to-from)*(0.5-Math.cos(Math.PI*k)/2); el.textContent=`$${v.toFixed(2)}`; if(k<1)requestAnimationFrame(step); else el.setAttribute('data-prev',to); }
@@ -225,7 +289,6 @@
     }
     function tdMoney(v){ return `<td class="money">$${v.toFixed(2)}</td>`; }
 
-    /* === IMPORTANT: scoreboard shows Copay (hero) + Service Fee secondary; table shows Copay / Holdback / Service Fee === */
     function renderTier({name, cls, b}){
       const div=document.createElement('div'); div.className='tier';
       if(!b){
@@ -277,61 +340,173 @@
       return div;
     }
 
-    function renderStack(rows){ const stack=el('stack'); stack.innerHTML=''; for(const row of rows){ stack.appendChild(renderTier(row)); } }
+    function renderStack(rows){
+      const stack = el('stack');
+      stack.innerHTML='';
+      for(const row of rows){ stack.appendChild(renderTier(row)); }
+    }
 
+    /* ================== Compute bundles ================== */
     function computeBundles(){
       if(!DATA.length){ el('stack').innerHTML=''; return; }
-      const fam=el('lensFamily').value, wantAR=el('includeAR').checked, wantAsp=el('includeAspheric').checked, wantOS=el('includeOversize').checked, wantGlass=el('includeGlass').checked, tintSel=el('lensTint').value;
-      const sunAll = byKey('sun_tech').filter(r=>applies(r,fam)).filter(r=>{ const n=N(r.enhancement); if(!wantGlass && n.includes('glass')) return false; return true; });
-      let base=[];
-      if(fam==='PAL'){
+
+      const fam = el('lensFamily').value;
+      const wantAR = el('includeAR').checked;
+      const wantAsp = el('includeAspheric').checked;
+      const wantOS  = el('includeOversize').checked;
+      const wantGlass = el('includeGlass').checked;
+      const tintSel = el('lensTint').value; // clear|tinted|polarized|transitions
+
+      // sun tech pool
+      const sunAll = byKey('sun_tech').filter(r=>applies(r,fam)).filter(r=>{
+        const n=N(r.enhancement);
+        if(!wantGlass && n.includes('glass')) return false;
+        return true;
+      });
+
+      // CM pool (PAL-only feature)
+      const customPool = DATA.filter(r => applies(r, 'PAL')).filter(isCustomMeasure);
+
+      // base candidates
+      let base = [];
+      if (fam === 'PAL') {
         base = byKey('progressive_level').filter(r=>applies(r,fam)).filter(r=>{
-          const name=N(r.enhancement); if(!wantAsp && name.includes('aspheric')) return false; if(!wantGlass && name.includes('glass')) return false;
-          if(tintSel==='polarized') return /polariz/.test(name);
+          const name=N(r.enhancement);
+          if(!wantAsp && name.includes('aspheric')) return false;
+          if(!wantGlass && name.includes('glass'))  return false;
+          if(isCustomMeasure(r)) return false;       // CM cannot be base
+          if (tintSel==='polarized') return /polariz/.test(name);
           return !/(photochrom|polariz|tint|tinted|sunglass|gradient)/.test(name);
         });
-      }else{
-        if(tintSel==='polarized'){ base=sunAll.filter(r=>/polariz/.test(N(r.enhancement)) && isDCode(r)); }
-        else{
-          const pool=(fam==='SV'?byKey('base_material'):byKey('occupational'));
-          base=pool.filter(r=>applies(r,fam)).filter(r=>{
-            const name=N(r.enhancement); if(!wantAsp && name.includes('aspheric')) return false; if(!wantGlass && name.includes('glass')) return false;
-            if(/photochrom|polariz|tint|tinted|sunglass|gradient/.test(name)) return false; return true;
+      } else {
+        if (tintSel==='polarized') {
+          base = sunAll.filter(r => /polariz/.test(N(r.enhancement)) && isDCode(r));
+        } else {
+          const pool = (fam==='SV' ? byKey('base_material') : byKey('occupational'));
+          base = pool.filter(r=>applies(r,fam)).filter(r=>{
+            const name=N(r.enhancement);
+            if(!wantAsp && name.includes('aspheric')) return false;
+            if(!wantGlass && name.includes('glass'))  return false;
+            if(/photochrom|polariz|tint|tinted|sunglass|gradient/.test(name)) return false;
+            return true;
           });
         }
       }
+
+      // AR pool
       const arPool = wantAR ? byKey('ar_level').filter(r=>applies(r,fam)) : [];
       const arRanked = wantAR ? rankAR(arPool) : [];
-      function arForTier(i){ if(!wantAR || !arRanked.length) return null; return i<arRanked.length?arRanked[i]:arRanked[arRanked.length-1]; }
-      function chooseSunFor(baseRow){
-        if(tintSel==='clear' || tintSel==='polarized') return null;
-        if(tintSel==='transitions'){
+
+      function arForTier(idx){
+        if(!wantAR || !arRanked.length) return null;
+        if(idx < arRanked.length) return arRanked[idx];
+        return arRanked[arRanked.length-1];
+      }
+
+      function chooseSunFor(baseRow) {
+        if (tintSel==='clear' || tintSel==='polarized') return null;
+
+        if (tintSel==='transitions') {
           const want = preferPhotoCodeForBase(baseRow);
-          let pool = sunAll.filter(r=>/photochrom/.test(N(r.enhancement)));
-          let choice = pickBest(pool.filter(r=>new RegExp('^'+want,'i').test((r.code||'').trim()))); if(choice) return choice;
-          choice = pickBest(pool.filter(isPPhoto)); if(choice) return choice;
+          let pool = sunAll.filter(r => /photochrom/.test(N(r.enhancement)));
+          let choice = pickBest(pool.filter(r => new RegExp('^' + want, 'i').test((r.code || '').trim())));
+          if (choice) return choice;
+          choice = pickBest(pool.filter(isPPhoto));
+          if (choice) return choice;
           return pickBest(pool);
         }
-        if(tintSel==='tinted'){
-          let pool = sunAll.filter(r=>{ const n=N(r.enhancement); return sunMatchesBase(r, baseRow) && !/photochrom|polariz/.test(n) && /tint|tinted|solid|gradient|sunglass/.test(n); });
+
+        if (tintSel==='tinted') {
+          let pool = sunAll.filter(r=>{
+            const n=N(r.enhancement);
+            return sunMatchesBase(r, baseRow) && !/photochrom|polariz/.test(n) && /tint|tinted|solid|gradient|sunglass/.test(n);
+          });
           return pickBest(pool);
         }
+
         return null;
       }
-      const overs = wantOS ? pickBest(byKey('oversize').filter(r=>applies(r,fam)).filter(r=>{ const n=N(r.enhancement); if(!wantGlass && n.includes('glass')) return false; return true; })) : null;
-      function selectMaxProfit(cands, arRow, exclude=new Set()){ let best=null; for(const m of cands){ const lbl=(m.enhancement||m.subtype||m.code||'Base'); if(exclude.has(lbl)) continue; const b=makeBundle(m,[arRow,chooseSunFor(m),overs]); if(!best || b.profit>best.profit || (b.profit===best.profit && b.ratio>best.ratio)) best=b; } return best; }
-      function selectMinCopay(cands, arRow, exclude=new Set()){ let best=null; for(const m of cands){ const lbl=(m.enhancement||m.subtype||m.code||'Base'); if(exclude.has(lbl)) continue; const b=makeBundle(m,[arRow,chooseSunFor(m),overs]); if(!best || b.copay<best.copay || (b.copay===best.copay && b.profit>best.profit)) best=b; } return best; }
-      const bestAR=arForTier(0), midAR=arForTier(1), lowAR=arForTier(2);
-      const best=selectMaxProfit(base,bestAR); const used=new Set(best?[best.label]:[]);
-      const mid = selectMaxProfit(base,midAR,used) || selectMaxProfit(base,bestAR,used); if(mid) used.add(mid.label);
-      const good=selectMinCopay(base,lowAR,used) || selectMinCopay(base,midAR||bestAR,used);
-      renderStack([{name:'Good',cls:'good',b:good},{name:'Better',cls:'better',b:mid},{name:'Best',cls:'best',b:best}]);
+
+      // Custom Measurements add-on only when office toggle ON and base is N/O PAL
+      function customFor(baseRow) {
+        const cmToggle = el('includeCM')?.checked;
+        if (!cmToggle) return null;
+        if (fam !== 'PAL') return null;
+
+        const label = baseRow.enhancement || baseRow.subtype || baseRow.code || '';
+        if (!cmEligibleForLabel(label)) return null;
+
+        return pickBest(customPool) || null;  // attach once
+      }
+
+      // Oversize add-on
+      const overs = wantOS ? pickBest(byKey('oversize').filter(r=>applies(r,fam)).filter(r=>{
+        const n=N(r.enhancement);
+        if(!wantGlass && n.includes('glass')) return false;
+        return true;
+      })) : null;
+
+      function selectMaxProfit(candidates, arRow, excludeLabels=new Set()){
+        let best=null;
+        for(const m of candidates){
+          const lbl=(m.enhancement||m.subtype||m.code||'Base');
+          if(excludeLabels.has(lbl)) continue;
+          const b = makeBundle(m, [arRow, chooseSunFor(m), customFor(m), overs]);
+          if(!best || b.profit>best.profit || (b.profit===best.profit && b.ratio>best.ratio)) best=b;
+        }
+        return best;
+      }
+      function selectMinCopay(candidates, arRow, excludeLabels=new Set()){
+        let best=null;
+        for(const m of candidates){
+          const lbl=(m.enhancement||m.subtype||m.code||'Base');
+          if(excludeLabels.has(lbl)) continue;
+          const b = makeBundle(m, [arRow, chooseSunFor(m), customFor(m), overs]);
+          if(!best || b.copay<best.copay || (b.copay===best.copay && b.profit>best.profit)) best=b;
+        }
+        return best;
+      }
+
+      const bestAR = arForTier(0), midAR = arForTier(1), lowAR = arForTier(2);
+
+      const best = selectMaxProfit(base, bestAR);
+      const used = new Set(best ? [best.label] : []);
+      const mid  = selectMaxProfit(base, midAR, used) || selectMaxProfit(base, bestAR, used);
+      if(mid) used.add(mid.label);
+      const good = selectMinCopay(base, lowAR, used) || selectMinCopay(base, midAR||bestAR, used);
+
+      renderStack([{name:'Good', cls:'good', b:good},
+                   {name:'Better', cls:'better', b:mid},
+                   {name:'Best', cls:'best', b:best}]);
     }
 
-    el('forceRefresh').onclick=()=>{ clearCache(); loadCSV(); };
-    el('clearCache').onclick =()=>{ clearCache(); el('status').textContent=' cache cleared — click Force Refresh to reload'; };
-    ['lensFamily','lensTint','includeAR','includeAspheric','includeOversize','includeGlass'].forEach(id=> el(id).onchange=computeBundles);
-    (async()=>{ await loadCSV(); })();
+    // ---------------- Wire-up ----------------
+    el('forceRefresh').onclick=()=>{ clearCacheStorage(); loadCSV(); };
+    el('clearCache').onclick =()=>{ clearCacheStorage(); el('status').textContent=' cache cleared — click Force Refresh to reload'; };
+
+    // Persist includeCM per office, recompute on any change
+    ['lensFamily','lensTint','includeAR','includeAspheric','includeOversize','includeGlass','includeCM']
+      .forEach(id => {
+        const node = el(id);
+        if (!node) return;
+        node.onchange = () => {
+          if (id === 'includeCM') {
+            const p = loadPrefs();
+            p.includeCM = node.checked;
+            savePrefs(p);
+          }
+          computeBundles();
+        };
+      });
+
+    // On boot: restore office preference (default OFF), then load CSV
+    (function boot(){
+      const prefs = loadPrefs();
+      if (el('includeCM') && typeof prefs.includeCM === 'boolean') {
+        el('includeCM').checked = prefs.includeCM;
+      }
+      loadCSV();
+    })();
   </script>
 </body>
 </html>
