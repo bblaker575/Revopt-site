@@ -5,52 +5,42 @@
   <title>RevSight AI — VSP Choice (Resilient)</title>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <style>
-    :root {
-      --bg:#0b0f14; --fg:#e7eefc; --card:#0f1621; --border:#253146;
-      --muted:#93a4bd; --ok:#10b981; --warn:#f59e0b; --err:#ef4444;
-    }
+    :root { --bg:#0b0f14; --fg:#e7eefc; --card:#0f1621; --border:#253146;
+      --muted:#93a4bd; --ok:#10b981; --warn:#f59e0b; --err:#ef4444; }
     *{box-sizing:border-box}
-    body { background:var(--bg); color:var(--fg); font:15px/1.45 system-ui, -apple-system, Segoe UI, Roboto, sans-serif; margin:0; }
-    header { display:flex; justify-content:space-between; align-items:center; gap:12px; padding:16px 20px; border-bottom:1px solid #1e2734;}
-    h1 { font-size:18px; margin:0; }
-    .sub { color:var(--muted); font-size:12px;}
-    .pill { font-size:12px; padding:6px 10px; border-radius:999px; border:1px solid var(--border); background:#121a25; white-space:nowrap;}
-    .ok   { color:#a7f3d0; border-color:#064e3b; background:#06251d;}
-    .warn { color:#fde68a; border-color:#845c16; background:#3b2a08;}
-    .err  { color:#fecaca; border-color:#7f1d1d; background:#2a0d0d;}
-    .container{ max-width:1200px; margin:0 auto; padding:16px;}
-    .card { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:14px; margin:16px 0; }
-    .controls{ display:grid; grid-template-columns: repeat(auto-fit,minmax(180px,1fr)); gap:8px; align-items:center; }
-    .row{ display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
-    button { background:#1b2738; color:var(--fg); border:1px solid var(--border); border-radius:8px; padding:8px 12px; cursor:pointer;}
-    button:disabled{opacity:.5; cursor:not-allowed}
-    input[type="search"], select{ background:#0c121b; color:var(--fg); border:1px solid var(--border); border-radius:8px; padding:8px 12px; min-width:180px;}
-    table{ width:100%; border-collapse:separate; border-spacing:0; }
-    th, td{ text-align:left; padding:10px 8px; border-bottom:1px solid var(--border); font-size:14px;}
-    th{ position:sticky; top:0; background:#101827; z-index:1; }
-    .muted{ color:var(--muted); }
-    .mono{ font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
-    .small{ font-size:12px; }
-    .right{ text-align:right; }
-    .footer{ color:var(--muted); font-size:12px; padding:16px 0 24px; }
+    body{background:var(--bg);color:var(--fg);font:15px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;margin:0}
+    header{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:16px 20px;border-bottom:1px solid #1e2734}
+    h1{font-size:18px;margin:0}.sub{color:var(--muted);font-size:12px}
+    .pill{font-size:12px;padding:6px 10px;border-radius:999px;border:1px solid var(--border);background:#121a25;white-space:nowrap}
+    .ok{color:#a7f3d0;border-color:#064e3b;background:#06251d}
+    .warn{color:#fde68a;border-color:#845c16;background:#3b2a08}
+    .err{color:#fecaca;border-color:#7f1d1d;background:#2a0d0d}
+    .container{max-width:1200px;margin:0 auto;padding:16px}
+    .card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;margin:16px 0}
+    .controls{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;align-items:center}
+    .row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+    button{background:#1b2738;color:var(--fg);border:1px solid var(--border);border-radius:8px;padding:8px 12px;cursor:pointer}
+    button:disabled{opacity:.5;cursor:not-allowed}
+    input[type="search"],select{background:#0c121b;color:var(--fg);border:1px solid var(--border);border-radius:8px;padding:8px 12px;min-width:180px}
+    table{width:100%;border-collapse:separate;border-spacing:0}
+    th,td{text-align:left;padding:10px 8px;border-bottom:1px solid var(--border);font-size:14px}
+    th{position:sticky;top:0;background:#101827;z-index:1}
+    .muted{color:var(--muted)}.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+    .small{font-size:12px}.footer{color:var(--muted);font-size:12px;padding:16px 0 24px}
   </style>
-  <!-- PapaParse for CSV parsing -->
   <script defer src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
 </head>
 <body>
 <header>
-  <div>
-    <h1>RevSight AI <span class="sub">• VSP Choice Data</span></h1>
-  </div>
+  <div><h1>RevSight AI <span class="sub">• VSP Choice Data</span></h1></div>
   <div id="status" class="pill">initializing…</div>
 </header>
 
 <div class="container">
-  <!-- Controls + Diagnostics -->
   <div class="card">
     <div class="row" style="margin-bottom:10px">
-      <button id="btn-refresh" title="Force a full reload">Force Refresh</button>
-      <button id="btn-clear" title="Clear Last-Known-Good cache">Clear Local Cache</button>
+      <button id="btn-refresh">Force Refresh</button>
+      <button id="btn-clear">Clear Local Cache</button>
       <input id="search" type="search" placeholder="Quick filter (e.g., progressive, AR, poly)…"/>
       <span id="meta" class="muted small"></span>
     </div>
@@ -59,21 +49,13 @@
       <select id="sel-subtype"><option value="">All Subtypes</option></select>
       <select id="sel-enh"><option value="">All Enhancements</option></select>
     </div>
-    <div id="log" class="mono small muted" style="margin-top:8px; max-height:160px; overflow:auto;"></div>
+    <div id="log" class="mono small muted" style="margin-top:8px;max-height:160px;overflow:auto;"></div>
   </div>
 
-  <!-- Data Table -->
   <div class="card">
-    <div class="muted small" style="margin-bottom:8px">
-      Showing <span id="count">0</span> rows
-    </div>
-    <div style="overflow:auto; max-height:65vh;">
-      <table id="tbl">
-        <thead>
-          <tr id="thead"></tr>
-        </thead>
-        <tbody id="tbody"></tbody>
-      </table>
+    <div class="muted small" style="margin-bottom:8px">Showing <span id="count">0</span> rows</div>
+    <div style="overflow:auto;max-height:65vh;">
+      <table id="tbl"><thead><tr id="thead"></tr></thead><tbody id="tbody"></tbody></table>
     </div>
   </div>
 
@@ -83,30 +65,25 @@
 </div>
 
 <script>
-/* ========================= Resilient Loader (inline) =========================
-   Fixes applied:
-   - Strong cache busting for manifest & schema (BUILD_TAG).
-   - Safe URL builder so we never double-? a querystring.
-   - Sanitized hex compare for SHA (ignores invisible chars).
+/* ========================= Resilient Loader (fixed) =========================
+   Fixes:
+   - Hash bytes via arrayBuffer() (not res.text()) to avoid line-ending/encoding drift.
+   - Strong cache-busting for manifest & schema via BUILD_TAG.
+   - Safe query builder for CSV (?v=...).
+   - Sanitized hex compare + UI diagnostics.
 ============================================================================= */
 (function(){
-  const BUILD_TAG = "2025-08-31.3"; // bump on each data/manifest change
+  const BUILD_TAG = "2025-08-31.3";               // bump when manifest/CSV changes
   const MANIFEST_URL = `data/manifest.json?v=${BUILD_TAG}`;
   const SCHEMA_URL   = `data/schema_v1.json?v=${BUILD_TAG}`;
-  const LKG_KEY      = "revopt:lkg:data";
+  const LKG_KEY = "revopt:lkg:data";
   const LKG_META_KEY = "revopt:lkg:meta";
 
   const cleanHex = s => (s||"").toLowerCase().replace(/[^0-9a-f]/g,"");
+  const withVersion = (url, v) => !v ? url : `${url}${url.includes("?")?"&":"?"}v=${encodeURIComponent(v)}`;
 
-  const withVersion = (url, v) => {
-    if(!v) return url;
-    const sep = url.includes("?") ? "&" : "?";
-    return `${url}${sep}v=${encodeURIComponent(v)}`;
-  };
-
-  async function sha256(text) {
-    const enc = new TextEncoder().encode(text);
-    const buf = await crypto.subtle.digest('SHA-256', enc);
+  async function sha256Bytes(uint8){
+    const buf = await crypto.subtle.digest('SHA-256', uint8);
     return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
   }
 
@@ -114,7 +91,7 @@
     try{
       localStorage.setItem(LKG_KEY, JSON.stringify(rows));
       localStorage.setItem(LKG_META_KEY, JSON.stringify(meta));
-    }catch(e){ /* storage quota */ }
+    }catch{} // quota
   }
   function loadLKG(){
     try{
@@ -122,7 +99,7 @@
       const meta = JSON.parse(localStorage.getItem(LKG_META_KEY) || "null");
       if(!rows || !meta) return null;
       return { rows, meta };
-    }catch(e){ return null; }
+    }catch{ return null; }
   }
 
   function validateSchema(rows, schema){
@@ -132,60 +109,61 @@
     if(missing.length) throw new Error("missing columns: " + missing.join(", "));
   }
 
-  async function fetchText(url){
+  async function fetchJSON(url){
     const res = await fetch(url, { cache: "reload" });
     if(!res.ok) throw new Error(`HTTP ${res.status} for ${url}`);
-    return await res.text();
+    return await res.json();
+  }
+
+  async function fetchCSVBytes(urlWithV){
+    const res = await fetch(urlWithV, { cache: "reload" });
+    if(!res.ok) throw new Error(`HTTP ${res.status} for ${urlWithV}`);
+    const buf = await res.arrayBuffer();               // BYTES for SHA
+    const bytes = new Uint8Array(buf);
+    const sha = await sha256Bytes(bytes);
+    const text = new TextDecoder("utf-8").decode(bytes); // decode once for Papa
+    return { sha, text };
   }
 
   function parseCSV(text){
     return new Promise((resolve,reject)=>{
-      if(!window.Papa){ return reject(new Error("PapaParse not loaded")); }
+      if(!window.Papa) return reject(new Error("PapaParse not loaded"));
       Papa.parse(text, {
-        header:true,
-        dynamicTyping:false,
-        skipEmptyLines:"greedy",
+        header:true, dynamicTyping:false, skipEmptyLines:"greedy",
         transformHeader: h => (h || "").trim(),
-        complete: (r)=> resolve(r.data),
-        error: reject
+        complete: r => resolve(r.data), error: reject
       });
     });
   }
 
   async function loadNetwork(){
-    const manifestText = await fetchText(MANIFEST_URL);       // cache-busted
-    const manifest = JSON.parse(manifestText);
+    const manifest = await fetchJSON(MANIFEST_URL);
+    const schema   = await fetchJSON(SCHEMA_URL);
 
-    const schemaText = await fetchText(SCHEMA_URL);            // cache-busted
-    const schema = JSON.parse(schemaText);
+    const csvUrl = withVersion(manifest.url, manifest.version);
+    const { sha: gotSha, text: csvText } = await fetchCSVBytes(csvUrl);
+    const expectedSha = cleanHex(manifest.sha256);
+    const got = cleanHex(gotSha);
 
-    const csvText = await fetchText(withVersion(manifest.url, manifest.version)); // v=bump
-    const hash = await sha256(csvText);
-    const expected = cleanHex(manifest.sha256);
-    const got = cleanHex(hash);
+    window.__revopt_last_sha = { expected: expectedSha, got };
 
-    // expose for diagnostics
-    window.__revopt_last_sha = { expected, got };
-
-    if(expected && expected !== got){
-      // Include both so you can copy/paste into manifest if needed
-      throw new Error(`Checksum mismatch. Expected ${expected} got ${got}`);
+    if(expectedSha && expectedSha !== got){
+      throw new Error(`Checksum mismatch. Expected ${expectedSha} got ${got}`);
     }
 
     const rows = await parseCSV(csvText);
     validateSchema(rows, schema);
-    saveLKG({ source:"network", manifest }, rows);
-    return { rows, meta: { source:"network", manifest, sha: {expected, got} } };
+    saveLKG({ source:"network", manifest, sha:{expected:expectedSha, got} }, rows);
+    return { rows, meta: { source:"network", manifest, sha:{expected:expectedSha, got} } };
   }
 
   async function loadData(){
     try{
-      const net = await loadNetwork();
-      return net;
+      return await loadNetwork();
     }catch(e){
-      console.warn("[revopt] network path failed:", e.message);
+      console.warn("[revopt] network failed:", e.message);
       const lkg = loadLKG();
-      if(lkg){ return lkg; }
+      if(lkg) return lkg;
       throw new Error("No data available (network failed and no LKG). " + e.message);
     }
   }
@@ -201,127 +179,63 @@
 
 <script>
 /* ======================== Minimal App + Selection UI ======================== */
-const $ = sel => document.querySelector(sel);
-const statusEl = $("#status");
-const metaEl = $("#meta");
-const logEl = $("#log");
-const thead = $("#thead");
-const tbody = $("#tbody");
-const countEl = $("#count");
-const searchEl = $("#search");
-const selGroup = $("#sel-group");
-const selSubtype = $("#sel-subtype");
-const selEnh = $("#sel-enh");
+const $ = s => document.querySelector(s);
+const statusEl = $("#status"), metaEl = $("#meta"), logEl = $("#log");
+const thead=$("#thead"), tbody=$("#tbody"), countEl=$("#count"), searchEl=$("#search");
+const selGroup=$("#sel-group"), selSubtype=$("#sel-subtype"), selEnh=$("#sel-enh");
 
-function setStatus(kind, msg){
-  statusEl.className = "pill " + (kind||"");
-  statusEl.textContent = msg;
-}
-function logLine(msg){
-  logEl.textContent += msg + "\n";
-  logEl.scrollTop = logEl.scrollHeight;
-}
-function uniq(list){
-  return Array.from(new Set(list.filter(v => v!=null && String(v).trim()!==""))).sort((a,b)=>String(a).localeCompare(String(b)));
-}
+function setStatus(kind,msg){ statusEl.className="pill "+(kind||""); statusEl.textContent=msg; }
+function logLine(m){ logEl.textContent += m + "\n"; logEl.scrollTop = logEl.scrollHeight; }
+const uniq = a => Array.from(new Set(a.filter(v=>v!=null && String(v).trim()!==""))).sort((x,y)=>String(x).localeCompare(String(y)));
 function renderOptions(sel, values, label){
   const current = sel.value;
   sel.innerHTML = `<option value="">All ${label}</option>` + values.map(v=>`<option>${v}</option>`).join("");
   if(values.includes(current)) sel.value = current;
 }
 function renderTable(rows){
-  if(!rows || !rows.length){
-    thead.innerHTML = "";
-    tbody.innerHTML = `<tr><td class="muted">No rows</td></tr>`;
-    countEl.textContent = "0";
-    return;
-  }
+  if(!rows || !rows.length){ thead.innerHTML=""; tbody.innerHTML=`<tr><td class="muted">No rows</td></tr>`; countEl.textContent="0"; return; }
   const cols = Object.keys(rows[0]);
   thead.innerHTML = cols.map(c=>`<th>${c}</th>`).join("");
-  const html = rows.map(r=>{
-    return `<tr>${cols.map(c=>`<td>${(r[c]??"")}</td>`).join("")}</tr>`;
-  }).join("");
-  tbody.innerHTML = html;
+  tbody.innerHTML = rows.map(r=>`<tr>${cols.map(c=>`<td>${(r[c]??"")}</td>`).join("")}</tr>`).join("");
   countEl.textContent = String(rows.length);
 }
 function applyFilters(rows){
   const q = searchEl.value.trim().toLowerCase();
-  const g = selGroup.value;
-  const s = selSubtype.value;
-  const e = selEnh.value;
-
+  const g = selGroup.value, s = selSubtype.value, e = selEnh.value;
   return rows.filter(r=>{
     if(g && String(r.group||"")!==g) return false;
     if(s && String(r.subtype||"")!==s) return false;
     if(e && String(r.enhancement||"")!==e) return false;
-    if(q){
-      const hit = Object.values(r).some(v => String(v||"").toLowerCase().includes(q));
-      if(!hit) return false;
-    }
+    if(q && !Object.values(r).some(v=>String(v||"").toLowerCase().includes(q))) return false;
     return true;
   });
 }
-
-// Wire buttons
 $("#btn-refresh").onclick = ()=> location.reload();
-$("#btn-clear").onclick = ()=>{
-  localStorage.removeItem("revopt:lkg:data");
-  localStorage.removeItem("revopt:lkg:meta");
-  location.reload();
-};
+$("#btn-clear").onclick = ()=>{ localStorage.removeItem("revopt:lkg:data"); localStorage.removeItem("revopt:lkg:meta"); location.reload(); };
 
-// Initialize
 (async ()=>{
   try{
     const rows = await window.revoptDataPromise;
-    const meta = window.revoptDataMeta || {};
-    const manifest = meta.manifest || {};
-    const source = meta.source || "network";
-
-    // Status + meta
-    setStatus(source==="network" ? "ok" : "warn",
-      source==="network" ? `Active: ${manifest.version || "?"} (network)` : `Using LKG: ${manifest.version || "unknown"}`);
+    const meta = window.revoptDataMeta||{}, manifest=meta.manifest||{}, source=meta.source||"network";
     const sha = meta.sha || window.__revopt_last_sha || {};
+    setStatus(source==="network"?"ok":"warn", source==="network"?`Active: ${manifest.version||"?"} (network)`: `Using LKG: ${manifest.version||"unknown"}`);
     metaEl.innerHTML = `
       <span class="mono small">plan=${manifest.plan||"?"}</span>&nbsp;•&nbsp;
       <span class="mono small">version=${manifest.version||"?"}</span>&nbsp;•&nbsp;
       <span class="mono small">source=${source}</span>&nbsp;•&nbsp;
-      <span class="mono small">sha=${sha.got||"?"}</span>
-    `;
-
-    // Selection options
-    const groups   = uniq(rows.map(r=>r.group));
-    const subtypes = uniq(rows.map(r=>r.subtype));
-    const enhs     = uniq(rows.map(r=>r.enhancement));
-    renderOptions(selGroup, groups, "Groups");
-    renderOptions(selSubtype, subtypes, "Subtypes");
-    renderOptions(selEnh, enhs, "Enhancements");
-
-    // Initial render + reactive filtering
-    let current = applyFilters(rows);
-    renderTable(current);
-
+      <span class="mono small">sha=${sha.got||"?"}</span>`;
+    const groups=uniq(rows.map(r=>r.group)), subs=uniq(rows.map(r=>r.subtype)), enhs=uniq(rows.map(r=>r.enhancement));
+    renderOptions(selGroup, groups, "Groups"); renderOptions(selSubtype, subs, "Subtypes"); renderOptions(selEnh, enhs, "Enhancements");
+    let current = applyFilters(rows); renderTable(current);
     [searchEl, selGroup, selSubtype, selEnh].forEach(el=>{
-      el.addEventListener("input", ()=>{
-        current = applyFilters(rows);
-        renderTable(current);
-      });
-      el.addEventListener("change", ()=>{
-        current = applyFilters(rows);
-        renderTable(current);
-      });
+      el.addEventListener("input", ()=>{ current = applyFilters(rows); renderTable(current); });
+      el.addEventListener("change", ()=>{ current = applyFilters(rows); renderTable(current); });
     });
-
     logLine(`[ok] loaded ${rows.length} rows`);
     if(source!=="network") logLine("[warn] network failed; using Last-Known-Good cache");
-    if(sha && sha.expected && sha.got && sha.expected!==sha.got){
-      logLine(`[diag] manifest.sha256=${sha.expected}, computed=${sha.got}`);
-    }
-
+    if(sha.expected && sha.got && sha.expected!==sha.got) logLine(`[diag] manifest.sha256=${sha.expected}, computed=${sha.got}`);
   }catch(err){
-    console.error(err);
-    setStatus("err","No data available");
-    logLine("[fatal] " + err.message);
+    console.error(err); setStatus("err","No data available"); logLine("[fatal] " + err.message);
   }
 })();
 </script>
