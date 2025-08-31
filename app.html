@@ -31,7 +31,7 @@
     <div>
       <h1>RevSight AI — VSP Choice Bundles</h1>
       <div class="sub">
-        Good/Better/Best ranked by <b>practice profit</b>. AR default <b>ON</b>.
+        Good/Better/Best ranked by <b>practice profit (copay − chargeback)</b>. AR default <b>ON</b>.
         Polarized/Transitions are <b>add-ons</b>. Offline cache enabled.
       </div>
     </div>
@@ -52,7 +52,6 @@
       </label>
 
       <label class="switch"><input type="checkbox" id="includeAR" checked> Include AR</label>
-      <label class="switch"><input type="checkbox" id="includeVSP" checked> Include VSP</label>
       <label class="switch"><input type="checkbox" id="includeAspheric"> Aspheric</label>
       <label class="switch"><input type="checkbox" id="includeOversize"> Oversize</label>
       <label class="switch"><input type="checkbox" id="includeGlass"> Glass</label>
@@ -85,7 +84,6 @@
 
   <script>
     // ---------------- Config ----------------
-    // Locked to your repo path:
     const DEFAULT_CSV = 'data/vsp_choice_master_v7_full_fixed.csv';
 
     // ---------------- Utils -----------------
@@ -95,13 +93,14 @@
     const num = (v)=>{ const x=parseFloat(String(v??'').replace(/[^0-9.-]/g,'')); return isFinite(x)?x:0; };
     const quickHash=(s)=>{ let h=2166136261>>>0; for(let i=0;i<s.length;i++){ h^=s.charCodeAt(i); h=Math.imul(h,16777619)>>>0; } return ('00000000'+h.toString(16)).slice(-8); };
 
-    // Basic CSV parser (quoted-safe enough for our sheet)
+    // CSV parser with "" escape handling
     function parseCSV(text){
       const rows=[]; let row=[], field='', q=false;
       for(let i=0;i<text.length;i++){
         const ch=text[i];
-        if(ch==='\"'){ // toggle quotes or handle escaped ""
-          if(q && text[i+1]==='\"'){ field+='\"'; i++; } else { q=!q; }
+        if(ch==='\"'){
+          if(q && text[i+1]==='\"'){ field+='\"'; i++; }
+          else { q=!q; }
           continue;
         }
         if(!q && ch===','){ row.push(field); field=''; continue; }
@@ -156,25 +155,24 @@
     }
 
     // ---------------- Business Logic ------------------
-
     const byKey=(k)=>DATA.filter(r=>(r.active||'yes').toLowerCase()==='yes' && (r.exclusive_key||'').toLowerCase()===k);
 
     function applies(row, fam){
       const a=(row.applies_to||'ALL').toUpperCase();
       if(a.includes('ALL')) return true;
       if(fam==='SV')     return a.includes('SV');
-      if(fam==='LINED')  return a.includes('OCC');   // bifocal/occupational tracks
-      if(fam==='PAL')    return a.includes('MF');    // multifocal (progressive)
+      if(fam==='LINED')  return a.includes('OCC');   // bifocal/occupational
+      if(fam==='PAL')    return a.includes('MF');    // progressive/multifocal
       return true;
     }
 
-    function profitOf(row, useVSP){
-      return num(row.copay) + (useVSP ? num(row.vsp) : 0) - num(row.chargeback);
+    function profitOf(row){
+      return num(row.copay) - num(row.chargeback); // LOCKED: copay − chargeback
     }
 
-    function pickBest(arr, useVSP){
+    function pickBest(arr){
       if(!arr || !arr.length) return null;
-      return [...arr].sort((a,b)=> profitOf(b,useVSP) - profitOf(a,useVSP))[0];
+      return [...arr].sort((a,b)=> profitOf(b) - profitOf(a))[0];
     }
 
     function computeBundles(){
@@ -182,14 +180,13 @@
 
       const fam = el('lensFamily').value;
       const wantAR = el('includeAR').checked;
-      const useVSP = el('includeVSP').checked;
       const wantAsp = el('includeAspheric').checked;
       const wantOS  = el('includeOversize').checked;
       const wantGlass = el('includeGlass').checked;
       const addTR = el('addTransitions').checked;
       const addPO = el('addPolarized').checked;
 
-      // ---- Base candidates by family (avoid double materials) ----
+      // Base candidates by family
       let base = [];
       if(fam==='SV'){
         base = byKey('base_material').filter(r=>applies(r,fam));
@@ -199,43 +196,44 @@
         base = byKey('progressive_level').filter(r=>applies(r,fam));
       }
 
-      // Global filters on base choices
+      // Filters on base choices
       base = base.filter(r=>{
         const name=(r.enhancement||'').toLowerCase();
         if(!wantAsp   && name.includes('aspheric')) return false;
         if(!wantGlass && name.includes('glass'))    return false;
-        // For PAL: handle Polarized at the base level to avoid double-adding
+        // For PAL: polarized selection handled as base variant
         if(fam==='PAL'){
-          if(addPO  && !/polariz/.test(name)) return false; // require polarized when toggle ON
-          if(!addPO &&  /polariz/.test(name)) return false; // exclude polarized when toggle OFF
+          const isPol = /polariz/.test(name);
+          if(addPO  && !isPol) return false;
+          if(!addPO &&  isPol) return false;
         }
+        // Exclude photochromic/polarized as base for SV/LINED (they’re add-ons there)
+        if(fam!=='PAL' && (/photochrom/.test(name) || /polariz/.test(name))) return false;
         return true;
       });
 
-      // Add-ons (best single choice in each category)
+      // Add-ons
       const ars   = wantAR ? byKey('ar_level').filter(r=>applies(r,fam)) : [];
-      const bestAR = pickBest(ars, useVSP);
+      const bestAR = pickBest(ars);
 
-      // Sun tech (Transitions / Polarized) lives under sun_tech; we do not add Polarized for PAL if base already polarized.
       const sunAll = byKey('sun_tech').filter(r=>applies(r,fam)).filter(r=>{
         const n=(r.enhancement||'').toLowerCase();
         if(!wantGlass && n.includes('glass')) return false;
         return true;
       });
       const trans = addTR ? sunAll.filter(r=>/photochrom/.test((r.enhancement||'').toLowerCase())) : [];
-      const pol   = addPO && fam!=='PAL' ? sunAll.filter(r=>/polariz/.test((r.enhancement||'').toLowerCase())) : []; // PAL handled at base
-      const bestTR = pickBest(trans, useVSP);
-      const bestPO = pickBest(pol,   useVSP);
+      const pol   = addPO && fam!=='PAL' ? sunAll.filter(r=>/polariz/.test((r.enhancement||'').toLowerCase())) : []; // PAL uses base variants
+      const bestTR = pickBest(trans);
+      const bestPO = pickBest(pol);
 
-      // Oversize
       const overs = wantOS ? byKey('oversize').filter(r=>applies(r,fam)).filter(r=>{
         const n=(r.enhancement||'').toLowerCase();
         if(!wantGlass && n.includes('glass')) return false;
         return true;
       }) : [];
-      const bestOS = pickBest(overs, useVSP);
+      const bestOS = pickBest(overs);
 
-      // Build bundles: each base + selected best-of add-ons
+      // Build bundles
       const bundles = base.map(m=>{
         const items=[m];
         if(bestAR) items.push(bestAR);
@@ -244,16 +242,13 @@
         if(bestOS) items.push(bestOS);
 
         const cop = sum(items.map(x=>num(x.copay)));
-        const vsp = sum(items.map(x=>num(x.vsp)));
         const cb  = sum(items.map(x=>num(x.chargeback)));
-        const revenue = cop + (useVSP ? vsp : 0);
-        const pr  = revenue - cb;
-
+        const pr  = cop - cb; // LOCKED definition
         const label = m.enhancement || m.subtype || m.code || 'Base';
-        return { label, items, copay:cop, vsp, chargeback:cb, profit:pr, ratio: cop>0 ? (pr/cop) : 0 };
+        return { label, items, copay:cop, chargeback:cb, profit:pr, ratio: cop>0 ? (pr/cop) : 0 };
       });
 
-      // Rank & pick tiers (distinct materials when possible)
+      // Rank & pick tiers (distinct labels when possible)
       const byProfit=[...bundles].sort((a,b)=>b.profit-a.profit);
       const byCopay=[...bundles].sort((a,b)=>a.copay-b.copay);
       const best = byProfit[0] || null;
@@ -271,7 +266,7 @@
       for(const [name,cls,b] of [['Good','good',good],['Better','better',mid],['Best','best',best]]){
         const tr=document.createElement('tr');
         if(!b){ tr.innerHTML=`<td>${name}</td><td colspan=6 class="sub">no viable bundle</td>`; tbody.appendChild(tr); continue; }
-        const addons=b.items.slice(1); // everything except base
+        const addons=b.items.slice(1);
         tr.innerHTML=`<td><span class="badge ${cls}">${name}</span></td>
           <td>${b.label}</td>
           <td>${addons.map(a=>`<span class="badge">${a.enhancement||a.subtype||a.code}</span>`).join(' ') || '<span class="sub">—</span>'}</td>
@@ -287,7 +282,7 @@
     // ---------------- Wire-up ----------------
     el('forceRefresh').onclick=()=>{ clearCache(); loadCSV(); };
     el('clearCache').onclick =()=>{ clearCache(); el('status').textContent=' cache cleared — click Force Refresh to reload'; };
-    ['lensFamily','includeAR','includeVSP','includeAspheric','includeOversize','includeGlass','addTransitions','addPolarized']
+    ['lensFamily','includeAR','includeAspheric','includeOversize','includeGlass','addTransitions','addPolarized']
       .forEach(id=> el(id).onchange=computeBundles );
 
     // Boot
