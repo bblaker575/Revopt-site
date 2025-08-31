@@ -1,0 +1,128 @@
+group,subtype,enhancement,code,notes,copay,vsp,chargeback,exclusive_key,applies_to,composable,active
+Material,CR,Aspheric Plastic 1.50,AA,,31.0,21.0,10.0,base_material,"SV,OCC",yes,yes
+Material,CR,Aspheric Plastic 1.50,AA,,35.0,21.0,14.0,base_material,"SV,OCC",yes,yes
+Material,Mid,High-index Plastic 1.53–1.60/Trivex,AB,,56.0,27.0,29.0,base_material,"SV,OCC",yes,yes
+Material,Mid,High-index Plastic 1.53–1.60/Trivex,AB,,60.0,27.0,33.0,base_material,"SV,OCC",yes,yes
+Material,Hi67,High-index Plastic 1.66/1.67,AH,,83.0,35.0,48.0,base_material,"SV,OCC",yes,yes
+Material,Hi67,High-index Plastic 1.66/1.67,AH,,98.0,40.0,58.0,base_material,"SV,OCC",yes,yes
+Material,Hi70,High-index Plastic 1.70 and Above,AJ,,111.0,43.0,68.0,base_material,"SV,OCC",yes,yes
+Material,Hi70,High-index Plastic 1.70 and Above,AJ,,118.0,40.0,78.0,base_material,"SV,OCC",yes,yes
+Material,Poly,Polycarbonate,AD,Note: No Service Fee for covered polycarbonate for children/handicapped/Federal Plan.,35.0,21.0,14.0,base_material,"SV,OCC",yes,yes
+Material,Poly,Polycarbonate,AD,Note: No Service Fee for covered polycarbonate for children/handicapped/Federal Plan.,35.0,21.0,14.0,base_material,"SV,OCC",yes,yes
+Material,,High-index Glass 1.60–1.80 (Clear),AF,,60.0,25.0,35.0,base_material,"SV,OCC",yes,yes
+Material,,High-index Glass 1.60–1.80 (Clear),AF,,138.0,53.0,85.0,base_material,"SV,OCC",yes,yes
+Material,CR,Digital Aspheric Lenses – Plastic,BA,,45.0,21.0,24.0,base_material,"SV,OCC",yes,yes
+Material,CR,Digital Aspheric Lenses – Plastic,BA,,55.0,21.0,34.0,base_material,"SV,OCC",yes,yes
+Material,Mid,Digital Aspheric – High-index Plastic 1.53–1.60/Trivex,BA+BB,Copay = 45+28 (SV) / 55+28 (MF),73.0,12.0,16.0,base_material,"SV,OCC",yes,yes
+Material,Mid,Digital Aspheric – High-index Plastic 1.53–1.60/Trivex,BA+BB,Copay = 45+28 (SV) / 55+28 (MF),83.0,12.0,16.0,base_material,"SV,OCC",yes,yes
+Material,Hi67,Digital Aspheric – High-index Plastic 1.66/1.67,BA+BH,Copay = 45+58 (SV) / 55+68 (MF),103.0,21.0,37.0,base_material,"SV,OCC",yes,yes
+Material,Hi67,Digital Aspheric – High-index Plastic 1.66/1.67,BA+BH,Copay = 45+58 (SV) / 55+68 (MF),123.0,28.0,40.0,base_material,"SV,OCC",yes,yes
+Material,Hi70,Digital Aspheric – High-index Plastic 1.70 and Above,BA+BJ,Copay = 45+86 (SV),131.0,29.0,57.0,base_material,"SV,OCC",yes,yes
+Material,Poly,Digital Aspheric – Polycarbonate,BA+BD,Copay = 45+10 (SV) / 55+10 (MF),55.0,0.0,10.0,base_material,"SV,OCC",yes,yes
+Material,Poly,Digital Aspheric – Polycarbonate,BA+BD,Copay = 45+10 (SV) / 55+10 (MF),65.0,0.0,10.0,base_material,"SV,OCC",yes,yes
+Sun,Polarized,Polarized Lenses – Plastic A,DA,,57.0,21.0,36.0,sun_tech,ALL,yes,yes
+Sun,Polarized,Polarized Lenses – Plastic A,DA,,77.0,29.0,48.0,sun_tech,ALL,yes,yes
+Sun,Polarized,Polarized – High-index Plastic 1.53–1.60/Trivex,DA+DB,Copay = 57+76 (SV) / 77+95 (MF),133.0,29.0,47.0,sun_tech,ALL,yes,yes
+Sun,Polarized,Polarized – High-index Plastic 1.53–1.60/Trivex,DA+DB,Copay = 57+76 (SV) / 77+95 (MF),172.0,36.0,59.0,sun_tech,ALL,yes,yes
+Sun,Polarized,Polarized – High-index Plastic 1.66/1.67,DA+DH,Copay = 57+89 (SV) / 77+108 (MF),146.0,34.0,55.0,sun_tech,ALL,yes,yes
+Sun,Polarized,Polarized – High-index Plastic 1.66/1.67,DA+DH,Copay = 57+89 (SV) / 77+108 (MF),185.0,41.0,67.0,sun_tech,ALL,yes,yes
+Sun,Polarized,Polarized – High-index Plastic 1.70 and Above,DA+DJ,Copay = 57+108 (SV),165.0,38.0,70.0,sun_tech,ALL,yes,yes
+Sun,Polarized,Polarized – Polycarbonate,DA+DD,Copay = 57+31 (SV) / 77+31 (MF),88.0,18.0,13.0,sun_tech,ALL,yes,yes
+Sun,Polarized,Polarized – Polycarbonate,DA+DD,Copay = 57+31 (SV) / 77+31 (MF),108.0,18.0,13.0,sun_tech,ALL,yes,yes
+Sun,Polarized,Polarized/Laminated Lenses – Glass,DE,,78.0,29.0,49.0,sun_tech,ALL,yes,yes
+Sun,Polarized,Polarized/Laminated Lenses – Glass,DE,,101.0,38.0,63.0,sun_tech,ALL,yes,yes
+Occupational,NVF,Near Variable Focus – Plastic,IA,,50.0,24.0,26.0,occupational,OCC,yes,yes
+Occupational,NVF,Near Variable Focus – High-index Plastic 1.53–1.60/Trivex,IA+IB,Copay = 50+24 (MF),74.0,13.0,11.0,occupational,OCC,yes,yes
+Occupational,NVF,Near Variable Focus – High-index Plastic 1.66/1.67,IA+II,Copay = 50+50 (MF),100.0,23.0,27.0,occupational,OCC,yes,yes
+Occupational,NVF,Near Variable Focus – High-index Plastic 1.70 and Above,IA+IJ,Copay = 50+60 (MF),110.0,24.0,36.0,occupational,OCC,yes,yes
+Occupational,NVF,Near Variable Focus – Polycarbonate,IA+ID,Copay = 50+20 (MF),70.0,13.0,7.0,occupational,OCC,yes,yes
+Occupational,Blended,Blended Bifocal – Plastic,GA,,30.0,16.0,14.0,occupational,OCC,yes,yes
+Sun,SolidTint,Plastic Dyes – Solid Color (Except Pink I and II),MN,,15.0,10.0,5.0,tint_type,ALL,yes,yes
+Sun,SolidTint,Plastic Dyes – Solid Color (Except Pink I and II),MN,,15.0,10.0,5.0,tint_type,ALL,yes,yes
+Sun,GradientTint,Plastic Dyes – Gradient,MP,,17.0,10.0,7.0,tint_type,ALL,yes,yes
+Sun,GradientTint,Plastic Dyes – Gradient,MP,,17.0,10.0,7.0,tint_type,ALL,yes,yes
+Sun,SolidTint,Glass Tints Solid (Except Pink I and II and Yellow),MR,,34.0,18.0,16.0,tint_type,ALL,yes,yes
+Sun,SolidTint,Glass Tints Solid (Except Pink I and II and Yellow),MR,,44.0,20.0,24.0,tint_type,ALL,yes,yes
+Sun,SolidTint,Glass Color Coatings – Solid,MS,,42.0,20.0,22.0,tint_type,ALL,yes,yes
+Sun,SolidTint,Glass Color Coatings – Solid,MS,,42.0,20.0,22.0,tint_type,ALL,yes,yes
+Sun,GradientTint,Glass Color Coatings – Gradient,MT,,46.0,21.0,25.0,tint_type,ALL,yes,yes
+Sun,GradientTint,Glass Color Coatings – Gradient,MT,,46.0,21.0,25.0,tint_type,ALL,yes,yes
+Sun,Photochromic,Photochromics – Glass,PM,,33.0,18.0,15.0,sun_tech,ALL,yes,yes
+Sun,Photochromic,Photochromics – Glass,PM,,41.0,18.0,23.0,sun_tech,ALL,yes,yes
+Sun,Photochromic,Photochromics – Plastic,PR,,75.0,30.0,45.0,sun_tech,ALL,yes,yes
+Sun,Photochromic,Photochromics – Plastic,PR,,75.0,30.0,45.0,sun_tech,ALL,yes,yes
+AR,A,Anti-reflective Coating A,QM,,41.0,20.0,21.0,ar_level,ALL,yes,yes
+AR,A,Anti-reflective Coating A,QM,,41.0,20.0,21.0,ar_level,ALL,yes,yes
+AR,C,Anti-reflective Coating C,QT,,68.0,27.0,41.0,ar_level,ALL,yes,yes
+AR,C,Anti-reflective Coating C,QT,,68.0,27.0,41.0,ar_level,ALL,yes,yes
+AR,D,Anti-reflective Coating D,QV,,85.0,33.0,52.0,ar_level,ALL,yes,yes
+AR,D,Anti-reflective Coating D,QV,,85.0,33.0,52.0,ar_level,ALL,yes,yes
+Sun,Mirror,Mirror – Solid and Single Gradient (Includes Base Color),QP,,49.0,23.0,26.0,mirror_type,ALL,yes,yes
+Sun,Mirror,Mirror – Solid and Single Gradient (Includes Base Color),QP,,49.0,23.0,26.0,mirror_type,ALL,yes,yes
+Misc,OtherCoating,Ski Type (Includes Base Tint and Backside Color),QR,,55.0,25.0,30.0,mirror_type,ALL,yes,yes
+Misc,OtherCoating,Ski Type (Includes Base Tint and Backside Color),QR,,55.0,25.0,30.0,mirror_type,ALL,yes,yes
+Misc,Scratch,Scratch-resistant Coating A – Factory Applied,QQ,,17.0,10.0,7.0,scratch_level,ALL,yes,yes
+Misc,Scratch,Scratch-resistant Coating A – Factory Applied,QQ,,17.0,10.0,7.0,scratch_level,ALL,yes,yes
+Misc,Scratch,Scratch-resistant Coating B – Other Approved Coatings,QS,,33.0,18.0,15.0,scratch_level,ALL,yes,yes
+Misc,Scratch,Scratch-resistant Coating B – Other Approved Coatings,QS,,33.0,18.0,15.0,scratch_level,ALL,yes,yes
+Oversize,Frames61mm+,Frames Stamped 61mm Eye Size or Greater – Plastic,RM,,11.0,6.0,5.0,oversize,ALL,yes,yes
+Oversize,Frames61mm+,Frames Stamped 61mm Eye Size or Greater – Plastic,RM,,14.0,8.0,6.0,oversize,ALL,yes,yes
+Oversize,Frames61mm+,Frames Stamped 61mm Eye Size or Greater – Glass,RN,,13.0,6.0,7.0,oversize,ALL,yes,yes
+Oversize,Frames61mm+,Frames Stamped 61mm Eye Size or Greater – Glass,RN,,18.0,8.0,10.0,oversize,ALL,yes,yes
+Misc,,High Luster Edge Polish,SP,,16.0,10.0,6.0,,ALL,yes,yes
+Misc,,High Luster Edge Polish,SP,,16.0,10.0,6.0,,ALL,yes,yes
+Misc,,Edge Coating,SQ,,36.0,19.0,17.0,,ALL,yes,yes
+Misc,,Edge Coating,SQ,,36.0,19.0,17.0,,ALL,yes,yes
+Misc,,Faceted Lenses (Includes Polishing),SR,,66.0,25.0,41.0,,ALL,yes,yes
+Misc,,Faceted Lenses (Includes Polishing),SR,,66.0,25.0,41.0,,ALL,yes,yes
+Misc,,Rimless Drill,SW,,30.0,5.0,25.0,,ALL,yes,yes
+Misc,,Rimless Drill,SW,,30.0,5.0,25.0,,ALL,yes,yes
+Misc,,UV Protection,SV,,16.0,10.0,6.0,,ALL,yes,yes
+Misc,,UV Protection,SV,,16.0,10.0,6.0,,ALL,yes,yes
+Misc,,UV Protection – Backside,BV,,10.0,3.0,7.0,,ALL,yes,yes
+Misc,,UV Protection – Backside,BV,,10.0,3.0,7.0,,ALL,yes,yes
+Misc,,Light Filter,LF,,15.0,4.0,11.0,,ALL,yes,yes
+Misc,,Light Filter,LF,,15.0,4.0,11.0,,ALL,yes,yes
+Misc,,Technical Add-On,TA,,10.0,2.0,8.0,,ALL,yes,yes
+Misc,,Plastic Dyes – Solid Color (Pink I and II),IM,,0.0,0.0,5.0,,ALL,yes,yes
+Misc,,Plastic Dyes – Solid Color (Pink I and II),IM,,0.0,0.0,5.0,,ALL,yes,yes
+Misc,,Plastic Dyes – Solid Color (Except Pink I and II),IN,,15.0,10.0,5.0,,ALL,yes,yes
+Misc,,Plastic Dyes – Solid Color (Except Pink I and II),IN,,15.0,10.0,5.0,,ALL,yes,yes
+Misc,,Plastic Dyes – Gradient,IP,,17.0,10.0,7.0,,ALL,yes,yes
+Misc,,Plastic Dyes – Gradient,IP,,17.0,10.0,7.0,,ALL,yes,yes
+Misc,,UV Protection,IV,,16.0,10.0,6.0,,ALL,yes,yes
+Misc,,UV Protection,IV,,16.0,10.0,6.0,,ALL,yes,yes
+Progressive,N,Custom Measurements (on Eligible Progressive N or O) Lenses,CM,,10.0,8.0,2.0,progressive_level,MF,yes,yes
+Progressive,N,Progressive N – Plastic,,,175.0,80.0,95.0,progressive_level,MF,yes,yes
+Progressive,N,Progressive N – High-index Plastic 1.53–1.60/Trivex,NA+NB,Copay = 175+47,222.0,22.0,25.0,progressive_level,MF,yes,yes
+Progressive,N,Progressive N – High-index Plastic 1.66/1.67,NA+NH,Copay = 175+78,253.0,30.0,48.0,progressive_level,MF,yes,yes
+Progressive,N,Progressive N – High-index Plastic 1.70 and Above,NA+NJ,Copay = 175+125,300.0,48.0,77.0,progressive_level,MF,yes,yes
+Progressive,N,Progressive N – Polycarbonate,NA+ND,Copay = 175+35,210.0,20.0,15.0,progressive_level,MF,yes,yes
+Progressive,N,Progressive N – Polarized,NA+NP,Copay = 175+82,257.0,31.0,51.0,progressive_level,MF,yes,yes
+Progressive,O,Progressive O – Plastic,OA,,150.0,71.0,79.0,progressive_level,MF,yes,yes
+Progressive,O,Progressive O – High-index Plastic 1.53–1.60/Trivex,OA+OB,Copay = 150+47,197.0,22.0,25.0,progressive_level,MF,yes,yes
+Progressive,O,Progressive O – High-index Plastic 1.66/1.67,OA+OH,Copay = 150+78,228.0,30.0,48.0,progressive_level,MF,yes,yes
+Progressive,O,Progressive O – High-index Plastic 1.70 and Above,OA+OJ,Copay = 150+125,275.0,48.0,77.0,progressive_level,MF,yes,yes
+Progressive,O,Progressive O – Polycarbonate,OA+OD,Copay = 150+35,185.0,20.0,15.0,progressive_level,MF,yes,yes
+Progressive,O,Progressive O – Polarized,OA+OP,Copay = 150+82,232.0,31.0,51.0,progressive_level,MF,yes,yes
+Progressive,F,Progressive F – Plastic,FA,,105.0,51.0,54.0,progressive_level,MF,yes,yes
+Progressive,F,Progressive F – High-index Plastic 1.53–1.60/Trivex,FA+FB,Copay = 105+47,152.0,22.0,25.0,progressive_level,MF,yes,yes
+Progressive,F,Progressive F – High-index Plastic 1.66/1.67,FA+FH,Copay = 105+78,183.0,30.0,48.0,progressive_level,MF,yes,yes
+Progressive,F,Progressive F – High-index Plastic 1.70 and Above,FA+FJ,Copay = 105+125,230.0,48.0,77.0,progressive_level,MF,yes,yes
+Progressive,F,Progressive F – Polycarbonate,FA+FD,Copay = 105+35,140.0,20.0,15.0,progressive_level,MF,yes,yes
+Progressive,F,Progressive F – Polarized,FA+FP,Copay = 105+82,187.0,31.0,51.0,progressive_level,MF,yes,yes
+Progressive,F,Progressive F – Glass/High-index Glass (Clear),FE,,110.0,51.0,59.0,progressive_level,MF,yes,yes
+Progressive,J,Progressive J – Plastic,JA,,95.0,49.0,46.0,progressive_level,MF,yes,yes
+Progressive,J,Progressive J – High-index Plastic 1.53–1.60/Trivex,JA+JB,Copay = 95+47,142.0,22.0,25.0,progressive_level,MF,yes,yes
+Progressive,J,Progressive J – High-index Plastic 1.66/1.67,JA+JH,Copay = 95+78,173.0,30.0,48.0,progressive_level,MF,yes,yes
+Progressive,J,Progressive J – High-index Plastic 1.70 and Above,JA+JJ,Copay = 95+125,220.0,48.0,77.0,progressive_level,MF,yes,yes
+Progressive,J,Progressive J – Polycarbonate,JA+JD,Copay = 95+35,130.0,20.0,15.0,progressive_level,MF,yes,yes
+Progressive,J,Progressive J – Polarized,JA+JP,Copay = 95+82,177.0,31.0,51.0,progressive_level,MF,yes,yes
+Progressive,J,Progressive J – Glass/High-index Glass (Clear),JE,,105.0,49.0,56.0,progressive_level,MF,yes,yes
+Progressive,K,Progressive K – Plastic,KA,,55.0,27.0,28.0,progressive_level,MF,yes,yes
+Progressive,K,Progressive K – High-index Plastic 1.53–1.60/Trivex,KA+KB,Copay = 55+47,102.0,22.0,25.0,progressive_level,MF,yes,yes
+Progressive,K,Progressive K – High-index Plastic 1.66/1.67,KA+KH,Copay = 55+78,133.0,30.0,48.0,progressive_level,MF,yes,yes
+Progressive,K,Progressive K – High-index Plastic 1.70 and Above,KA+KJ,Copay = 55+125,180.0,48.0,77.0,progressive_level,MF,yes,yes
+Progressive,K,Progressive K – Polycarbonate,KA+KD,Copay = 55+35,90.0,20.0,15.0,progressive_level,MF,yes,yes
+Progressive,K,Progressive K – Polarized,KA+KP,Copay = 55+82,137.0,31.0,51.0,progressive_level,MF,yes,yes
+Progressive,K,Progressive K – Glass/High-index Glass (Clear),KE,,80.0,27.0,53.0,progressive_level,MF,yes,yes
