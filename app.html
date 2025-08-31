@@ -30,7 +30,7 @@
     <h1>Revopt — Profit-First Choice Configurator</h1>
 
     <div class="card">
-      <small>Data-driven: loads <code>vsp_choice_master_v7_full_fixed.csv</code> (exclusivity & track rules baked in). AR is always included. “Custom Measurement” items are hidden.</small>
+      <small>Data-driven: loads <code>vsp_choice_master_v7_full_fixed.csv</code>. AR is always included. “Custom Measurement” rows are hidden. Tiers: BEST = highest profit, BASIC = lowest copay, MID = next-best profit.</small>
       <div id="csvStatus" class="warn" style="margin-top:6px"></div>
     </div>
 
@@ -112,18 +112,17 @@
   </div>
 
   <script>
-    /* ======= CONFIG: set the CSV filename your app should read ======= */
-    const DATA_CSV = "./vsp_choice_master_v7_full_fixed.csv"; // change if you use a different name
+    /* ======= CONFIG ======= */
+    const DATA_CSV = "./vsp_choice_master_v7_full_fixed.csv";
 
     /* ======= Ignore business rules (temporary) ======= */
-    // Hide "Custom Measurement" add-ons (esp. Progressive N/O)
     const SHOULD_IGNORE = (row) => {
       const txt = `${row.enhancement||""} ${row.notes||""}`.toLowerCase();
       if (txt.includes("custom measurement")) return true;
       return false;
     };
 
-    /* ======= CSV loader (quote-safe) ======= */
+    /* ======= CSV loader ======= */
     async function loadCSV(url){
       const res = await fetch(url, { cache: "no-store" });
       if (!res.ok) throw new Error("CSV not found");
@@ -160,8 +159,8 @@
     }
     const money = (n)=> Number(n||0).toLocaleString("en-US",{style:"currency",currency:"USD"});
 
-    /* ======= Global data ======= */
-    let MASTER = []; // normalized rows with numerics
+    /* ======= Global ======= */
+    let MASTER = [];
 
     function renderMasterTable(){
       const tb = document.getElementById("master");
@@ -205,23 +204,22 @@
       });
     };
 
-    /* ======= Always-include AR, tier-specific selection ======= */
+    /* ======= AR selection (always included) ======= */
     function pickARForTier(level){
       const ars = MASTER.filter(r=> r.group === "AR");
       if (!ars.length) return null;
-      const sorted = [...ars].sort((a,b)=> b.copay - a.copay); // richest AR first
+      const sorted = [...ars].sort((a,b)=> b.copay - a.copay);
       if (level==="BEST")  return sorted[0];
       if (level==="BASIC") return sorted[sorted.length-1];
       return sorted[Math.max(0, Math.floor(sorted.length/2)-1)];
     }
 
-    /* ======= Candidate base items per track (normalized & tolerant) ======= */
+    /* ======= Base candidates per track ======= */
     function candidatesForTrack(track){
       let cands = [];
       if (track==="MF")       cands = MASTER.filter(r=> r.group==="PROGRESSIVE"  && appliesTo(r,"MF"));
       else if (track==="OCC") cands = MASTER.filter(r=> r.group==="OCCUPATIONAL" && appliesTo(r,"OCC"));
       else                    cands = MASTER.filter(r=> r.group==="MATERIAL"     && appliesTo(r,"SV"));
-
       if (cands.length === 0) {
         if (track==="MF")  cands = MASTER.filter(r=> r.group==="PROGRESSIVE");
         if (track==="OCC") cands = MASTER.filter(r=> r.group==="OCCUPATIONAL");
@@ -230,7 +228,7 @@
       return cands.filter(r => !SHOULD_IGNORE(r));
     }
 
-    /* ======= Optional add-ons (sun/oversize/rimless) applied to all tiers ======= */
+    /* ======= Shared add-ons (sun/oversize/rimless) ======= */
     function pickSunRow(subtype){
       if (!subtype || subtype==="Clear") return null;
       return MASTER.find(r=> r.group==="SUN" && (r.subtype||"")===subtype) || null;
@@ -245,7 +243,7 @@
       return null;
     }
 
-    /* ======= Build bundle for a given base + AR + shared add-ons ======= */
+    /* ======= Bundles ======= */
     function buildBundle(base, ar, sharedAddons){
       const items = [base].concat(ar ? [ar] : []).concat(sharedAddons.filter(Boolean));
       return enforceExclusive(items);
@@ -253,6 +251,11 @@
     function bundleStats(base, ar, sharedAddons){
       const items = buildBundle(base, ar, sharedAddons);
       return { items, ...totals(items) };
+    }
+    function bundleKey(stats){
+      // Use base enhancement+code to identify uniqueness among choices
+      const b = stats.items.find(x=> x.group==="MATERIAL" || x.group==="PROGRESSIVE" || x.group==="OCCUPATIONAL") || {};
+      return `${b.group||""}|${b.subtype||""}|${b.enhancement||""}|${b.code||""}`;
     }
 
     /* ======= Profit-first tiering ======= */
@@ -276,28 +279,32 @@
         ];
       }
 
-      // Compute stats per candidate for each tier’s AR selection
+      // Stats for each tier's AR selection
       const bestStats  = bases.map(b => ({ base:b, tier:"BEST",  ...bundleStats(b, arBest,  shared) }));
-      const basicStats = bases.map(b => ({ base:b, tier:"BASIC", ...bundleStats(b, arBasic, shared) }));
       const midStats   = bases.map(b => ({ base:b, tier:"MID",   ...bundleStats(b, arMid,   shared) }));
+      const basicStats = bases.map(b => ({ base:b, tier:"BASIC", ...bundleStats(b, arBasic, shared) }));
 
-      // BEST: maximize revenue
+      // BEST = highest profit
       bestStats.sort((a,b)=> b.revenue - a.revenue);
       const best = bestStats[0];
+      const bestKey = bundleKey(best);
 
-      // BASIC: minimize copay (cheapest possible for the patient)
+      // BASIC = lowest copay
       basicStats.sort((a,b)=> a.copay - b.copay);
-      const basic = basicStats[0];
+      let basic = basicStats[0];
+      // ensure BASIC isn't identical base as BEST (rare but possible if min copay==max profit)
+      if (bundleKey(basic) === bestKey && basicStats.length > 1) basic = basicStats[1];
+      const basicKey = bundleKey(basic);
 
-      // MID: pick something between best and basic by revenue
-      midStats.sort((a,b)=> a.revenue - b.revenue);
-      const target = basic.revenue + (best.revenue - basic.revenue)/2;
-      let mid = midStats[0];
-      let mindiff = Math.abs(mid.revenue - target);
+      // MID = next-best profit (not the same as BEST or BASIC)
+      midStats.sort((a,b)=> b.revenue - a.revenue);
+      let mid = null;
       for (const m of midStats){
-        const d = Math.abs(m.revenue - target);
-        if (d < mindiff) { mid = m; mindiff = d; }
+        const k = bundleKey(m);
+        if (k !== bestKey && k !== basicKey){ mid = m; break; }
       }
+      // fallback if everything collided
+      if (!mid) mid = midStats[0];
 
       return [
         { name:"BEST",  items:best.items,  ...totals(best.items)  },
@@ -306,7 +313,7 @@
       ];
     }
 
-    /* ======= UI render helpers ======= */
+    /* ======= Render ======= */
     function renderTiers(tiers){
       document.getElementById("tiers").style.display = "block";
       const tb = document.getElementById("tierbody"); tb.innerHTML = "";
@@ -330,7 +337,7 @@
       });
     }
 
-    /* ======= CSV export of chosen tiers ======= */
+    /* ======= CSV export ======= */
     function exportQuoteCSV(tiers){
       const rows = [["Tier","Group","Subtype","Enhancement","Code","Copay","VSP","Chargeback"]];
       tiers.forEach(tt=>{
@@ -365,12 +372,11 @@
       exportQuoteCSV(tiers);
     });
 
-    /* ======= Boot: load CSV & normalize ======= */
+    /* ======= Boot ======= */
     (async function boot(){
       const status = document.getElementById("csvStatus");
       try{
         const rows = await loadCSV(DATA_CSV);
-
         const norm = (s)=> (s==null ? "" : String(s).trim());
         const up   = (s)=> norm(s).toUpperCase();
 
