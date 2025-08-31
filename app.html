@@ -315,7 +315,9 @@
       const candidates = [
         './vsp_choice_master_v7_full_fixed.csv',
         baseDir + 'vsp_choice_master_v7_full_fixed.csv',
-        '/Revopt-site/vsp_choice_master_v7_full_fixed.csv'
+        '/Revopt-site/vsp_choice_master_v7_full_fixed.csv',
+        // Fallback to GitHub RAW (works even if relative paths fail)
+        'https://raw.githubusercontent.com/bblaker575/Revopt-site/main/vsp_choice_master_v7_full_fixed.csv'
       ];
       for(const u of candidates){
         try{
