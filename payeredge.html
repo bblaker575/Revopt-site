@@ -76,10 +76,21 @@
     .code{font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size:12px; color:#cfe1ff}
     .money{font-weight:800}
 
-    /* sub-rows use the same grid for uniformity; description only on first row */
-    .subrow td{ font-size:var(--fz-13); color:var(--fg); }
-    .subrow td.money{ font-weight:800; }
-    .desc-empty{ color:transparent; user-select:none; } /* keeps grid aligned w/ blank text */
+    /* compact per-code breakdown under a single description row */
+    .break {
+      margin: 6px 0 10px;
+      background:#0b1424;
+      border:1px solid var(--line);
+      border-radius:10px;
+    }
+    .break table{ width:100%; border-collapse:collapse; }
+    .break th,.break td{ border:0; padding:6px 8px; text-align:left; font-size:12px; }
+    .break .codepill{
+      display:inline-block; padding:2px 8px; border:1px solid var(--line);
+      border-radius:999px; font-family:ui-monospace,Menlo,Consolas,monospace;
+      font-size:12px; color:#cfe1ff; background:#0e1a30;
+    }
+    .break .colhed{ color:var(--muted); font-weight:600; }
 
     :focus-visible{ outline:2px solid var(--accent); outline-offset:2px; border-radius:8px }
     @media print{ header,.bar{display:none} body{background:#fff; color:#000} .tier{break-inside:avoid; border:1px solid #000; box-shadow:none} table, th, td{border-color:#000} }
@@ -132,7 +143,7 @@
 
   <!-- Error overlay for any runtime issues -->
   <script>
-    if (!window.__PAYEREDGE_V7__) {
+    if (!window.__PAYEREDGE_V8__) {
       (function(){
         function showErrorOverlay(err, where){
           const wrap = document.createElement('div');
@@ -148,10 +159,10 @@
   </script>
 
   <script>
-  if (window.__PAYEREDGE_V7__) {
+  if (window.__PAYEREDGE_V8__) {
     console.warn('PayerEdge script already loaded; skipping second init.');
   } else {
-    window.__PAYEREDGE_V7__ = true;
+    window.__PAYEREDGE_V8__ = true;
 
     /* ================== Core config & utils ================== */
     const DEFAULT_CSV = 'data/vsp_choice_master_v7_full_fixed.csv';
@@ -249,52 +260,53 @@
       return true;
     }
 
-    /* Composite handling: split "JA + JB" / "NA+NJ" / "NA + ND" etc. */
+    /* Composite handling: split "JA + JB" / "NA+NJ" / "NA + ND" / "JA,JB" / "NA/NJ" etc. */
     const splitCodes = (s)=>{
       return String(s||'')
         .toUpperCase()
-        .replace(/[^\w+&/,\s-]/g,'')        // keep word chars and separators
-        .split(/[\s+&/,-]+/)               // split on +, &, /, comma, hyphen, spaces
+        .replace(/[^\w+&/,\s-]/g,'')        // keep word chars and common separators
+        .split(/[\s+&/,\-]+/)               // split on +, &, /, comma, hyphen, spaces
         .map(t=>t.trim())
         .filter(Boolean);
     };
 
-    /* Explode a schedule row into one or many visual rows
-       - If composite parts are fully known (found in index), render one row per part
-       - First row carries the description; subsequent rows use blank description for clean alignment
-       - If not all parts are known, fall back to a single row using the CSV amounts
-    */
-    function explodeRow(row){
+    /* Build one visual line; if composite, add a parts[] breakdown and compute safe totals */
+    function line(row){
       const desc = row.enhancement || row.subtype || '—';
       const codeStr = String(row.code||'').trim().toUpperCase();
-      const parts = splitCodes(codeStr);
-      if (parts.length>1){
-        const built=[];
-        for (const p of parts){
+      const rowCop = num(row.copay), rowCb = num(row.chargeback);
+
+      const partsCodes = splitCodes(codeStr);
+      const parts = [];
+
+      if (partsCodes.length > 1){
+        for (const p of partsCodes){
           const cop = CODE_COPAY_INDEX[p];
           const cb  = CODE_CB_INDEX[p];
-          if (cop==null && cb==null){ // unknown piece → abort breakdown
-            return [{
-              name: desc, code: codeStr,
-              copay: num(row.copay), chargeback: num(row.chargeback),
-              profit: num(row.copay)-num(row.chargeback)
-            }];
+          if (cop==null && cb==null){
+            // Unknown piece → treat as simple row (no breakdown)
+            return { name:desc, code:codeStr, copay:rowCop, chargeback:rowCb, profit:rowCop-rowCb, parts:[] };
           }
-          built.push({ name:null, code:p, copay:cop??0, chargeback:cb??0 });
+          parts.push({ code:p, copay:cop??0, chargeback:cb??0 });
         }
-        // attach description only to the first part row
-        if (built.length){ built[0].name = desc; }
-        built.forEach(x=> x.profit = x.copay - x.chargeback);
-        return built;
       }
+
+      if (parts.length){
+        const sumCop = parts.reduce((a,x)=>a+x.copay,0);
+        const sumCb  = parts.reduce((a,x)=>a+x.chargeback,0);
+        const cop = Math.max(rowCop, sumCop);
+        const cb  = Math.max(rowCb,  sumCb );
+        parts.forEach(x=> x.profit = x.copay - x.chargeback);
+        return { name:desc, code:codeStr, copay:cop, chargeback:cb, profit:cop-cb, parts };
+      }
+
       // simple row
-      const cop=num(row.copay), cb=num(row.chargeback);
-      return [{ name:desc, code:codeStr||'', copay:cop, chargeback:cb, profit:cop-cb }];
+      return { name:desc, code:codeStr||'', copay:rowCop, chargeback:rowCb, profit:rowCop-rowCb, parts:[] };
     }
 
     function makeBundle(base, addOns){
       const rows = [base, ...addOns.filter(Boolean)];
-      const lines = rows.flatMap(explodeRow);
+      const lines = rows.map(line);   // single description + optional breakdown panel
       const cop = sum(lines.map(x=>x.copay));
       const cb  = sum(lines.map(x=>x.chargeback));
       const pr  = cop - cb;
@@ -331,16 +343,46 @@
           </div>
         </div>`;
 
-      const lines = b.lines.map((li,idx,arr)=>{
-        const showDesc = (li.name!=null); // only present on first row for composites
-        return `
-          <tr class="${showDesc? '' : 'subrow'}">
-            <td class="${showDesc? '' : 'desc-empty'}">${showDesc ? li.name : '•'}</td>
+      const lines = b.lines.map(li=>{
+        const main = `
+          <tr>
+            <td>${li.name}</td>
             <td class="code">${li.code || '—'}</td>
             ${tdMoney(li.copay)}
             ${tdMoney(li.chargeback)}
             ${tdMoney(li.profit)}
           </tr>`;
+
+        const parts = (li.parts && li.parts.length)
+          ? `
+            <tr>
+              <td colspan="5">
+                <div class="break">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th class="colhed" style="width:120px">Code</th>
+                        <th class="colhed">Copay</th>
+                        <th class="colhed">Holdback</th>
+                        <th class="colhed">Service Fee</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      ${li.parts.map(p=>`
+                        <tr>
+                          <td><span class="codepill">${p.code}</span></td>
+                          ${tdMoney(p.copay)}
+                          ${tdMoney(p.chargeback)}
+                          ${tdMoney(p.profit)}
+                        </tr>`).join('')}
+                    </tbody>
+                  </table>
+                </div>
+              </td>
+            </tr>`
+          : '';
+
+        return main + parts;
       }).join('');
 
       div.innerHTML = head + `
@@ -416,9 +458,25 @@
         }
       }
 
-      // AR pool (ranked)
+      // AR pool (grade-ranked)
+      function rankAR(ars){
+        const gradeVal = (s)=>{
+          const m = String(s||'').match(/\b([A-D])\b/i);
+          if(!m) return null;
+          const g = m[1].toUpperCase();
+          return {A:1,B:2,C:3,D:4}[g]||null;
+        };
+        return [...ars].sort((a,b)=>{
+          const ga = gradeVal(a.enhancement)||-1, gb = gradeVal(b.enhancement)||-1;
+          if(ga!==gb) return gb-ga;   // D..A
+          // tie by profit
+          const pa = num(a.copay)-num(a.chargeback);
+          const pb = num(b.copay)-num(b.chargeback);
+          return pb-pa;
+        });
+      }
       const arPool = wantAR ? byKey('ar_level').filter(r=>applies(r,fam)) : [];
-      const arRanked = wantAR ? [...arPool].sort((a,b)=>(num(b.copay)-num(b.chargeback)) - (num(a.copay)-num(a.chargeback))) : [];
+      const arRanked = wantAR ? rankAR(arPool) : [];
       const arOptions = wantAR && arRanked.length ? arRanked : [null];
 
       function materialKey(label) {
@@ -464,19 +522,22 @@
       function customFor(baseRow) {
         const cmToggle = el('includeCM')?.checked;
         if (!cmToggle || fam!=='PAL') return null;
-        // N/O eligibility is encoded in product names; conservative: allow toggle to control
+        // eligibility by N/O is product-specific; exposing toggle gives offices control
         return customPool[0] || null;
       }
 
-      const overs = el('includeOversize').checked
-        ? (byKey('oversize').filter(r=>applies(r,fam)).find(r=>true) || null)
-        : null;
+      const overs = wantOS ? (byKey('oversize').filter(r=>applies(r,fam))[0] || null) : null;
 
       function buildBundle(m, arRow){ return makeBundle(m, [arRow, chooseSunFor(m), customFor(m), overs]); }
       const all = [];
       for(const m of base){ for(const ar of arOptions){ all.push(buildBundle(m, ar)); } }
       if (!all.length){
-        renderStack([{name:'Best',cls:'best',b:null},{name:'Better',cls:'better',b:null},{name:'Good',cls:'good',b:null},{name:'Cheapest',cls:'good',b:null}]);
+        renderStack([
+          {name:'Best',cls:'best',b:null},
+          {name:'Better',cls:'better',b:null},
+          {name:'Good',cls:'good',b:null},
+          {name:'Cheapest',cls:'good',b:null}
+        ]);
         return;
       }
 
@@ -498,15 +559,12 @@
           }
         }
         if (pick) return pick;
-        // relax
+        // relax once
         const looser = cap / CAP_RELAX_FACTOR;
         for(const b of all){
           if (b.copay <= looser){
-            const lbl=b.label;
-            if (exclude.has(lbl)) continue;
-            if (!pick || b.profit>pick.profit || (b.profit===pick.profit && b.copay<pick.copay)){
-              pick=b;
-            }
+            const lbl=b.label; if (exclude.has(lbl)) continue;
+            if (!pick || b.profit>pick.profit || (b.profit===pick.profit && b.copay<pick.copay)) pick=b;
           }
         }
         return pick;
@@ -515,10 +573,12 @@
         let pick=null;
         for(const b of all){
           const lbl=b.label; if (exclude.has(lbl)) continue;
-          if (!pick || b.copay<b.copay || b.copay<pick.copay || (b.copay===pick.copay && b.profit>(pick.profit))) pick=b;
+          if (!pick || b.copay < pick.copay || (b.copay===pick.copay && b.profit>(pick.profit))) pick=b;
         }
         if (pick) return pick;
-        for(const b of all){ if (!pick || b.copay<pick.copay || (b.copay===pick.copay && b.profit>(pick.profit))) pick=b; }
+        for(const b of all){
+          if (!pick || b.copay < pick.copay || (b.copay===pick.copay && b.profit>(pick.profit))) pick=b;
+        }
         return pick;
       }
 
