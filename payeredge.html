@@ -133,7 +133,7 @@
 
   <!-- Error overlay for runtime issues -->
   <script>
-    if (!window.__PAYEREDGE_V14__) {
+    if (!window.__PAYEREDGE_V15__) {
       (function(){
         function showErrorOverlay(err, where){
           const wrap = document.createElement('div');
@@ -149,14 +149,14 @@
   </script>
 
   <script>
-  if (window.__PAYEREDGE_V14__) {
+  if (window.__PAYEREDGE_V15__) {
     console.warn('PayerEdge script already loaded; skipping second init.');
   } else {
-    window.__PAYEREDGE_V14__ = true;
+    window.__PAYEREDGE_V15__ = true;
 
     /* ================== Config & utils ================== */
 
-    // Try these CSV paths in order; first one that loads wins.
+    // Tries both filenames in both locations. First one that loads wins.
     const CSV_CANDIDATES = [
       './vsp_choice_master_v7_full_fixed_patched.csv',
       './vsp_choice_master_v7_full_fixed.csv',
@@ -167,6 +167,11 @@
     const BETTER_CAP_OF_MAX = 0.75; // ≤75% of max copay
     const GOOD_CAP_OF_MAX   = 0.50; // ≤50% of max copay
     const CAP_RELAX_FACTOR  = 0.90; // fallback relaxer
+
+    // Optional safety net if some A-base is still missing from CSV (leave empty now)
+    const BASE_OVERRIDES = {
+      // Example: NA: { copay: 175, chargeback: 95 }
+    };
 
     const el = (id)=>document.getElementById(id);
     const sum = (a)=>a.reduce((x,y)=>x+y,0);
@@ -257,7 +262,7 @@
       }
 
       if (loaded){
-        const meta = { plan:'VSP_choice', version:new Date().toISOString().slice(0,10)+'.ui14', source:'network:'+loaded.url, sha:quickHash(loaded.text) };
+        const meta = { plan:'VSP_choice', version:new Date().toISOString().slice(0,10)+'.ui15', source:'network:'+loaded.url, sha:quickHash(loaded.text) };
         setCache(loaded.text, meta);
         DATA = parseCSV(loaded.text);
         buildSimpleIndex();
@@ -267,7 +272,6 @@
         return;
       }
 
-      // No network candidate worked; try cache
       const {text, meta} = getCache();
       if(text){
         DATA = parseCSV(text);
@@ -278,11 +282,15 @@
         return;
       }
 
-      // Final: helpful diagnostics
       const diag = document.createElement('div');
       diag.style.cssText = 'margin-top:12px; padding:10px; border:1px solid #843; background:#1a0f16; color:#f8cdd5; border-radius:10px; font-size:13px';
       const urls = CSV_CANDIDATES.map(u => `<li><code>${u}</code></li>`).join('');
       const errs = tried.map(t => `<li><code>${t.url}</code> → ${t.ok ? 'OK' : t.err}</li>`).join('');
+      let hint = '';
+      if (location.protocol === 'file:') {
+        hint = `<div style="margin-top:6px">You opened this file via <code>file://</code>. Start a tiny local server instead:
+                <br/><code>python -m http.server 8080</code> → open <code>http://localhost:8080/payeredge.html</code></div>`;
+      }
       diag.innerHTML = `
         <b>Load failed — no cache available.</b>
         <div style="margin-top:6px">I tried these paths (first wins):</div>
@@ -291,14 +299,391 @@
         <ul>${errs}</ul>
         <div style="margin-top:6px"><b>Fix it fast:</b>
           <ol>
-            <li>Put <code>vsp_choice_master_v7_full_fixed_patched.csv</code> in the <i>same folder</i> as this HTML (or under <code>./data/</code>).</li>
-            <li>Open this page via a local server (not <code>file://</code>).
-              Example: <code>python -m http.server 8080</code> then visit <code>http://localhost:8080/payeredge.html</code>.
-            </li>
+            <li>Place <code>vsp_choice_master_v7_full_fixed_patched.csv</code> in the <i>same folder</i> as this HTML (or under <code>./data/</code>).</li>
+            <li>Open this page via a local server (not <code>file://</code>).</li>
             <li>Click <b>Clear Cache</b> then <b>Force Refresh</b>.</li>
           </ol>
-        </div>`;
+        </div>${hint}`;
       el('status').textContent = ' load failed (see diagnostics below)';
       document.querySelector('main').appendChild(diag);
+    }
 
-      if (location.protocol === 'file:
+    function renderMeta(count, meta){
+      el('version').textContent = `plan=${meta.plan||'VSP_choice'} • rows=${count||0} • version=${meta.version||'—'} • source=${meta.source||'—'} • sha=${meta.sha||'—'}`;
+    }
+
+    const byKey=(k)=>DATA.filter(r=>(r.active||'yes').toLowerCase()==='yes' && (r.exclusive_key||'').toLowerCase()===k);
+    function applies(row, fam){
+      const a=(row.applies_to||'ALL').toUpperCase();
+      if(a.includes('ALL')) return true;
+      if(fam==='SV')     return a.includes('SV');
+      if(fam==='LINED')  return a.includes('OCC');
+      if(fam==='PAL')    return a.includes('MF');
+      return true;
+    }
+
+    /* ===== Per-line math (composites split into base A + add-on(s)) ===== */
+    function line(row){
+      const desc = row.enhancement || row.subtype || '—';
+      const codeStr = String(row.code||'').trim().toUpperCase();
+      const partsCodes = splitCodes(codeStr);
+
+      // Single-code line
+      if (partsCodes.length === 1){
+        const cop = num(row.copay), cb = num(row.chargeback);
+        return { name:desc, code:codeStr, copay:cop, chargeback:cb, profit:cop-cb, parts:[] };
+      }
+
+      // Composite
+      const compositeCopayNums = parseCopayNumbers(row.copay); // e.g., [175,35] or [210]
+      const compositeTotalCopay = num(row.copay);
+      const compositeAddOnCB = num(row.chargeback);
+
+      const parts = [];
+
+      // Base part from exact A-code row (or override if truly missing)
+      const baseCode = partsCodes[0];
+      const baseRow  = pickBaseByExactCode(baseCode);
+      let baseCop  = baseRow ? num(baseRow.copay)      : (compositeCopayNums[0] ?? compositeTotalCopay);
+      let baseCB   = baseRow ? num(baseRow.chargeback) : 0;
+      if (!baseRow && BASE_OVERRIDES[baseCode]) {
+        baseCop = BASE_OVERRIDES[baseCode].copay;
+        baseCB  = BASE_OVERRIDES[baseCode].chargeback;
+      }
+      parts.push({ code:baseCode, copay:baseCop, chargeback:baseCB, profit:baseCop-baseCB });
+
+      // Add-ons
+      const addonCount = partsCodes.length - 1;
+
+      // Copays for add-ons
+      let addonCopays = [];
+      if (compositeCopayNums.length >= partsCodes.length){
+        addonCopays = compositeCopayNums.slice(1); // explicit splits if present
+      } else {
+        const remaining = Math.max(compositeTotalCopay - baseCop, 0);
+        if (addonCount <= 1){
+          addonCopays = [remaining];
+        } else {
+          const each = remaining / addonCount;
+          addonCopays = Array.from({length:addonCount}, ()=>each);
+        }
+      }
+
+      // Holdback for add-ons from the composite row
+      const addonCBEach = addonCount <= 1 ? compositeAddOnCB : (compositeAddOnCB / addonCount);
+
+      for (let i=1;i<partsCodes.length;i++){
+        const code = partsCodes[i];
+        const cop  = num(addonCopays[i-1] ?? 0);
+        const cb   = addonCBEach;
+        parts.push({ code, copay:cop, chargeback:cb, profit:cop-cb });
+      }
+
+      const totalCop = parts.reduce((a,x)=>a+x.copay,0);
+      const totalCB  = parts.reduce((a,x)=>a+x.chargeback,0);
+      return { name:desc, code:codeStr, copay:totalCop, chargeback:totalCB, profit:totalCop-totalCB, parts };
+    }
+
+    function makeBundle(base, addOns){
+      const rows = [base, ...addOns.filter(Boolean)];
+      const lines = rows.map(line);
+      const cop = sum(lines.map(x=>x.copay));
+      const cb  = sum(lines.map(x=>x.chargeback));
+      const pr  = cop - cb;
+      const ratio = cop>0 ? (pr/cop) : 0;
+      const label = base.enhancement || base.subtype || base.code || 'Base';
+      return { label, lines, copay:cop, chargeback:cb, profit:pr, ratio };
+    }
+
+    /* ===== UI ===== */
+    function animateNumber(el,to){
+      const from=parseFloat(el.getAttribute('data-prev')||'0'); const start=performance.now(); const dur=380;
+      function step(t){ const k=Math.min(1,(t-start)/dur); const v=from+(to-from)*(0.5-Math.cos(Math.PI*k)/2); el.textContent=`$${v.toFixed(2)}`; if(k<1)requestAnimationFrame(step); else el.setAttribute('data-prev',to); }
+      requestAnimationFrame(step);
+    }
+    const tdMoney = v => `<td class="money">$${v.toFixed(2)}</td>`;
+
+    function renderTier({name, cls, b}){
+      const div=document.createElement('div'); div.className='tier';
+      if(!b){
+        div.innerHTML=`<div class="tierHead"><div class="stars ${cls}"><span class="tag">${name}</span></div><div class="figures"><div class="hero">—</div><div class="caption">Patient Copay</div></div></div><div class="sub">No viable bundle</div>`;
+        return div;
+      }
+      const stars = name==='Best' ? '★★★' : name==='Better' ? '★★' : name==='Good' ? '★' : '◎';
+      const head = `
+        <div class="tierHead">
+          <div class="stars ${cls}">
+            <div aria-label="${name}" title="${name}" style="font-size:18px">${stars}</div>
+            <span class="tag">${b.label}</span>
+          </div>
+          <div class="figures">
+            <div class="hero" aria-label="Patient Copay" data-prev="0">$${b.copay.toFixed(2)}</div>
+            <div class="caption">Patient Copay</div>
+            <div class="caption">Service Fee (Practice Profit): <span class="svc">$${b.profit.toFixed(2)}</span></div>
+          </div>
+        </div>`;
+
+      const lines = b.lines.map(li=>{
+        const main = `
+          <tr>
+            <td>${li.name}</td>
+            <td class="code">${li.code || '—'}</td>
+            ${tdMoney(li.copay)}
+            ${tdMoney(li.chargeback)}
+            ${tdMoney(li.profit)}
+          </tr>`;
+
+        const parts = (li.parts && li.parts.length)
+          ? `
+            <tr>
+              <td colspan="5">
+                <div class="break">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th class="colhed" style="width:120px">Code</th>
+                        <th class="colhed">Copay</th>
+                        <th class="colhed">Holdback</th>
+                        <th class="colhed">Service Fee</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      ${li.parts.map(p=>`
+                        <tr>
+                          <td><span class="codepill">${p.code}</span></td>
+                          ${tdMoney(p.copay)}
+                          ${tdMoney(p.chargeback)}
+                          ${tdMoney(p.profit)}
+                        </tr>`).join('')}
+                    </tbody>
+                  </table>
+                </div>
+              </td>
+            </tr>`
+          : '';
+
+        return main + parts;
+      }).join('');
+
+      div.innerHTML = head + `
+        <table>
+          <thead>
+            <tr>
+              <th>Item</th>
+              <th>Code</th>
+              <th class="nowrap">Copay</th>
+              <th class="nowrap">Holdback</th>
+              <th class="nowrap">Service Fee</th>
+            </tr>
+          </thead>
+          <tbody>${lines}</tbody>
+          <tfoot>
+            <tr>
+              <th colspan="2" style="text-align:right">Totals</th>
+              ${tdMoney(b.copay)}${tdMoney(b.chargeback)}${tdMoney(b.profit)}
+            </tr>
+          </tfoot>
+        </table>`;
+      const hero = div.querySelector('.hero'); animateNumber(hero, b.copay);
+      return div;
+    }
+    function renderStack(rows){
+      const stack = el('stack'); stack.innerHTML='';
+      for(const row of rows){ stack.appendChild(renderTier(row)); }
+    }
+
+    /* ===== material & sun helpers ===== */
+    function materialKey(label) {
+      const s = N(label);
+      if (s.includes('polycarb')) return 'poly';
+      if (s.includes('trivex')) return 'trivex';
+      if (/1\.74|1\.75/.test(s)) return 'hi174';
+      if (/1\.70|1\.71|above/.test(s)) return 'hi70';
+      if (/1\.66|1\.67/.test(s)) return 'hi167';
+      if (/cr[\s-]?39/.test(s) || (s.includes('plastic') && !s.includes('high'))) return 'cr39';
+      return 'other';
+    }
+    function sunMatchesBase(sunRow, baseRow) {
+      const mk = materialKey(baseRow.enhancement || baseRow.subtype || '');
+      const t = N(sunRow.enhancement);
+      switch (mk) {
+        case 'poly':   return t.includes('polycarb');
+        case 'trivex': return t.includes('trivex');
+        case 'hi174':  return /(1\.74|1\.75)/.test(t);
+        case 'hi70':   return /(1\.70|1\.71|above)/.test(t);
+        case 'hi167':  return /(1\.66|1\.67)/.test(t);
+        case 'cr39':   return (/(cr[\s-]?39|plastic)/.test(t) && !/high/.test(t));
+        default:       return true;
+      }
+    }
+    function chooseSunFor(baseRow) {
+      const tintSel = el('lensTint').value;
+      if (tintSel==='clear' || tintSel==='polarized') return null;
+      const fam = el('lensFamily').value;
+      const sunAll = byKey('sun_tech').filter(r=>applies(r,fam)).filter(r=>{
+        const n=N(r.enhancement);
+        if(!el('includeGlass').checked && n.includes('glass')) return false;
+        return true;
+      });
+
+      if (tintSel==='transitions') {
+        const want = preferPhotoCodeForBase(baseRow); // PM for glass, else PR
+        let pool = sunAll.filter(r => /photochrom/.test(N(r.enhancement)));
+        let choice = pool.find(r => new RegExp('^' + want, 'i').test((r.code || '').trim())) || pool.find(r=>isPPhoto(r));
+        return choice || null;
+      }
+      if (tintSel==='tinted') {
+        let pool = sunAll.filter(r=>{
+          const n=N(r.enhancement);
+          return sunMatchesBase(r, baseRow) && !/photochrom|polariz/.test(n) && /tint|tinted|solid|gradient|sunglass/.test(n);
+        });
+        return pool[0] || null;
+      }
+      return null;
+    }
+
+    /* ===== Compute bundles ===== */
+    function computeBundles(){
+      if(!DATA.length){ el('stack').innerHTML=''; return; }
+
+      const fam = el('lensFamily').value;
+      const wantAR = el('includeAR').checked;
+      const wantAsp = el('includeAspheric').checked;
+      const wantOS  = el('includeOversize').checked;
+      const wantGlass = el('includeGlass').checked;
+      const tintSel = el('lensTint').value;
+
+      const sunAll = byKey('sun_tech').filter(r=>applies(r,fam)).filter(r=>{
+        const n=N(r.enhancement);
+        if(!wantGlass && n.includes('glass')) return false;
+        return true;
+      });
+
+      const isCustomMeasure = (row) => /custom\s*measure/i.test(N(row?.enhancement || row?.subtype || ''));
+      const customPool = DATA.filter(r => applies(r, 'PAL')).filter(isCustomMeasure);
+
+      // Base candidates
+      let base = [];
+      if (fam === 'PAL') {
+        base = byKey('progressive_level').filter(r=>applies(r,fam)).filter(r=>{
+          const name=N(r.enhancement);
+          if(!wantAsp && name.includes('aspheric')) return false;
+          if(!wantGlass && name.includes('glass'))  return false;
+          if(isCustomMeasure(r)) return false;
+          if (tintSel==='polarized') return /polariz/.test(name); // polarized as material
+          return !/(photochrom|polariz|tint|tinted|sunglass|gradient)/.test(name);
+        });
+      } else {
+        if (tintSel==='polarized') {
+          base = sunAll.filter(r => /polariz/.test(N(r.enhancement)) && isDCode(r));
+        } else {
+          const pool = (fam==='SV' ? byKey('base_material') : byKey('occupational'));
+          base = pool.filter(r=>applies(r,fam)).filter(r=>{
+            const name=N(r.enhancement);
+            if(!wantAsp && name.includes('aspheric')) return false;
+            if(!wantGlass && name.includes('glass'))  return false;
+            if(/photochrom|polariz|tint|tinted|sunglass|gradient/.test(name)) return false;
+            return true;
+          });
+        }
+      }
+
+      // AR ranked by grade then profit
+      function rankAR(ars){
+        const gradeVal = (s)=>{ const m=String(s||'').match(/\b([A-D])\b/i); if(!m) return null; return {A:1,B:2,C:3,D:4}[m[1].toUpperCase()]||null; };
+        return [...ars].sort((a,b)=>{
+          const ga=gradeVal(a.enhancement)||-1, gb=gradeVal(b.enhancement)||-1;
+          if(ga!==gb) return gb-ga; // prefer A
+          const pa=num(a.copay)-num(a.chargeback);
+          const pb=num(b.copay)-num(b.chargeback);
+          return pb-pa;
+        });
+      }
+      const arPool = wantAR ? byKey('ar_level').filter(r=>applies(r,fam)) : [];
+      const arRanked = wantAR ? rankAR(arPool) : [];
+      const arOptions = wantAR && arRanked.length ? arRanked : [null];
+
+      const overs = wantOS ? (byKey('oversize').filter(r=>applies(r,fam))[0] || null) : null;
+
+      function buildBundle(m, arRow){ return makeBundle(m, [arRow, chooseSunFor(m), (el('includeCM')?.checked && fam==='PAL') ? (customPool[0]||null) : null, overs]); }
+      const all = [];
+      for(const m of base){ for(const ar of arOptions){ all.push(buildBundle(m, ar)); } }
+      if (!all.length){
+        renderStack([
+          {name:'Best',cls:'best',b:null},
+          {name:'Better',cls:'better',b:null},
+          {name:'Good',cls:'good',b:null},
+          {name:'Cheapest',cls:'good',b:null}
+        ]);
+        return;
+      }
+
+      // Left→Right tiers
+      const MaxPrice = Math.max(...all.map(b => b.copay));
+      function mostProfit(arr){
+        let pick=null;
+        for(const b of arr){ if(!pick || b.profit>pick.profit || (b.profit===pick.profit && b.copay<pick.copay)) pick=b; }
+        return pick;
+      }
+      function mostProfitUnderCap(cap, exclude=new Set()){
+        let pick=null, bestProfit=-Infinity;
+        for(const b of all){
+          if (b.copay <= cap){
+            const lbl=b.label;
+            if (exclude.has(lbl)) continue;
+            if (b.profit>bestProfit || (b.profit===bestProfit && b.copay<(pick?.copay??Infinity))){
+              bestProfit=b.profit; pick=b;
+            }
+          }
+        }
+        if (pick) return pick;
+        const looser = cap / CAP_RELAX_FACTOR;
+        for(const b of all){
+          if (b.copay <= looser){
+            const lbl=b.label; if (exclude.has(lbl)) continue;
+            if (!pick || b.profit>pick.profit || (b.profit===pick.profit && b.copay<pick.copay)) pick=b;
+          }
+        }
+        return pick;
+      }
+      function cheapest(exclude=new Set()){
+        let pick=null;
+        for(const b of all){
+          const lbl=b.label; if (exclude.has(lbl)) continue;
+          if (!pick || b.copay < pick.copay || (b.copay===pick.copay && b.profit>(pick.profit))) pick=b;
+        }
+        if (pick) return pick;
+        for(const b of all){
+          if (!pick || b.copay < pick.copay || (b.copay===pick.copay && b.profit>(pick.profit))) pick=b;
+        }
+        return pick;
+      }
+
+      const best = mostProfit(all);
+      const used = new Set(best ? [best.label] : []);
+      const better = mostProfitUnderCap(MaxPrice*BETTER_CAP_OF_MAX, used);
+      if (better) used.add(better.label);
+      let good = mostProfitUnderCap(MaxPrice*GOOD_CAP_OF_MAX, used);
+      if (!good) good = cheapest(used);
+      if (good) used.add(good.label);
+      const cheap = cheapest(used);
+
+      renderStack([
+        {name:'Best',     cls:'best',    b:best},
+        {name:'Better',   cls:'better',  b:better},
+        {name:'Good',     cls:'good',    b:good},
+        {name:'Cheapest', cls:'good',    b:cheap}
+      ]);
+    }
+
+    /* Wire-up */
+    el('forceRefresh').onclick=()=>{ clearCacheStorage(); loadCSV(); };
+    el('clearCache').onclick =()=>{ clearCacheStorage(); el('status').textContent=' cache cleared — click Force Refresh to reload'; };
+    ['lensFamily','lensTint','includeAR','includeAspheric','includeOversize','includeGlass','includeCM']
+      .forEach(id => { const node=el(id); if(node) node.onchange=computeBundles; });
+
+    (function boot(){ loadCSV(); })();
+  }
+  </script>
+</body>
+</html>
