@@ -75,6 +75,11 @@
     th{color:var(--muted); font-weight:700}
     .code{font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size:12px; color:#cfe1ff}
     .money{font-weight:800}
+    /* per-code breakdown rows */
+    .subrow td{ font-size:12px; color:var(--muted); }
+    .subrow td.money{ font-weight:700; color:#cfe6ff; }
+    .subrow td:first-child{ padding-left:18px; }
+    .subbullet{ opacity:.6; margin-right:6px; }
     :focus-visible{ outline:2px solid var(--accent); outline-offset:2px; border-radius:8px }
     @media print{ header,.bar{display:none} body{background:#fff; color:#000} .tier{break-inside:avoid; border:1px solid #000; box-shadow:none} table, th, td{border-color:#000} }
   </style>
@@ -126,7 +131,7 @@
 
   <!-- Hard error overlay -->
   <script>
-    if (!window.__PAYEREDGE_V4__) {
+    if (!window.__PAYEREDGE_V5__) {
       (function(){
         function showErrorOverlay(err, where){
           const wrap = document.createElement('div');
@@ -142,10 +147,10 @@
   </script>
 
   <script>
-  if (window.__PAYEREDGE_V4__) {
+  if (window.__PAYEREDGE_V5__) {
     console.warn('PayerEdge script already loaded; skipping second init.');
   } else {
-    window.__PAYEREDGE_V4__ = true;
+    window.__PAYEREDGE_V5__ = true;
 
     /* ================== Core config & utils ================== */
     const DEFAULT_CSV = 'data/vsp_choice_master_v7_full_fixed.csv';
@@ -160,6 +165,7 @@
 
     const el = (id)=>document.getElementById(id);
     const sum = (a)=>a.reduce((x,y)=>x+y,0);
+    const money = (v)=>`$${v.toFixed(2)}`;
     const num = (v)=>{ const x=parseFloat(String(v??'').replace(/[^0-9.-]/g,'')); return isFinite(x)?x:0; };
     const quickHash=(s)=>{ let h=2166136261>>>0; for(let i=0;i<s.length;i++){ h^=s.charCodeAt(i); h=Math.imul(h,16777619)>>>0; } return ('00000000'+h.toString(16)).slice(-8); };
     const N = s => String(s||'').toLowerCase();
@@ -207,7 +213,7 @@
     const getCache=()=>({ text: localStorage.getItem(CACHE_KEY), meta: JSON.parse(localStorage.getItem(META_KEY)||'{}') });
     const clearCacheStorage=()=>{ localStorage.removeItem(CACHE_KEY); localStorage.removeItem(META_KEY); };
 
-    /* -------- Composite code index (for ALL items) -------- */
+    /* -------- Composite code indices (for ALL items) -------- */
     let CODE_COPAY_INDEX = {};
     let CODE_CB_INDEX    = {};
     function buildCodeIndices(){
@@ -234,7 +240,7 @@
         const meta = { plan:'VSP_choice', version:new Date().toISOString().slice(0,10)+'.gbb', source:'network:'+DEFAULT_CSV, sha:quickHash(text) };
         setCache(text, meta);
         DATA = parseCSV(text);
-        buildCodeIndices();  // <-- build composite indices
+        buildCodeIndices();  // composite indices
         renderMeta(DATA.length, meta);
         status.textContent = ` [ok] loaded ${DATA.length} rows`;
         computeBundles();
@@ -242,7 +248,7 @@
         const {text, meta} = getCache();
         if(text){
           DATA = parseCSV(text);
-          buildCodeIndices();  // <-- build composite indices (cache path)
+          buildCodeIndices();  // composite indices for cache path
           renderMeta(DATA.length, {...meta, source:'cache'});
           el('status').textContent = ` Network failed (${err.message}). Using cached data (${DATA.length} rows).`;
           computeBundles();
@@ -309,7 +315,7 @@
       }
     }
 
-    /* -------- Composite-aware line builder -------- */
+    /* -------- Composite-aware helpers -------- */
     function compositeSum(parts, indexMap){
       let found=false, total=0;
       for(const p of parts){
@@ -320,18 +326,34 @@
     }
 
     function line(row){
-      // Start with the row's amounts
+      // Start with row values
       let cop = num(row.copay);
       let cb  = num(row.chargeback);
 
-      // If code is a composite (e.g., "NA+NJ+…"), prefer sum of parts
       const codeStr = String(row.code||'').trim().toUpperCase();
+      let partsArr = [];
+
       if (codeStr.includes('+')){
-        const parts = codeStr.split('+').map(s=>s.trim()).filter(Boolean);
-        const {found:foundCop, total:sumCop} = compositeSum(parts, CODE_COPAY_INDEX);
-        const {found:foundCb,  total:sumCb } = compositeSum(parts, CODE_CB_INDEX);
-        if (foundCop) cop = Math.max(cop, sumCop);
-        if (foundCb)  cb  = Math.max(cb,  sumCb );
+        const partCodes = codeStr.split('+').map(s=>s.trim()).filter(Boolean);
+
+        // Build per-part breakdown from indices
+        for (const p of partCodes){
+          const pc = CODE_COPAY_INDEX[p];
+          const pb = CODE_CB_INDEX[p];
+          if (pc != null || pb != null){
+            const copPart = pc ?? 0;
+            const cbPart  = pb ?? 0;
+            partsArr.push({ code:p, copay:copPart, chargeback:cbPart, profit:copPart - cbPart });
+          }
+        }
+
+        // Prefer sums (but never less than row values)
+        if (partsArr.length){
+          const sumCop = partsArr.reduce((a,x)=>a + x.copay, 0);
+          const sumCb  = partsArr.reduce((a,x)=>a + x.chargeback, 0);
+          cop = Math.max(cop, sumCop);
+          cb  = Math.max(cb,  sumCb );
+        }
       }
 
       const pr = cop - cb;
@@ -340,7 +362,8 @@
         code: row.code || '',
         copay: cop,
         chargeback: cb,
-        profit: pr
+        profit: pr,
+        parts: partsArr
       };
     }
 
@@ -382,14 +405,30 @@
             <div class="caption">Service Fee (Practice Profit): <span class="svc">$${b.profit.toFixed(2)}</span></div>
           </div>
         </div>`;
-      const lines = b.lines.map(li=>`
-        <tr>
-          <td>${li.name}</td>
-          <td class="code">${li.code||'—'}</td>
-          ${tdMoney(li.copay)}
-          ${tdMoney(li.chargeback)}
-          ${tdMoney(li.profit)}
-        </tr>`).join('');
+
+      // main rows + per-code breakdown for composites
+      const lines = b.lines.map(li=>{
+        const main = `
+          <tr>
+            <td>${li.name}</td>
+            <td class="code">${li.code || '—'}</td>
+            ${tdMoney(li.copay)}
+            ${tdMoney(li.chargeback)}
+            ${tdMoney(li.profit)}
+          </tr>`;
+        const parts = (li.parts && li.parts.length)
+          ? li.parts.map(p=>`
+              <tr class="subrow">
+                <td><span class="subbullet">↳</span>component</td>
+                <td class="code">${p.code}</td>
+                ${tdMoney(p.copay)}
+                ${tdMoney(p.chargeback)}
+                ${tdMoney(p.profit)}
+              </tr>`).join('')
+          : '';
+        return main + parts;
+      }).join('');
+
       div.innerHTML = head + `
         <table>
           <thead>
@@ -567,14 +606,14 @@
           for(const b of all){
             const lbl=b.label;
             if (exclude.has(lbl)) continue;
-            if (!pick || b.copay<b.copayMin || b.copay<(pick.copay) || (b.copay===pick.copay && b.profit>(pick.profit))){
+            if (!pick || b.copay < pick.copay || (b.copay===pick.copay && b.profit>(pick.profit))){
               pick=b;
             }
           }
           if (pick) return pick;
           // retry without excludes
           for(const b of all){
-            if (!pick || b.copay<pick.copay || (b.copay===pick.copay && b.profit>(pick.profit))){
+            if (!pick || b.copay < pick.copay || (b.copay===pick.copay && b.profit>(pick.profit))){
               pick=b;
             }
           }
@@ -625,7 +664,6 @@
     el('forceRefresh').onclick=()=>{ clearCacheStorage(); loadCSV(); };
     el('clearCache').onclick =()=>{ clearCacheStorage(); el('status').textContent=' cache cleared — click Force Refresh to reload'; };
 
-    // Persist includeCM per office, recompute on any change
     ['lensFamily','lensTint','includeAR','includeAspheric','includeOversize','includeGlass','includeCM']
       .forEach(id => {
         const node = el(id);
@@ -640,7 +678,6 @@
         };
       });
 
-    // On boot
     (function boot(){
       try{
         const prefs = loadPrefs();
