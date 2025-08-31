@@ -20,14 +20,18 @@
     .err  { color:#fecaca; border-color:#7f1d1d; background:#2a0d0d;}
     .container{ max-width:1200px; margin:0 auto; padding:16px;}
     .card { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:14px; margin:16px 0; }
-    .controls{ display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+    .controls{ display:grid; grid-template-columns: repeat(auto-fit,minmax(180px,1fr)); gap:8px; align-items:center; }
+    .row{ display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
     button { background:#1b2738; color:var(--fg); border:1px solid var(--border); border-radius:8px; padding:8px 12px; cursor:pointer;}
     button:disabled{opacity:.5; cursor:not-allowed}
-    input[type="search"]{ background:#0c121b; color:var(--fg); border:1px solid var(--border); border-radius:8px; padding:8px 12px; min-width:260px;}
+    input[type="search"], select{ background:#0c121b; color:var(--fg); border:1px solid var(--border); border-radius:8px; padding:8px 12px; min-width:180px;}
     table{ width:100%; border-collapse:separate; border-spacing:0; }
     th, td{ text-align:left; padding:10px 8px; border-bottom:1px solid var(--border); font-size:14px;}
     th{ position:sticky; top:0; background:#101827; z-index:1; }
     .muted{ color:var(--muted); }
+    .mono{ font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    .small{ font-size:12px; }
+    .right{ text-align:right; }
     .footer{ color:var(--muted); font-size:12px; padding:16px 0 24px; }
   </style>
   <!-- PapaParse for CSV parsing -->
@@ -42,16 +46,23 @@
 </header>
 
 <div class="container">
+  <!-- Controls + Diagnostics -->
   <div class="card">
-    <div class="controls">
+    <div class="row" style="margin-bottom:10px">
       <button id="btn-refresh" title="Force a full reload">Force Refresh</button>
       <button id="btn-clear" title="Clear Last-Known-Good cache">Clear Local Cache</button>
-      <input id="search" type="search" placeholder="Filter rows (e.g., progressive, AR, poly)…"/>
+      <input id="search" type="search" placeholder="Quick filter (e.g., progressive, AR, poly)…"/>
       <span id="meta" class="muted small"></span>
     </div>
-    <div id="log" class="mono small muted" style="margin-top:8px; max-height:140px; overflow:auto;"></div>
+    <div class="controls">
+      <select id="sel-group"><option value="">All Groups</option></select>
+      <select id="sel-subtype"><option value="">All Subtypes</option></select>
+      <select id="sel-enh"><option value="">All Enhancements</option></select>
+    </div>
+    <div id="log" class="mono small muted" style="margin-top:8px; max-height:160px; overflow:auto;"></div>
   </div>
 
+  <!-- Data Table -->
   <div class="card">
     <div class="muted small" style="margin-bottom:8px">
       Showing <span id="count">0</span> rows
@@ -72,13 +83,26 @@
 </div>
 
 <script>
-/* ========================= Resilient Loader (inline) ========================= */
+/* ========================= Resilient Loader (inline) =========================
+   Fixes applied:
+   - Strong cache busting for manifest & schema (BUILD_TAG).
+   - Safe URL builder so we never double-? a querystring.
+   - Sanitized hex compare for SHA (ignores invisible chars).
+============================================================================= */
 (function(){
-  const BUILD_TAG = "2025-08-31.2"; // bump whenever you update manifest/CSV
-  const MANIFEST_URL = "data/manifest.json?v=" + BUILD_TAG;
-  const SCHEMA_URL   = "data/schema_v1.json?v=" + BUILD_TAG;
+  const BUILD_TAG = "2025-08-31.3"; // bump on each data/manifest change
+  const MANIFEST_URL = `data/manifest.json?v=${BUILD_TAG}`;
+  const SCHEMA_URL   = `data/schema_v1.json?v=${BUILD_TAG}`;
   const LKG_KEY      = "revopt:lkg:data";
   const LKG_META_KEY = "revopt:lkg:meta";
+
+  const cleanHex = s => (s||"").toLowerCase().replace(/[^0-9a-f]/g,"");
+
+  const withVersion = (url, v) => {
+    if(!v) return url;
+    const sep = url.includes("?") ? "&" : "?";
+    return `${url}${sep}v=${encodeURIComponent(v)}`;
+  };
 
   async function sha256(text) {
     const enc = new TextEncoder().encode(text);
@@ -90,7 +114,7 @@
     try{
       localStorage.setItem(LKG_KEY, JSON.stringify(rows));
       localStorage.setItem(LKG_META_KEY, JSON.stringify(meta));
-    }catch(e){ }
+    }catch(e){ /* storage quota */ }
   }
   function loadLKG(){
     try{
@@ -108,10 +132,9 @@
     if(missing.length) throw new Error("missing columns: " + missing.join(", "));
   }
 
-  async function fetchText(url, version){
-    const final = version ? `${url}?v=${encodeURIComponent(version)}` : url;
-    const res = await fetch(final, { cache: "reload" });
-    if(!res.ok) throw new Error(`HTTP ${res.status} for ${final}`);
+  async function fetchText(url){
+    const res = await fetch(url, { cache: "reload" });
+    if(!res.ok) throw new Error(`HTTP ${res.status} for ${url}`);
     return await res.text();
   }
 
@@ -130,19 +153,29 @@
   }
 
   async function loadNetwork(){
-    const manifestText = await fetchText(MANIFEST_URL);
+    const manifestText = await fetchText(MANIFEST_URL);       // cache-busted
     const manifest = JSON.parse(manifestText);
-    const schemaText = await fetchText(SCHEMA_URL, manifest.schema_version || "");
+
+    const schemaText = await fetchText(SCHEMA_URL);            // cache-busted
     const schema = JSON.parse(schemaText);
-    const csvText = await fetchText(manifest.url, manifest.version);
+
+    const csvText = await fetchText(withVersion(manifest.url, manifest.version)); // v=bump
     const hash = await sha256(csvText);
-    if(manifest.sha256 && manifest.sha256.toLowerCase() !== hash.toLowerCase()){
-      throw new Error(`Checksum mismatch. Expected ${manifest.sha256} got ${hash}`);
+    const expected = cleanHex(manifest.sha256);
+    const got = cleanHex(hash);
+
+    // expose for diagnostics
+    window.__revopt_last_sha = { expected, got };
+
+    if(expected && expected !== got){
+      // Include both so you can copy/paste into manifest if needed
+      throw new Error(`Checksum mismatch. Expected ${expected} got ${got}`);
     }
+
     const rows = await parseCSV(csvText);
     validateSchema(rows, schema);
     saveLKG({ source:"network", manifest }, rows);
-    return { rows, meta: { source:"network", manifest } };
+    return { rows, meta: { source:"network", manifest, sha: {expected, got} } };
   }
 
   async function loadData(){
@@ -167,7 +200,7 @@
 </script>
 
 <script>
-/* ======================== Minimal App Wiring ======================== */
+/* ======================== Minimal App + Selection UI ======================== */
 const $ = sel => document.querySelector(sel);
 const statusEl = $("#status");
 const metaEl = $("#meta");
@@ -176,6 +209,9 @@ const thead = $("#thead");
 const tbody = $("#tbody");
 const countEl = $("#count");
 const searchEl = $("#search");
+const selGroup = $("#sel-group");
+const selSubtype = $("#sel-subtype");
+const selEnh = $("#sel-enh");
 
 function setStatus(kind, msg){
   statusEl.className = "pill " + (kind||"");
@@ -184,6 +220,14 @@ function setStatus(kind, msg){
 function logLine(msg){
   logEl.textContent += msg + "\n";
   logEl.scrollTop = logEl.scrollHeight;
+}
+function uniq(list){
+  return Array.from(new Set(list.filter(v => v!=null && String(v).trim()!==""))).sort((a,b)=>String(a).localeCompare(String(b)));
+}
+function renderOptions(sel, values, label){
+  const current = sel.value;
+  sel.innerHTML = `<option value="">All ${label}</option>` + values.map(v=>`<option>${v}</option>`).join("");
+  if(values.includes(current)) sel.value = current;
 }
 function renderTable(rows){
   if(!rows || !rows.length){
@@ -200,11 +244,22 @@ function renderTable(rows){
   tbody.innerHTML = html;
   countEl.textContent = String(rows.length);
 }
+function applyFilters(rows){
+  const q = searchEl.value.trim().toLowerCase();
+  const g = selGroup.value;
+  const s = selSubtype.value;
+  const e = selEnh.value;
 
-function filterRows(rows, q){
-  if(!q) return rows;
-  const s = q.trim().toLowerCase();
-  return rows.filter(r => Object.values(r).some(v => String(v||"").toLowerCase().includes(s)));
+  return rows.filter(r=>{
+    if(g && String(r.group||"")!==g) return false;
+    if(s && String(r.subtype||"")!==s) return false;
+    if(e && String(r.enhancement||"")!==e) return false;
+    if(q){
+      const hit = Object.values(r).some(v => String(v||"").toLowerCase().includes(q));
+      if(!hit) return false;
+    }
+    return true;
+  });
 }
 
 // Wire buttons
@@ -226,21 +281,42 @@ $("#btn-clear").onclick = ()=>{
     // Status + meta
     setStatus(source==="network" ? "ok" : "warn",
       source==="network" ? `Active: ${manifest.version || "?"} (network)` : `Using LKG: ${manifest.version || "unknown"}`);
+    const sha = meta.sha || window.__revopt_last_sha || {};
     metaEl.innerHTML = `
       <span class="mono small">plan=${manifest.plan||"?"}</span>&nbsp;•&nbsp;
       <span class="mono small">version=${manifest.version||"?"}</span>&nbsp;•&nbsp;
-      <span class="mono small">source=${source}</span>
+      <span class="mono small">source=${source}</span>&nbsp;•&nbsp;
+      <span class="mono small">sha=${sha.got||"?"}</span>
     `;
 
-    // Render + search
-    renderTable(rows);
-    searchEl.addEventListener("input", ()=>{
-      const filtered = filterRows(rows, searchEl.value);
-      renderTable(filtered);
+    // Selection options
+    const groups   = uniq(rows.map(r=>r.group));
+    const subtypes = uniq(rows.map(r=>r.subtype));
+    const enhs     = uniq(rows.map(r=>r.enhancement));
+    renderOptions(selGroup, groups, "Groups");
+    renderOptions(selSubtype, subtypes, "Subtypes");
+    renderOptions(selEnh, enhs, "Enhancements");
+
+    // Initial render + reactive filtering
+    let current = applyFilters(rows);
+    renderTable(current);
+
+    [searchEl, selGroup, selSubtype, selEnh].forEach(el=>{
+      el.addEventListener("input", ()=>{
+        current = applyFilters(rows);
+        renderTable(current);
+      });
+      el.addEventListener("change", ()=>{
+        current = applyFilters(rows);
+        renderTable(current);
+      });
     });
 
     logLine(`[ok] loaded ${rows.length} rows`);
     if(source!=="network") logLine("[warn] network failed; using Last-Known-Good cache");
+    if(sha && sha.expected && sha.got && sha.expected!==sha.got){
+      logLine(`[diag] manifest.sha256=${sha.expected}, computed=${sha.got}`);
+    }
 
   }catch(err){
     console.error(err);
