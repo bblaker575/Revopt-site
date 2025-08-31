@@ -37,7 +37,7 @@
   <header>
     <div>
       <h1>RevSight AI — VSP Choice Profit Engine</h1>
-      <div class="sub">Profit = <b>sum of VSP service fees</b>. Toggles enforced globally (OFF = excluded everywhere). MF now stacks <b>family base A</b> + <b>material add‑on</b> (e.g., OA+OD).</div>
+      <div class="sub">Profit = <b>sum of VSP service fees</b>. MF now stacks <b>family base A</b> + <b>material add-on</b> (e.g., OA+OD).</div>
     </div>
     <div class="row" style="align-items:center">
       <span class="pill" id="csvStatus">CSV: not loaded</span>
@@ -63,8 +63,8 @@
               <option value="">No preference</option>
               <option value="PLASTIC">Plastic</option>
               <option value="POLYCARBONATE">Polycarbonate</option>
-              <option value="HI67">Hi‑Index 1.67</option>
-              <option value="HI70">Hi‑Index 1.70</option>
+              <option value="HI67">Hi-Index 1.67</option>
+              <option value="HI70">Hi-Index 1.70</option>
               <option value="GLASS">Glass</option>
               <option value="TRIVEX">Trivex</option>
             </select>
@@ -82,7 +82,7 @@
         </div>
       </div>
 
-      <div class="foot">If a toggle is OFF, that category is excluded from <i>all</i> bundles and never appears as a line‑item.</div>
+      <div class="foot">If a toggle is OFF, that category is excluded from <i>all</i> bundles and never appears as a line-item.</div>
     </section>
 
     <section class="col card">
@@ -91,7 +91,7 @@
     </section>
 
     <section class="col card">
-      <h3 style="margin-top:0">Line‑item Economics</h3>
+      <h3 style="margin-top:0">Line-item Economics</h3>
       <div id="lineItems"></div>
     </section>
   </main>
@@ -108,9 +108,7 @@
     // ---- CSV parser ----
     function parseCSV(text){
       const rows=[]; let i=0, cur=''; let inQ=false; const push=()=>{ row.push(cur); cur=''; };
-      let row=[]; while(i<text.length){ const c=text[i++]; if(c==='"'){ if(inQ && text[i]==='"'){ cur+='"'; i++; } else inQ=!inQ; } else if(c===',' && !inQ){ push(); } else if((c==='
-'||c==='
-') && !inQ){ if(cur!==''||row.length){ push(); rows.push(row); row=[]; } } else cur+=c; }
+      let row=[]; while(i<text.length){ const c=text[i++]; if(c=='"'){ if(inQ && text[i]=='"'){ cur+='"'; i++; } else inQ=!inQ; } else if(c==',' && !inQ){ push(); } else if((c=='\n'||c=='\r') && !inQ){ if(cur!==''||row.length){ push(); rows.push(row); row=[]; } } else cur+=c; }
       if(cur!==''||row.length){ push(); rows.push(row); }
       const headers = rows.shift().map(h=>h.trim());
       return rows.filter(r=>r.length && r.some(x=>String(x).trim()!=='')).map(r=>{ const o={}; headers.forEach((h,idx)=>o[h]=r[idx]===undefined?'' : r[idx]); return o; });
@@ -118,11 +116,10 @@
 
     // ---- helpers ----
     const uc = s=>String(s||'').toUpperCase();
-    const num = x=>{ const n=Number(String(x).replace(/[^0-9.\-]/g,'')); return Number.isFinite(n)?n:0; };
+    const num = x=>{ const n=Number(String(x).replace(/[^0-9.\\-]/g,'')); return Number.isFinite(n)?n:0; };
     const truthy = x=>{ x=String(x||'').trim().toLowerCase(); return x==='' || x==='1'||x==='y'||x==='yes'||x==='true'; };
     const falsy  = x=>{ x=String(x||'').trim().toLowerCase(); return x==='0'||x==='n'||x==='no'||x==='false'; };
 
-    // Map enhancement text to normalized material keys
     function normalizeMaterial(txt){
       const t=uc(txt);
       if(t.includes('POLY')) return 'POLYCARBONATE';
@@ -134,7 +131,6 @@
       return t||'PLASTIC';
     }
 
-    // Profit per line = VSP service fee
     function computeProfit(row){ return num(row.vsp); }
 
     function classify(row){
@@ -144,40 +140,29 @@
       if(applies.includes('MF') && !applies.includes('SV') && !applies.includes('ALL')) lensType='MF';
       else if(applies.includes('SV') && !applies.includes('MF') && !applies.includes('ALL')) lensType='SV';
 
-      const group=uc(row.group); const code=uc(row.code);
+      const group=uc(row.group); const code=uc(row.code||'');
       const materialTxt=uc(row.subtype); const enhancementTxt=uc(row.enhancement);
       const desc = row.enhancement || row.subtype || row.code || '';
+      const exkey=uc(row.exclusive_key||'');
 
-      // SV base: Material group, exclusive base
-      const exkey=uc(row.exclusive_key);
-      const isBaseSV = group.includes('MATERIAL') && (exkey.includes('BASE') || exkey.includes('MATERIAL') || exkey==='');
-
-      // MF: Progressive family codes like OA, OD, NA, ND, etc.
+      const isBaseSV = group.includes('MATERIAL') && (exkey.includes('BASE')||exkey.includes('MATERIAL')||exkey==='');
       const isProgressive = group.includes('PROGRESSIVE');
       let family='', variant='';
       if(isProgressive && code.length>=2){ family=code[0]; variant=code[1]; }
-      const isBaseMF = isProgressive && variant==='A'; // A = plastic base
+      const isBaseMF = isProgressive && variant==='A';
       const mfMaterial = isProgressive ? normalizeMaterial(enhancementTxt||materialTxt) : '';
 
       const t=(materialTxt+' '+enhancementTxt);
-      const flags={
-        AR: t.includes(' AR')||t.startsWith('AR')||t.includes('ANTI-REFLECT'),
-        ASPHERIC: t.includes('ASPHERIC'),
-        GLASS: t.includes('GLASS'),
-        OVERSIZE: t.includes('OVERSIZE')||t.includes('OVR')||t.includes('61MM'),
-      };
+      const flags={ AR:t.includes(' AR')||t.startsWith('AR')||t.includes('ANTI-REFLECT'),
+                    ASPHERIC:t.includes('ASPHERIC'),
+                    GLASS:t.includes('GLASS'),
+                    OVERSIZE:t.includes('OVERSIZE')||t.includes('OVR')||t.includes('61MM') };
 
-      return {
-        lensType,
-        material: isBaseSV ? normalizeMaterial(materialTxt) : (isProgressive ? mfMaterial : ''),
-        enhancement: (!isBaseSV && !isProgressive) ? enhancementTxt : '',
-        desc,
-        profit: computeProfit(row),
-        raw: row,
-        f: flags,
-        baseKind: isBaseSV ? 'SV' : (isProgressive ? 'MF' : ''),
-        family, variant
-      };
+      return { lensType,
+               material: isBaseSV ? normalizeMaterial(materialTxt) : (isProgressive ? mfMaterial : ''),
+               enhancement: (!isBaseSV && !isProgressive)? enhancementTxt : '',
+               desc, profit: computeProfit(row), raw: row, f:flags,
+               baseKind:isBaseSV?'SV':(isProgressive?'MF':''), family, variant };
     }
 
     const byProfitDesc=(a,b)=>b.profit-a.profit;
@@ -189,10 +174,10 @@
 
     function applyGlobalToggles(items, toggles){
       return items.filter(it=>{
-        if(!toggles.AR && (it.enhancement.includes('AR') || it.f.AR)) return false;
-        if(!toggles.ASPHERIC && (it.material.includes('ASPHERIC') || it.f.ASPHERIC)) return false;
-        if(!toggles.GLASS && (it.material.includes('GLASS') || it.f.GLASS)) return false;
-        if(!toggles.OVERSIZE && (it.enhancement.includes('OVERSIZE') || it.f.OVERSIZE)) return false;
+        if(!toggles.AR && (it.enhancement.includes('AR')||it.f.AR)) return false;
+        if(!toggles.ASPHERIC && (it.material.includes('ASPHERIC')||it.f.ASPHERIC)) return false;
+        if(!toggles.GLASS && (it.material.includes('GLASS')||it.f.GLASS)) return false;
+        if(!toggles.OVERSIZE && (it.enhancement.includes('OVERSIZE')||it.f.OVERSIZE)) return false;
         return true;
       });
     }
@@ -202,60 +187,53 @@
       const isMF=lensType==='MF';
 
       if(isMF){
-        // Build MF base & add-on maps by family
-        const basesByFamily = {};
-        const addOnByFamilyMaterial = {};
+        const basesByFamily={};
+        const addOnByFamilyMaterial={};
         for(const x of pool.filter(x=>x.baseKind==='MF')){
           if(x.variant==='A'){ basesByFamily[x.family]=x; }
           else{
-            const mat = x.material || 'PLASTIC';
-            (addOnByFamilyMaterial[x.family] ||= {})[mat] = x; // last wins; could also keep best by profit
+            const mat=x.material||'PLASTIC';
+            (addOnByFamilyMaterial[x.family] ||= {})[mat]=x;
           }
         }
-        const families = Object.keys(basesByFamily);
-        const materialsSet = new Set(['PLASTIC','POLYCARBONATE','HI67','HI70','TRIVEX','GLASS']);
-        // Also include any materials present in CSV
-        for(const fam of Object.keys(addOnByFamilyMaterial)){
-          for(const m of Object.keys(addOnByFamilyMaterial[fam])) materialsSet.add(m);
-        }
-        const allMaterials = Array.from(materialsSet);
-        const candidateMaterials = (materialPref && allMaterials.includes(materialPref)) ? [materialPref] : allMaterials;
+        const families=Object.keys(basesByFamily);
+        const materialsSet=new Set(['PLASTIC','POLYCARBONATE','HI67','HI70','TRIVEX','GLASS']);
+        for(const fam of Object.keys(addOnByFamilyMaterial)){ for(const m of Object.keys(addOnByFamilyMaterial[fam])) materialsSet.add(m); }
+        const allMaterials=Array.from(materialsSet);
+        const candidateMaterials=(materialPref && allMaterials.includes(materialPref))?[materialPref]:allMaterials;
 
-        // Enhancements pool (non-base, non-progressive features like AR/Oversize)
-        const enh = pool.filter(x=>!x.baseKind);
-        const bestAR       = toggles.AR       ? enh.filter(e=>e.f.AR).sort(byProfitDesc)[0]       : null;
-        const bestOversize = toggles.OVERSIZE ? enh.filter(e=>e.f.OVERSIZE).sort(byProfitDesc)[0] : null;
+        const enh=pool.filter(x=>!x.baseKind);
+        const bestAR=toggles.AR? enh.filter(e=>e.f.AR).sort(byProfitDesc)[0]:null;
+        const bestOversize=toggles.OVERSIZE? enh.filter(e=>e.f.OVERSIZE).sort(byProfitDesc)[0]:null;
 
         const bundles=[];
         for(const fam of families){
-          const baseA = basesByFamily[fam]; if(!baseA) continue;
+          const baseA=basesByFamily[fam]; if(!baseA) continue;
           for(const mat of candidateMaterials){
             const parts=[baseA];
-            const add = (addOnByFamilyMaterial[fam]||{})[mat];
+            const add=(addOnByFamilyMaterial[fam]||{})[mat];
             if(add && add!==baseA) parts.push(add);
             if(bestAR) parts.push(bestAR);
             if(bestOversize) parts.push(bestOversize);
-            // sum unique
             const seen=new Set(); let profit=0; const lines=[];
             for(const p of parts){ const key=(p.raw.code||'')+'|'+(p.desc||''); if(seen.has(key)) continue; seen.add(key); lines.push(p); profit+=p.profit; }
             bundles.push({ material:mat, family:fam, parts:lines, profit });
           }
         }
-        bundles.sort((a,b)=>b.profit-a.profit);
+        bundles.sort(byProfitDesc);
         const uniq=[]; const seenCombo=new Set();
         for(const b of bundles){ const k=b.family+'|'+b.material; if(!seenCombo.has(k)){ uniq.push(b); seenCombo.add(k);} }
         const best=uniq[0]; const mid=uniq[1]||uniq[0]; const good=uniq[uniq.length-1]||uniq[0];
         return {good,mid,best,poolSize:uniq.length};
       }
 
-      // SV path (unchanged): choose one base material + top enhancements
       const bases=pool.filter(x=>x.baseKind==='SV');
-      const enh =pool.filter(x=>!x.baseKind);
+      const enh=pool.filter(x=>!x.baseKind);
       const buckets=bases.reduce((m,x)=>{ const k=x.material||x.desc; (m[k]??=[]).push(x); return m; },{});
       const keys=Object.keys(buckets);
       const candidateKeys=(materialPref && keys.includes(materialPref))?[materialPref]:keys;
-      const bestAR      = toggles.AR       ? enh.filter(e=>e.f.AR).sort(byProfitDesc)[0]       : null;
-      const bestOversize= toggles.OVERSIZE ? enh.filter(e=>e.f.OVERSIZE).sort(byProfitDesc)[0] : null;
+      const bestAR=toggles.AR? enh.filter(e=>e.f.AR).sort(byProfitDesc)[0]:null;
+      const bestOversize=toggles.OVERSIZE? enh.filter(e=>e.f.OVERSIZE).sort(byProfitDesc)[0]:null;
       const bundles=[];
       for(const k of (candidateKeys.length?candidateKeys:keys)){
         const base=(buckets[k]||[]).sort(byProfitDesc)[0]; if(!base) continue; const parts=[base];
@@ -264,55 +242,39 @@
         for(const p of parts){ const key=(p.raw.group||'')+'|'+(p.material||'')+'|'+(p.enhancement||'')+'|'+(p.desc||''); if(seen.has(key)) continue; seen.add(key); lines.push(p); profit+=p.profit; }
         bundles.push({ material:k, parts:lines, profit });
       }
-      bundles.sort((a,b)=>b.profit-a.profit);
+      bundles.sort(byProfitDesc);
       const uniq=[]; const seenKey=new Set();
       for(const b of bundles){ if(!seenKey.has(b.material)){ uniq.push(b); seenKey.add(b.material); } }
       const best=uniq[0]; const mid=uniq[1]||uniq[0]; const good=uniq[uniq.length-1]||uniq[0];
       return {good,mid,best,poolSize:uniq.length};
     }
 
-    const CSV_URL='https://bblaker575.github.io/Revopt-site/vsp_choice_master_v7_full_fixed.csv';
+    const CSV_URLS=[
+      'https://bblaker575.github.io/Revopt-site/vsp_choice_master_v7_full_fixed.csv',
+      'https://raw.githubusercontent.com/bblaker575/Revopt-site/main/vsp_choice_master_v7_full_fixed.csv'
+    ];
     async function loadCSV(){
       const badge=document.getElementById('csvStatus');
-      try{ const resp=await fetch(CSV_URL+'?t='+Date.now(), {cache:'no-store'}); if(!resp.ok) throw new Error(resp.status+': '+resp.statusText); const text=await resp.text(); badge.textContent='CSV: loaded from GitHub Pages'; badge.style.borderColor='#6cf'; return parseCSV(text);}catch(e){ badge.textContent='CSV: not loaded'; badge.style.borderColor='#f66'; document.getElementById('diag').textContent='Error loading CSV: '+(e.message||e)+'
-Tried: '+CSV_URL; return []; }
+      const tried=[];
+      for(const url of CSV_URLS){
+        try{
+          const resp=await fetch(url+'?t='+Date.now(), {cache:'no-store'});
+          if(!resp.ok) throw new Error(resp.status+': '+resp.statusText);
+          const blob=await resp.blob();
+          const text=await blob.text();
+          const rows=parseCSV(text);
+          badge.textContent='CSV: loaded from GitHub Pages';
+          badge.style.borderColor='#6cf';
+          return rows;
+        }catch(e){ tried.push(url+' → '+(e.message||e)); }
+      }
+      badge.textContent='CSV: not loaded'; badge.style.borderColor='#f66';
+      const diag=document.getElementById('diag'); if(diag) diag.textContent='Tried URLs:\\n- '+tried.join('\\n- ');
+      return [];
     }
 
     let UNIVERSE=[];
     function renderBundles(picks){
       const el=document.getElementById('bundles');
-      if(!picks||!picks.best){ el.innerHTML='<div class="muted">No bundles available with current filters.</div>'; return; }
-      const make=(b,cls,label)=>{ if(!b) return `<div class="bundle ${cls}"><div class="muted">No ${label} bundle available</div></div>`; const rows=b.parts.map(p=>`<tr><td>${p.raw.code?('<b>'+p.raw.code+'</b> – '):''}${p.desc || (p.material||p.enhancement)}</td><td class="right">$${Number(p.profit).toFixed(2)}</td></tr>`).join(''); return `<div class="bundle ${cls}"><div class="row" style="align-items:center;justify-content:space-between"><div class="tag">${label}</div><div class="tag">Material: ${b.material||'—'}</div><div class="tag">Bundle Profit: $${Number(b.profit).toFixed(2)}</div></div><table><thead><tr><th>Line Item</th><th class="right">Profit</th></tr></thead><tbody>${rows}</tbody></table></div>`; };
-      el.innerHTML=make(picks.good,'good','Good')+make(picks.mid,'mid','Mid')+make(picks.best,'best','Best');
-    }
-
-    function renderLineItems(universe, lensType){
-      const el=document.getElementById('lineItems');
-      const list=universe.filter(u=>!lensType || u.lensType===lensType || u.lensType==='BOTH').sort(byProfitDesc).slice(0,200);
-      if(!list.length){ el.innerHTML='<div class="muted">No items.</div>'; return; }
-      el.innerHTML=`<table><thead><tr><th>Type</th><th>Family</th><th>Material</th><th>Enhancement</th><th>Code</th><th>Description</th><th class="right">VSP fee (profit)</th></tr></thead><tbody>${list.map(r=>`<tr><td>${r.lensType||'—'}</td><td>${r.family||'—'}</td><td>${r.material||'—'}</td><td>${r.enhancement||'—'}</td><td>${r.raw.code||'—'}</td><td>${r.desc||''}</td><td class="right">$${Number(r.profit).toFixed(2)}</td></tr>`).join('')}</tbody></table>`;
-    }
-
-    async function recalc(){
-      const lensType=document.getElementById('lensType').value;
-      const materialPref=document.getElementById('materialPref').value;
-      const toggles={ OVERSIZE:document.getElementById('toggleOversize').checked, AR:document.getElementById('toggleAR').checked, ASPHERIC:document.getElementById('toggleAspheric').checked, GLASS:document.getElementById('toggleGlass').checked };
-      const picks=pickBundles(UNIVERSE, lensType, materialPref, toggles);
-      renderBundles(picks); renderLineItems(UNIVERSE, lensType);
-      document.getElementById('diag').textContent=JSON.stringify({lensType,materialPref,toggles,universe:UNIVERSE.length,poolCandidates:picks.poolSize},null,2);
-    }
-
-    (async function init(){
-      const raw=await loadCSV(); UNIVERSE=buildUniverse(raw);
-      document.getElementById('forceRefresh').addEventListener('click', recalc);
-      document.getElementById('lensType').addEventListener('change', recalc);
-      document.getElementById('materialPref').addEventListener('change', recalc);
-      document.getElementById('toggleOversize').addEventListener('change', recalc);
-      document.getElementById('toggleAR').addEventListener('change', recalc);
-      document.getElementById('toggleAspheric').addEventListener('change', recalc);
-      document.getElementById('toggleGlass').addEventListener('change', recalc);
-      recalc();
-    })();
-  </script>
-</body>
-</html>
+      if(!picks||!picks.best){ el.innerHTML='<div class=\"muted\">No bundles available with current filters.</div>'; return; }
+      const make=(b,cls,label)=>{ if(!b) return `<div class=\"bundle ${cls}\"><div class=\"muted\">No ${label} bundle available</div></div>`; const rows=b.parts.map(p=>`<tr><td>${p.raw.code?('<b>'+p.raw.code+'</b> – '):''}${p.desc || (p.material||p.enhancement)}</
