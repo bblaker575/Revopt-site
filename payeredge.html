@@ -141,9 +141,9 @@
     <div id="stack" class="stack"></div>
   </main>
 
-  <!-- Error overlay for any runtime issues -->
+  <!-- Error overlay for runtime issues -->
   <script>
-    if (!window.__PAYEREDGE_V8__) {
+    if (!window.__PAYEREDGE_V9__) {
       (function(){
         function showErrorOverlay(err, where){
           const wrap = document.createElement('div');
@@ -159,18 +159,17 @@
   </script>
 
   <script>
-  if (window.__PAYEREDGE_V8__) {
+  if (window.__PAYEREDGE_V9__) {
     console.warn('PayerEdge script already loaded; skipping second init.');
   } else {
-    window.__PAYEREDGE_V8__ = true;
+    window.__PAYEREDGE_V9__ = true;
 
-    /* ================== Core config & utils ================== */
+    /* ================== Config & utils ================== */
     const DEFAULT_CSV = 'data/vsp_choice_master_v7_full_fixed.csv';
 
-    /* Price-anchored tiers (Best→Better→Good→Cheapest) */
     const BETTER_CAP_OF_MAX = 0.75; // ≤75% of MaxPrice
     const GOOD_CAP_OF_MAX   = 0.50; // ≤50% of MaxPrice
-    const CAP_RELAX_FACTOR  = 0.90; // fallback relaxer
+    const CAP_RELAX_FACTOR  = 0.90;
 
     const el = (id)=>document.getElementById(id);
     const sum = (a)=>a.reduce((x,y)=>x+y,0);
@@ -183,7 +182,6 @@
     const isGlassBase = row => /glass/i.test(N(row?.enhancement || row?.subtype || ''));
     const preferPhotoCodeForBase = row => (isGlassBase(row) ? 'PM' : 'PR');
 
-    /* CSV parsing & cache */
     function parseCSV(text){
       const rows=[]; let row=[], field='', q=false;
       for(let i=0;i<text.length;i++){
@@ -199,23 +197,28 @@
         const o={}; headers.forEach((h,i)=>o[h]=(r[i]||'').replace(/^\"|\"$/g,'').trim()); return o;
       });
     }
+
+    /* Local cache */
     const CACHE_KEY='rev-vsp-choice-csv-v1';
     const META_KEY='rev-vsp-choice-meta-v1';
     const setCache=(t,m)=>{ localStorage.setItem(CACHE_KEY,t); localStorage.setItem(META_KEY,JSON.stringify(m)); };
     const getCache=()=>({ text: localStorage.getItem(CACHE_KEY), meta: JSON.parse(localStorage.getItem(META_KEY)||'{}') });
     const clearCacheStorage=()=>{ localStorage.removeItem(CACHE_KEY); localStorage.removeItem(META_KEY); };
 
-    /* Build schedule indices so we can price composite codes by parts */
-    let DATA=[], CODE_COPAY_INDEX={}, CODE_CB_INDEX={};
-    function buildCodeIndices(){
-      CODE_COPAY_INDEX = {};
-      CODE_CB_INDEX    = {};
+    /* Indexes */
+    let DATA=[];
+    let SIMPLE_BY_CODE={};      // rows with a single code: NA, JA, KA, QT, etc.
+    function buildSimpleIndex(){
+      SIMPLE_BY_CODE={};
       for (const r of DATA){
-        const c = String(r.code||'').trim().toUpperCase();
-        if (!c) continue;
-        const cop = num(r.copay), cb=num(r.chargeback);
-        if (Number.isFinite(cop)) CODE_COPAY_INDEX[c] = Math.max(CODE_COPAY_INDEX[c] ?? 0, cop);
-        if (Number.isFinite(cb))  CODE_CB_INDEX[c]    = Math.max(CODE_CB_INDEX[c] ?? 0, cb);
+        const parts = splitCodes(r.code);
+        if (parts.length===1){
+          const code = parts[0];
+          SIMPLE_BY_CODE[code] = {
+            copay: num(r.copay),
+            chargeback: num(r.chargeback)
+          };
+        }
       }
     }
 
@@ -228,7 +231,7 @@
         const meta = { plan:'VSP_choice', version:new Date().toISOString().slice(0,10)+'.gbb', source:'network:'+DEFAULT_CSV, sha:quickHash(text) };
         setCache(text, meta);
         DATA = parseCSV(text);
-        buildCodeIndices();
+        buildSimpleIndex();
         renderMeta(DATA.length, meta);
         status.textContent = ` [ok] loaded ${DATA.length} rows`;
         computeBundles();
@@ -236,7 +239,7 @@
         const {text, meta} = getCache();
         if(text){
           DATA = parseCSV(text);
-          buildCodeIndices();
+          buildSimpleIndex();
           renderMeta(DATA.length, {...meta, source:'cache'});
           el('status').textContent = ` Network failed (${err.message}). Using cached data (${DATA.length} rows).`;
           computeBundles();
@@ -260,53 +263,67 @@
       return true;
     }
 
-    /* Composite handling: split "JA + JB" / "NA+NJ" / "NA + ND" / "JA,JB" / "NA/NJ" etc. */
+    /* Split "NA + ND", "JA+JB", "NA/NJ", "OA,OD", etc. */
     const splitCodes = (s)=>{
       return String(s||'')
         .toUpperCase()
-        .replace(/[^\w+&/,\s-]/g,'')        // keep word chars and common separators
-        .split(/[\s+&/,\-]+/)               // split on +, &, /, comma, hyphen, spaces
+        .replace(/[^\w+&/,\s-]/g,'')
+        .split(/[\s+&/,\-]+/)
         .map(t=>t.trim())
         .filter(Boolean);
     };
 
-    /* Build one visual line; if composite, add a parts[] breakdown and compute safe totals */
+    /* Extract numbers in order from a copay like "$175 + $35" => [175,35] */
+    function parseCopayNumbers(copayStr){
+      const m = String(copayStr||'').match(/[0-9]+(?:\.[0-9]{1,2})?/g);
+      return m ? m.map(x=>parseFloat(x)) : [];
+    }
+
+    /* Build one visual line; if composite, create parts[] using:
+       - base part (first code) from SIMPLE_BY_CODE (NA row)
+       - add-on parts from composite's "+ $xx" for copay and composite chargeback
+       - service fee per part = copay - chargeback
+       Totals = sum(parts) for composite rows (never use "175125" artifacts).
+    */
     function line(row){
       const desc = row.enhancement || row.subtype || '—';
       const codeStr = String(row.code||'').trim().toUpperCase();
-      const rowCop = num(row.copay), rowCb = num(row.chargeback);
-
       const partsCodes = splitCodes(codeStr);
-      const parts = [];
-
-      if (partsCodes.length > 1){
-        for (const p of partsCodes){
-          const cop = CODE_COPAY_INDEX[p];
-          const cb  = CODE_CB_INDEX[p];
-          if (cop==null && cb==null){
-            // Unknown piece → treat as simple row (no breakdown)
-            return { name:desc, code:codeStr, copay:rowCop, chargeback:rowCb, profit:rowCop-rowCb, parts:[] };
-          }
-          parts.push({ code:p, copay:cop??0, chargeback:cb??0 });
-        }
-      }
-
-      if (parts.length){
-        const sumCop = parts.reduce((a,x)=>a+x.copay,0);
-        const sumCb  = parts.reduce((a,x)=>a+x.chargeback,0);
-        const cop = Math.max(rowCop, sumCop);
-        const cb  = Math.max(rowCb,  sumCb );
-        parts.forEach(x=> x.profit = x.copay - x.chargeback);
-        return { name:desc, code:codeStr, copay:cop, chargeback:cb, profit:cop-cb, parts };
-      }
 
       // simple row
-      return { name:desc, code:codeStr||'', copay:rowCop, chargeback:rowCb, profit:rowCop-rowCb, parts:[] };
+      if (partsCodes.length===1){
+        const cop = num(row.copay), cb = num(row.chargeback);
+        return { name:desc, code:codeStr, copay:cop, chargeback:cb, profit:cop-cb, parts:[] };
+      }
+
+      // composite
+      const addOnCB = num(row.chargeback);               // CB and Svc on composite rows refer to the add-on
+      const nums = parseCopayNumbers(row.copay);         // [baseCopay, addOnCopay] etc.
+      const parts = [];
+
+      // base (first) from the standalone schedule row if available; else fall back to first number
+      const baseCode = partsCodes[0];
+      const baseRef  = SIMPLE_BY_CODE[baseCode];
+      const baseCop  = baseRef?.copay ?? (nums[0] ?? 0);
+      const baseCB   = baseRef?.chargeback ?? 0;
+      parts.push({ code:baseCode, copay:baseCop, chargeback:baseCB, profit:baseCop-baseCB });
+
+      // add-ons (usually just one)
+      for (let i=1;i<partsCodes.length;i++){
+        const code = partsCodes[i];
+        const cop  = nums[i] ?? 0;              // the "+ $xx" piece
+        const cb   = addOnCB;                   // composite row CB is for the add-on
+        parts.push({ code, copay:cop, chargeback:cb, profit:cop-cb });
+      }
+
+      const totalCop = parts.reduce((a,x)=>a+x.copay,0);
+      const totalCB  = parts.reduce((a,x)=>a+x.chargeback,0);
+      return { name:desc, code:codeStr, copay:totalCop, chargeback:totalCB, profit:totalCop-totalCB, parts };
     }
 
     function makeBundle(base, addOns){
       const rows = [base, ...addOns.filter(Boolean)];
-      const lines = rows.map(line);   // single description + optional breakdown panel
+      const lines = rows.map(line);
       const cop = sum(lines.map(x=>x.copay));
       const cb  = sum(lines.map(x=>x.chargeback));
       const pr  = cop - cb;
@@ -315,7 +332,7 @@
       return { label, lines, copay:cop, chargeback:cb, profit:pr, ratio };
     }
 
-    /* UI helpers */
+    /* UI */
     function animateNumber(el,to){
       const from=parseFloat(el.getAttribute('data-prev')||'0'); const start=performance.now(); const dur=380;
       function step(t){ const k=Math.min(1,(t-start)/dur); const v=from+(to-from)*(0.5-Math.cos(Math.PI*k)/2); el.textContent=`$${v.toFixed(2)}`; if(k<1)requestAnimationFrame(step); else el.setAttribute('data-prev',to); }
@@ -458,20 +475,13 @@
         }
       }
 
-      // AR pool (grade-ranked)
+      // AR pool ranked by grade then profit
       function rankAR(ars){
-        const gradeVal = (s)=>{
-          const m = String(s||'').match(/\b([A-D])\b/i);
-          if(!m) return null;
-          const g = m[1].toUpperCase();
-          return {A:1,B:2,C:3,D:4}[g]||null;
-        };
+        const gradeVal = (s)=>{ const m=String(s||'').match(/\b([A-D])\b/i); if(!m) return null; return {A:1,B:2,C:3,D:4}[m[1].toUpperCase()]||null; };
         return [...ars].sort((a,b)=>{
-          const ga = gradeVal(a.enhancement)||-1, gb = gradeVal(b.enhancement)||-1;
-          if(ga!==gb) return gb-ga;   // D..A
-          // tie by profit
-          const pa = num(a.copay)-num(a.chargeback);
-          const pb = num(b.copay)-num(b.chargeback);
+          const ga=gradeVal(a.enhancement)||-1, gb=gradeVal(b.enhancement)||-1;
+          if(ga!==gb) return gb-ga;
+          const pa=num(a.copay)-num(a.chargeback), pb=num(b.copay)-num(b.chargeback);
           return pb-pa;
         });
       }
@@ -486,7 +496,7 @@
         if(/1\.74|1\.75/.test(s)) return 'hi174';
         if(/1\.70|1\.71|above/.test(s)) return 'hi70';
         if(/1\.66|1\.67/.test(s)) return 'hi167';
-        if(/cr[- ]?39|plastic(?!.*high)/.test(s)) return 'cr39';
+        if(/cr[- ]?39|plastic(?!.*high))/.test(s)) return 'cr39';
         return 'other';
       }
       function sunMatchesBase(sunRow, baseRow) {
@@ -505,7 +515,7 @@
       function chooseSunFor(baseRow) {
         if (tintSel==='clear' || tintSel==='polarized') return null;
         if (tintSel==='transitions') {
-          const want = preferPhotoCodeForBase(baseRow); // PM for glass, else PR
+          const want = preferPhotoCodeForBase(baseRow);
           let pool = sunAll.filter(r => /photochrom/.test(N(r.enhancement)));
           let choice = pool.find(r => new RegExp('^' + want, 'i').test((r.code || '').trim())) || pool.find(r=>isPPhoto(r));
           return choice || null;
@@ -522,7 +532,6 @@
       function customFor(baseRow) {
         const cmToggle = el('includeCM')?.checked;
         if (!cmToggle || fam!=='PAL') return null;
-        // eligibility by N/O is product-specific; exposing toggle gives offices control
         return customPool[0] || null;
       }
 
@@ -559,7 +568,6 @@
           }
         }
         if (pick) return pick;
-        // relax once
         const looser = cap / CAP_RELAX_FACTOR;
         for(const b of all){
           if (b.copay <= looser){
@@ -582,23 +590,16 @@
         return pick;
       }
 
-      // 1) BEST (leftmost)
+      // Left→Right: Best / Better / Good / Cheapest
       const best = mostProfit(all);
       const used = new Set(best ? [best.label] : []);
-
-      // 2) BETTER (≤75% of max)
       const better = mostProfitUnderCap(MaxPrice*BETTER_CAP_OF_MAX, used);
       if (better) used.add(better.label);
-
-      // 3) GOOD (≤50% of max)
       let good = mostProfitUnderCap(MaxPrice*GOOD_CAP_OF_MAX, used);
       if (!good) good = cheapest(used);
       if (good) used.add(good.label);
-
-      // 4) CHEAPEST
       const cheap = cheapest(used);
 
-      // Steve-order: Best → Better → Good → Cheapest
       renderStack([
         {name:'Best',     cls:'best',    b:best},
         {name:'Better',   cls:'better',  b:better},
