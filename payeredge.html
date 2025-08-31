@@ -143,7 +143,7 @@
 
   <!-- Error overlay for runtime issues -->
   <script>
-    if (!window.__PAYEREDGE_V9__) {
+    if (!window.__PAYEREDGE_V10__) {
       (function(){
         function showErrorOverlay(err, where){
           const wrap = document.createElement('div');
@@ -159,10 +159,10 @@
   </script>
 
   <script>
-  if (window.__PAYEREDGE_V9__) {
+  if (window.__PAYEREDGE_V10__) {
     console.warn('PayerEdge script already loaded; skipping second init.');
   } else {
-    window.__PAYEREDGE_V9__ = true;
+    window.__PAYEREDGE_V10__ = true;
 
     /* ================== Config & utils ================== */
     const DEFAULT_CSV = 'data/vsp_choice_master_v7_full_fixed.csv';
@@ -283,7 +283,7 @@
        - base part (first code) from SIMPLE_BY_CODE (NA row)
        - add-on parts from composite's "+ $xx" for copay and composite chargeback
        - service fee per part = copay - chargeback
-       Totals = sum(parts) for composite rows (never use "175125" artifacts).
+       Totals = sum(parts) for composite rows.
     */
     function line(row){
       const desc = row.enhancement || row.subtype || '—';
@@ -297,22 +297,22 @@
       }
 
       // composite
-      const addOnCB = num(row.chargeback);               // CB and Svc on composite rows refer to the add-on
+      const addOnCB = num(row.chargeback);               // CB on composite row is for the add-on
       const nums = parseCopayNumbers(row.copay);         // [baseCopay, addOnCopay] etc.
       const parts = [];
 
-      // base (first) from the standalone schedule row if available; else fall back to first number
+      // base (first code)
       const baseCode = partsCodes[0];
       const baseRef  = SIMPLE_BY_CODE[baseCode];
       const baseCop  = baseRef?.copay ?? (nums[0] ?? 0);
       const baseCB   = baseRef?.chargeback ?? 0;
       parts.push({ code:baseCode, copay:baseCop, chargeback:baseCB, profit:baseCop-baseCB });
 
-      // add-ons (usually just one)
+      // add-ons (usually one)
       for (let i=1;i<partsCodes.length;i++){
         const code = partsCodes[i];
-        const cop  = nums[i] ?? 0;              // the "+ $xx" piece
-        const cb   = addOnCB;                   // composite row CB is for the add-on
+        const cop  = nums[i] ?? 0;         // "+ $xx" piece
+        const cb   = addOnCB;              // composite CB is add-on CB
         parts.push({ code, copay:cop, chargeback:cb, profit:cop-cb });
       }
 
@@ -489,14 +489,15 @@
       const arRanked = wantAR ? rankAR(arPool) : [];
       const arOptions = wantAR && arRanked.length ? arRanked : [null];
 
+      /* FIXED: robust materialKey (no fragile regex) */
       function materialKey(label) {
         const s = N(label);
-        if(/polycarb/.test(s)) return 'poly';
-        if(/trivex/.test(s)) return 'trivex';
-        if(/1\.74|1\.75/.test(s)) return 'hi174';
-        if(/1\.70|1\.71|above/.test(s)) return 'hi70';
-        if(/1\.66|1\.67/.test(s)) return 'hi167';
-        if(/cr[- ]?39|plastic(?!.*high))/.test(s)) return 'cr39';
+        if (/polycarb/.test(s)) return 'poly';
+        if (/trivex/.test(s)) return 'trivex';
+        if (/(1\.74|1\.75)/.test(s)) return 'hi174';
+        if (/(1\.70|1\.71|above)/.test(s)) return 'hi70';
+        if (/(1\.66|1\.67)/.test(s)) return 'hi167';
+        if (/cr[\s-]?39/.test(s) || (s.includes('plastic') && !s.includes('high'))) return 'cr39';
         return 'other';
       }
       function sunMatchesBase(sunRow, baseRow) {
@@ -508,7 +509,7 @@
           case 'hi174':  return /(1\.74|1\.75)/.test(t);
           case 'hi70':   return /(1\.70|1\.71|above)/.test(t);
           case 'hi167':  return /(1\.66|1\.67)/.test(t);
-          case 'cr39':   return /(cr[- ]?39|plastic(?!.*high))/.test(t);
+          case 'cr39':   return /(cr[\s-]?39|plastic)/.test(t) && !/high/.test(t);
           default:       return true;
         }
       }
