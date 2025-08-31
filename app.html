@@ -30,7 +30,7 @@
     <h1>Revopt — Profit-First Choice Configurator</h1>
 
     <div class="card">
-      <small>Data-driven: loads <code>vsp_choice_master_v7_full_fixed.csv</code> (exclusivity & track rules baked in). AR is always included.</small>
+      <small>Data-driven: loads <code>vsp_choice_master_v7_full_fixed.csv</code> (exclusivity & track rules baked in). AR is always included. “Custom Measurement” items are hidden.</small>
       <div id="csvStatus" class="warn" style="margin-top:6px"></div>
     </div>
 
@@ -114,6 +114,14 @@
   <script>
     /* ======= CONFIG: set the CSV filename your app should read ======= */
     const DATA_CSV = "./vsp_choice_master_v7_full_fixed.csv"; // change if you use a different name
+
+    /* ======= Ignore business rules (temporary) ======= */
+    // Hide "Custom Measurement" add-ons (esp. Progressive N/O)
+    const SHOULD_IGNORE = (row) => {
+      const txt = `${row.enhancement||""} ${row.notes||""}`.toLowerCase();
+      if (txt.includes("custom measurement")) return true;
+      return false;
+    };
 
     /* ======= CSV loader (quote-safe) ======= */
     async function loadCSV(url){
@@ -210,17 +218,16 @@
     /* ======= Candidate base items per track (normalized & tolerant) ======= */
     function candidatesForTrack(track){
       let cands = [];
-      if (track==="MF")  cands = MASTER.filter(r=> r.group==="PROGRESSIVE"  && appliesTo(r,"MF"));
+      if (track==="MF")       cands = MASTER.filter(r=> r.group==="PROGRESSIVE"  && appliesTo(r,"MF"));
       else if (track==="OCC") cands = MASTER.filter(r=> r.group==="OCCUPATIONAL" && appliesTo(r,"OCC"));
-      else cands = MASTER.filter(r=> r.group==="MATERIAL" && appliesTo(r,"SV")); // SV
+      else                    cands = MASTER.filter(r=> r.group==="MATERIAL"     && appliesTo(r,"SV"));
 
-      // Fallback if tagging is imperfect: ignore applies_to
       if (cands.length === 0) {
         if (track==="MF")  cands = MASTER.filter(r=> r.group==="PROGRESSIVE");
         if (track==="OCC") cands = MASTER.filter(r=> r.group==="OCCUPATIONAL");
         if (track==="SV")  cands = MASTER.filter(r=> r.group==="MATERIAL");
       }
-      return cands;
+      return cands.filter(r => !SHOULD_IGNORE(r));
     }
 
     /* ======= Optional add-ons (sun/oversize/rimless) applied to all tiers ======= */
@@ -292,7 +299,6 @@
         if (d < mindiff) { mid = m; mindiff = d; }
       }
 
-      // Return normalized rows for rendering
       return [
         { name:"BEST",  items:best.items,  ...totals(best.items)  },
         { name:"MID",   items:mid.items,   ...totals(mid.items)   },
@@ -373,7 +379,7 @@
           if (atokens.length === 0) atokens.push("ALL");
           return {
             ...r,
-            group: up(r.group),                       // normalize for safe comparisons
+            group: up(r.group),
             subtype: norm(r.subtype),
             enhancement: norm(r.enhancement),
             code: norm(r.code),
@@ -384,7 +390,7 @@
             vsp: Number(norm(r.vsp).replace(/[^0-9.\-]/g,"")) || 0,
             chargeback: Number(norm(r.chargeback).replace(/[^0-9.\-]/g,"")) || 0
           };
-        });
+        }).filter(r => !SHOULD_IGNORE(r));
 
         status.textContent = `Loaded ${DATA_CSV}.`;
       }catch(e){
