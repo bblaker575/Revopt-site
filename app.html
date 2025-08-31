@@ -36,7 +36,7 @@
     <div>
       <h1>RevSight AI — VSP Choice Bundles</h1>
       <div class="sub">
-        SV-first. Tiers ranked by <b>practice profit (copay − chargeback)</b>. AR default <b>ON</b> with step-down (Best→Better→Good).
+        SV-first. Ranked by <b>practice profit (copay − chargeback)</b>. AR default <b>ON</b> with step-down (Best→Better→Good).
         Sun is <b>mutually exclusive</b>: Clear / Tinted / Polarized / Transitions®. Offline cache enabled.
       </div>
     </div>
@@ -48,6 +48,7 @@
       <button class="btn" id="forceRefresh">Force Refresh</button>
       <button class="btn" id="clearCache">Clear Local Cache</button>
 
+      <!-- Lens Family -->
       <label class="switch">Lens family
         <select id="lensFamily">
           <option value="SV" selected>Single Vision</option>
@@ -56,11 +57,7 @@
         </select>
       </label>
 
-      <label class="switch"><input type="checkbox" id="includeAR" checked> Include AR (tiered)</label>
-      <label class="switch"><input type="checkbox" id="includeAspheric"> Aspheric</label>
-      <label class="switch"><input type="checkbox" id="includeOversize"> Oversize</label>
-      <label class="switch"><input type="checkbox" id="includeGlass"> Glass</label>
-
+      <!-- Lens Tint (moved directly after Lens Family) -->
       <label class="switch">Lens tint
         <select id="lensTint">
           <option value="clear" selected>Clear</option>
@@ -69,6 +66,11 @@
           <option value="transitions">Transitions®</option>
         </select>
       </label>
+
+      <label class="switch"><input type="checkbox" id="includeAR" checked> Include AR (tiered)</label>
+      <label class="switch"><input type="checkbox" id="includeAspheric"> Aspheric</label>
+      <label class="switch"><input type="checkbox" id="includeOversize"> Oversize</label>
+      <label class="switch"><input type="checkbox" id="includeGlass"> Glass</label>
 
       <span class="sub" id="status"></span>
     </div>
@@ -79,9 +81,7 @@
   <script>
     // ---------------- Config ----------------
     const DEFAULT_CSV = 'data/vsp_choice_master_v7_full_fixed.csv';
-
-    // Enforce D-coded polarized add-ons for SV & LINED
-    const REQUIRE_D_CODES_FOR_SV_AND_LINED_POLARIZED = true;
+    const REQUIRE_D_CODES_FOR_SV_AND_LINED_POLARIZED = true; // polarized is a material for SV/LINED
 
     // ---------------- Utils -----------------
     const el = (id)=>document.getElementById(id);
@@ -93,16 +93,11 @@
     const isDCode  = r => /^d/i.test((r.code||'').trim());
     const isPPhoto = r => /^p(m|r)/i.test((r.code||'').trim()); // PM/PR
 
-    // CSV parser with "" escape handling
     function parseCSV(text){
       const rows=[]; let row=[], field='', q=false;
       for(let i=0;i<text.length;i++){
         const ch=text[i];
-        if(ch==='\"'){
-          if(q && text[i+1]==='\"'){ field+='\"'; i++; }
-          else { q=!q; }
-          continue;
-        }
+        if(ch==='\"'){ if(q && text[i+1]==='\"'){ field+='\"'; i++; } else { q=!q; } continue; }
         if(!q && ch===','){ row.push(field); field=''; continue; }
         if(!q && (ch==='\n' || ch==='\r')){ if(field!==''||row.length){ row.push(field); rows.push(row); row=[]; field=''; } continue; }
         field+=ch;
@@ -150,8 +145,7 @@
     }
 
     function renderMeta(count, meta){
-      el('version').textContent =
-        `plan=${meta.plan||'VSP_choice'} • rows=${count||0} • version=${meta.version||'—'} • source=${meta.source||'—'} • sha=${meta.sha||'—'}`;
+      el('version').textContent = `plan=${meta.plan||'VSP_choice'} • rows=${count||0} • version=${meta.version||'—'} • source=${meta.source||'—'} • sha=${meta.sha||'—'}`;
     }
 
     // ---------------- Business Logic ------------------
@@ -161,31 +155,28 @@
       const a=(row.applies_to||'ALL').toUpperCase();
       if(a.includes('ALL')) return true;
       if(fam==='SV')     return a.includes('SV');
-      if(fam==='LINED')  return a.includes('OCC');   // bifocal/occupational
-      if(fam==='PAL')    return a.includes('MF');    // progressive/multifocal
+      if(fam==='LINED')  return a.includes('OCC');
+      if(fam==='PAL')    return a.includes('MF');
       return true;
     }
 
-    const profitOf = (row)=> num(row.copay) - num(row.chargeback); // LOCKED: copay − chargeback
+    const profitOf = (row)=> num(row.copay) - num(row.chargeback);
     const pickBest = (arr)=> (arr && arr.length ? [...arr].sort((a,b)=>profitOf(b)-profitOf(a))[0] : null);
 
-    // Rank AR by explicit grade D>C>B>A when present; fallback to profit
     function rankAR(ars){
       const gradeVal = (s)=>{
         const m = String(s||'').match(/\b([A-D])\b/i);
         if(!m) return null;
         const g = m[1].toUpperCase();
-        return {A:1,B:2,C:3,D:4}[g]||null; // larger is better
+        return {A:1,B:2,C:3,D:4}[g]||null;
       };
       return [...ars].sort((a,b)=>{
-        const ga = gradeVal(a.enhancement)||-1;
-        const gb = gradeVal(b.enhancement)||-1;
+        const ga = gradeVal(a.enhancement)||-1, gb = gradeVal(b.enhancement)||-1;
         if(ga!==gb) return gb-ga;   // D..A
         return profitOf(b)-profitOf(a);
       });
     }
 
-    // Normalize base material to a coarse key to match sun tech
     function materialKey(label) {
       const s = N(label);
       if(/polycarb/.test(s)) return 'poly';
@@ -206,7 +197,7 @@
         case 'hi70':   return /(1\.70|1\.71|above)/.test(t);
         case 'hi167':  return /(1\.66|1\.67)/.test(t);
         case 'cr39':   return /(cr[- ]?39|plastic(?!.*high))/.test(t);
-        default:       return true; // allow generic match if unclassifiable
+        default:       return true;
       }
     }
 
@@ -221,7 +212,7 @@
       const cop = sum(lines.map(x=>x.copay));
       const cb  = sum(lines.map(x=>x.chargeback));
       const pr  = cop - cb;
-      const ratio = cop>0 ? (pr/cop) : 0; // internal only (tie-breaker)
+      const ratio = cop>0 ? (pr/cop) : 0;
       const label = base.enhancement || base.subtype || base.code || 'Base';
       return { label, lines, copay:cop, chargeback:cb, profit:pr, ratio };
     }
@@ -236,61 +227,55 @@
       const wantGlass = el('includeGlass').checked;
       const tintSel = el('lensTint').value; // clear|tinted|polarized|transitions
 
-      // -------- Base candidates by family --------
-      let base = [];
-      if(fam==='SV')         base = byKey('base_material').filter(r=>applies(r,fam));
-      else if(fam==='LINED') base = byKey('occupational').filter(r=>applies(r,fam));
-      else if(fam==='PAL')   base = byKey('progressive_level').filter(r=>applies(r,fam));
-
-      // ---- Base filters ----
-      base = base.filter(r=>{
-        const name=N(r.enhancement);
-        if(!wantAsp   && name.includes('aspheric')) return false;
-        if(!wantGlass && name.includes('glass'))    return false;
-
-        // PAL + Polarized => polarized is a MATERIAL (keep only polarized progressive rows)
-        if(fam==='PAL' && tintSel==='polarized')   return /polariz/.test(name);
-
-        // Otherwise exclude any base rows that already bake in sun
-        if(/photochrom|polariz|tint|tinted|sunglass|gradient/.test(name)) return false;
-        return true;
-      });
-
-      // -------- Add-on pools --------
-      // AR (tiered)
-      const arPool = wantAR ? byKey('ar_level').filter(r=>applies(r,fam)) : [];
-      const arRanked = wantAR ? rankAR(arPool) : [];
-
-      // Sun tech pool (common pool; actual pick will be per-base)
+      // ---- Pools built early (sunAll used for SV/LINED polarized material) ----
       const sunAll = byKey('sun_tech').filter(r=>applies(r,fam)).filter(r=>{
         if(!wantGlass && N(r.enhancement).includes('glass')) return false;
         return true;
       });
 
-      // Choose sun add-on for a specific base (mutually exclusive)
-      function chooseSunFor(baseRow) {
-        if (tintSel === 'clear') return null;
-
-        if (tintSel === 'polarized') {
-          // PAL + Polarized handled as base material
-          if (fam === 'PAL') return null;
-          // SV/LINED: D-coded polarized add-on that matches the base material
-          let pool = sunAll.filter(r => /polariz/.test(N(r.enhancement)) && sunMatchesBase(r, baseRow));
-          if (REQUIRE_D_CODES_FOR_SV_AND_LINED_POLARIZED) pool = pool.filter(isDCode);
-          return pickBest(pool);
+      // -------- Base candidates by family --------
+      let base = [];
+      if (fam === 'PAL') {
+        base = byKey('progressive_level').filter(r=>applies(r,fam)).filter(r=>{
+          const name=N(r.enhancement);
+          if(!wantAsp && name.includes('aspheric')) return false;
+          if(!wantGlass && name.includes('glass'))  return false;
+          if (tintSel==='polarized') return /polariz/.test(name); // polarized is material
+          return !/(photochrom|polariz|tint|tinted|sunglass|gradient)/.test(name);
+        });
+      } else {
+        if (tintSel==='polarized') {
+          // SV & LINED: D-coded polarized is the *material* (replace A-code base)
+          base = sunAll.filter(r => /polariz/.test(N(r.enhancement)) && isDCode(r));
+        } else {
+          const pool = (fam==='SV' ? byKey('base_material') : byKey('occupational'));
+          base = pool.filter(r=>applies(r,fam)).filter(r=>{
+            const name=N(r.enhancement);
+            if(!wantAsp && name.includes('aspheric')) return false;
+            if(!wantGlass && name.includes('glass'))  return false;
+            if(/photochrom|polariz|tint|tinted|sunglass|gradient/.test(name)) return false;
+            return true;
+          });
         }
+      }
 
-        if (tintSel === 'transitions') {
-          // Photochromic (prefer P-codes PR/PM) that matches base material
+      // -------- Add-on pools --------
+      const arPool = wantAR ? byKey('ar_level').filter(r=>applies(r,fam)) : [];
+      const arRanked = wantAR ? rankAR(arPool) : [];
+
+      // Mutually exclusive sun add-on (per base). Polarized returns null (handled as material).
+      function chooseSunFor(baseRow) {
+        if (tintSel==='clear' || tintSel==='polarized') return null;
+
+        if (tintSel==='transitions') {
           let pool = sunAll.filter(r => /photochrom/.test(N(r.enhancement)) && sunMatchesBase(r, baseRow));
-          const pPool = pool.filter(isPPhoto);
+          const pPool = pool.filter(isPPhoto); // PR/PM
           return pickBest(pPool.length ? pPool : pool);
         }
 
-        if (tintSel === 'tinted') {
-          // Tinted that matches base material (exclude polar/photochromic)
-          let pool = sunAll.filter(r => {
-            const n = N(r.enhancement);
+        if (tintSel==='tinted') {
+          let pool = sunAll.filter(r=>{
+            const n=N(r.enhancement);
             return sunMatchesBase(r, baseRow) && !/photochrom|polariz/.test(n) && /tint|tinted|solid|gradient|sunglass/.test(n);
           });
           return pickBest(pool);
@@ -299,21 +284,19 @@
         return null;
       }
 
-      // Oversize (single best)
+      // Oversize add-on (independent)
       const overs = wantOS ? pickBest(byKey('oversize').filter(r=>applies(r,fam)).filter(r=>{
         const n=N(r.enhancement);
         if(!wantGlass && n.includes('glass')) return false;
         return true;
       })) : null;
 
-      // Helper to pick AR by tier index with fallback
       function arForTier(idx){
         if(!wantAR || !arRanked.length) return null;
         if(idx < arRanked.length) return arRanked[idx];
         return arRanked[arRanked.length-1];
       }
 
-      // Selection helpers (ensure distinct base labels across tiers)
       function selectMaxProfit(candidates, arRow, excludeLabels=new Set()){
         let best=null;
         for(const m of candidates){
@@ -409,7 +392,7 @@
     // ---------------- Wire-up ----------------
     el('forceRefresh').onclick=()=>{ clearCache(); loadCSV(); };
     el('clearCache').onclick =()=>{ clearCache(); el('status').textContent=' cache cleared — click Force Refresh to reload'; };
-    ['lensFamily','includeAR','includeAspheric','includeOversize','includeGlass','lensTint']
+    ['lensFamily','lensTint','includeAR','includeAspheric','includeOversize','includeGlass']
       .forEach(id=> el(id).onchange=computeBundles );
 
     // Boot
