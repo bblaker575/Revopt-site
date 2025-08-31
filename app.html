@@ -28,9 +28,6 @@
     th, td{ text-align:left; padding:10px 8px; border-bottom:1px solid var(--border); font-size:14px;}
     th{ position:sticky; top:0; background:#101827; z-index:1; }
     .muted{ color:var(--muted); }
-    .right{ text-align:right; }
-    .small{ font-size:12px; }
-    .mono{ font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
     .footer{ color:var(--muted); font-size:12px; padding:16px 0 24px; }
   </style>
   <!-- PapaParse for CSV parsing -->
@@ -75,19 +72,11 @@
 </div>
 
 <script>
-/* ========================= Resilient Loader (inline) =========================
-   Exposes:
-     - window.revoptDataPromise -> Promise<rows[]>
-     - window.revoptData        -> rows[] (after resolved)
-     - window.revoptDataMeta    -> { source, manifest }
-   Looks for:
-     - data/manifest.json
-     - data/schema_v1.json
-     - manifest.url (CSV path)
-============================================================================= */
+/* ========================= Resilient Loader (inline) ========================= */
 (function(){
-  const MANIFEST_URL = "data/manifest.json";
-  const SCHEMA_URL   = "data/schema_v1.json";
+  const BUILD_TAG = "2025-08-31.2"; // bump whenever you update manifest/CSV
+  const MANIFEST_URL = "data/manifest.json?v=" + BUILD_TAG;
+  const SCHEMA_URL   = "data/schema_v1.json?v=" + BUILD_TAG;
   const LKG_KEY      = "revopt:lkg:data";
   const LKG_META_KEY = "revopt:lkg:meta";
 
@@ -101,7 +90,7 @@
     try{
       localStorage.setItem(LKG_KEY, JSON.stringify(rows));
       localStorage.setItem(LKG_META_KEY, JSON.stringify(meta));
-    }catch(e){ /* quota issues */ }
+    }catch(e){ }
   }
   function loadLKG(){
     try{
@@ -117,20 +106,6 @@
     const cols = Object.keys(rows[0] || {});
     const missing = (schema.required_columns || []).filter(c => !cols.includes(c));
     if(missing.length) throw new Error("missing columns: " + missing.join(", "));
-    // numeric warn only
-    const numCols = schema.numeric_columns || [];
-    for(const col of numCols){
-      for(let i=0;i<Math.min(rows.length,50);i++){
-        const v = rows[i][col];
-        if(v!==null && v!==undefined && v!==""){
-          const vv = String(v).replace(/[$,%]/g,"").replace(/,/g,"");
-          if(Number.isNaN(Number(vv))){
-            console.warn("[revopt] Non-numeric sample for", col, "→", v);
-            break;
-          }
-        }
-      }
-    }
   }
 
   async function fetchText(url, version){
@@ -210,10 +185,6 @@ function logLine(msg){
   logEl.textContent += msg + "\n";
   logEl.scrollTop = logEl.scrollHeight;
 }
-function toNum(v){
-  if(v==null || v==="") return null;
-  return Number(String(v).replace(/[$,%]/g,"").replace(/,/g,""));
-}
 function renderTable(rows){
   if(!rows || !rows.length){
     thead.innerHTML = "";
@@ -261,18 +232,10 @@ $("#btn-clear").onclick = ()=>{
       <span class="mono small">source=${source}</span>
     `;
 
-    // Coerce numeric fields we know about
-    const data = rows.map(r=>({
-      ...r,
-      copay: toNum(r.copay),
-      vsp: toNum(r.vsp),
-      chargeback: toNum(r.chargeback)
-    }));
-
     // Render + search
-    renderTable(data);
+    renderTable(rows);
     searchEl.addEventListener("input", ()=>{
-      const filtered = filterRows(data, searchEl.value);
+      const filtered = filterRows(rows, searchEl.value);
       renderTable(filtered);
     });
 
