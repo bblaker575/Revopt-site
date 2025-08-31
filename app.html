@@ -139,25 +139,37 @@
     function computeProfit(row){ return num(row.vsp); }
 
     function classify(row){
-      // Skip rows explicitly marked inactive
       if('active' in row && falsy(row.active)) return null;
 
-      // Determine lensType from applies_to; blank means BOTH
       const applies = uc(row.applies_to);
       let lensType = 'BOTH';
-      if(applies.includes('MF') && !applies.includes('SV')) lensType = 'MF';
-      else if(applies.includes('SV') && !applies.includes('MF')) lensType = 'SV';
+      if(applies.includes('MF') && !applies.includes('SV') && !applies.includes('ALL')) lensType = 'MF';
+      else if(applies.includes('SV') && !applies.includes('MF') && !applies.includes('ALL')) lensType = 'SV';
 
-      // Normalize grouping keys (robust to case / variants)
       const group = uc(row.group);
       const exkey = uc(row.exclusive_key);
-      const isBaseMaterial = (group.includes('MATERIAL') && (exkey.includes('BASE') || exkey.includes('MATERIAL') || exkey===''));
 
       const materialTxt    = uc(row.subtype);
       const enhancementTxt = uc(row.enhancement);
       const desc = row.enhancement || row.subtype || row.code || '';
 
-      // Feature flags for global toggles (derived from text)
+      // Detect MF base (Progressive) vs SV base (Material)
+      const isBaseSV = group.includes('MATERIAL') && (exkey.includes('BASE') || exkey.includes('MATERIAL') || exkey==='');
+      const isBaseMF = group.includes('PROGRESSIVE');
+
+      // Parse material hint from progressive description for MF
+      let mfMat = '';
+      if(isBaseMF){
+        const e = enhancementTxt;
+        if(e.includes('POLYCARBONATE')) mfMat = 'POLYCARBONATE';
+        else if(e.includes('1.70')) mfMat = 'HI70';
+        else if(e.includes('1.66') || e.includes('1.67')) mfMat = 'HI67';
+        else if(e.includes('1.53') || e.includes('1.60')) mfMat = 'HI-MID';
+        else if(e.includes('GLASS')) mfMat = 'GLASS';
+        else if(e.includes('PLASTIC')) mfMat = 'PLASTIC';
+        else mfMat = materialTxt || 'PLASTIC';
+      }
+
       const t = (materialTxt + ' ' + enhancementTxt);
       const flags = {
         AR: t.includes(' AR') || t.startsWith('AR') || t.includes('ANTI-REFLECT'),
@@ -168,12 +180,13 @@
 
       return {
         lensType,
-        material: isBaseMaterial ? materialTxt : '',
-        enhancement: !isBaseMaterial ? enhancementTxt : '',
+        material: isBaseSV ? materialTxt : (isBaseMF ? (uc(row.subtype||'') + ' ' + mfMat).trim() : ''),
+        enhancement: (!isBaseSV && !isBaseMF) ? enhancementTxt : '',
         desc,
         profit: computeProfit(row),
         raw: row,
-        f: flags
+        f: flags,
+        baseKind: isBaseMF ? 'MF' : (isBaseSV ? 'SV' : '')
       };
     }
 
@@ -206,42 +219,41 @@
         toggles
       );
 
-      // Partition by semantics
-      const bases = pool.filter(x => x.material && uc(x.raw.group).includes('MATERIAL'));
-      const enh   = pool.filter(x => !x.material); // non-materials
+      // Choose base set depending on lensType
+      const isMF = lensType==='MF';
+      const bases = pool.filter(x => (isMF ? x.baseKind==='MF' : x.baseKind==='SV'));
+      const enh   = pool.filter(x => !x.baseKind); // non-base enhancements (AR, Oversize, Sun, etc.)
 
-      // Buckets for materials
-      const matBuckets = bases.reduce((m,x)=>{ (m[x.material]??=[]).push(x); return m; }, {});
-      const allMaterials = Object.keys(matBuckets);
+      // Buckets for base choices
+      const buckets = bases.reduce((m,x)=>{ const k=x.material||x.desc; (m[k]??=[]).push(x); return m; }, {});
+      const keys = Object.keys(buckets);
 
-      // Optional preference narrowing
-      const candidateMaterials = (materialPref && allMaterials.includes(materialPref)) ? [materialPref] : allMaterials;
+      const candidateKeys = (materialPref && keys.includes(materialPref)) ? [materialPref] : keys;
 
-      // Quick-pick top enhancements by type
+      // Enhancement picks
       const bestAR       = toggles.AR       ? enh.filter(e=>e.f.AR).sort(byProfitDesc)[0]       : null;
       const bestOversize = toggles.OVERSIZE ? enh.filter(e=>e.f.OVERSIZE).sort(byProfitDesc)[0] : null;
 
       const bundles = [];
-      for(const mat of (candidateMaterials.length ? candidateMaterials : allMaterials)){
-        const base = (matBuckets[mat]||[]).sort(byProfitDesc)[0];
+      for(const k of (candidateKeys.length ? candidateKeys : keys)){
+        const base = (buckets[k]||[]).sort(byProfitDesc)[0];
         if(!base) continue;
         const parts=[base];
         if(bestAR) parts.push(bestAR);
         if(bestOversize) parts.push(bestOversize);
 
-        // Sum unique parts
         const seen=new Set(); let profit=0; const lines=[];
         for(const p of parts){
           const key=(p.raw.group||'')+'|'+(p.material||'')+'|'+(p.enhancement||'')+'|'+(p.desc||'');
           if(seen.has(key)) continue; seen.add(key);
           lines.push(p); profit+=p.profit;
         }
-        bundles.push({ material:mat, parts:lines, profit });
+        bundles.push({ material:k, parts:lines, profit });
       }
 
       bundles.sort((a,b)=>b.profit-a.profit);
-      const uniq=[]; const seenMat=new Set();
-      for(const b of bundles){ if(!seenMat.has(b.material)){ uniq.push(b); seenMat.add(b.material); } }
+      const uniq=[]; const seenKey=new Set();
+      for(const b of bundles){ if(!seenKey.has(b.material)){ uniq.push(b); seenKey.add(b.material); } }
 
       const best = uniq[0];
       const mid  = uniq[1] || uniq[0];
