@@ -3,29 +3,34 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>Revopt — Choice Configurator (v7, CSV-driven)</title>
+  <title>Revopt — Profit-First Choice Configurator (v7 CSV)</title>
   <style>
     :root{--bg:#0B1020;--card:#12162A;--ink:#E6E9F5;--muted:#9CA3AF;--line:#1E2450;--line2:#242947;--btn:#0E1530;--primary:#4F46E5;}
-    html,body{margin:0;height:100%} body{font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--ink)}
-    .wrap{max-width:1100px;margin:0 auto;padding:16px} h1{margin:0 0 12px 0}
+    html,body{margin:0;height:100%}
+    body{font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--ink)}
+    .wrap{max-width:1100px;margin:0 auto;padding:16px}
+    h1{margin:0 0 12px 0}
     .card{background:var(--card);border:1px solid var(--line2);border-radius:14px;padding:14px;margin:10px 0}
     .row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
     label{display:inline-flex;gap:8px;align-items:center}
     select,button{background:var(--btn);border:1px solid var(--line2);border-radius:10px;color:var(--ink);padding:8px 10px}
     button.primary{background:var(--primary);border:none;font-weight:700;color:var(--bg)}
-    table{width:100%;border-collapse:collapse} th,td{border-bottom:1px solid var(--line);padding:8px;font-size:14px;text-align:left;vertical-align:top}
-    th{color:#C7CBF5} small{color:var(--muted)}
+    table{width:100%;border-collapse:collapse}
+    th,td{border-bottom:1px solid var(--line);padding:8px;font-size:14px;text-align:left;vertical-align:top}
+    th{color:#C7CBF5}
+    small{color:var(--muted)}
     .kpi{display:inline-block;margin-right:12px;background:var(--btn);border:1px solid var(--line);border-radius:12px;padding:8px 10px}
-    .badges{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:6px} .items-cell{max-width:800px}
+    .badges{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:6px}
+    .items-cell{max-width:800px}
     .warn{color:#ffd966}
   </style>
 </head>
 <body>
   <div class="wrap">
-    <h1>Revopt — Choice Configurator</h1>
+    <h1>Revopt — Profit-First Choice Configurator</h1>
 
     <div class="card">
-      <small>Data-driven: loads <code>vsp_choice_master_v7.csv</code> (with exclusivity & track rules baked in).</small>
+      <small>Data-driven: loads <code>vsp_choice_master_v7*.csv</code> (exclusivity & track rules baked in). AR is always included.</small>
       <div id="csvStatus" class="warn" style="margin-top:6px"></div>
     </div>
 
@@ -88,8 +93,8 @@
     </div>
 
     <div class="card">
-      <details open>
-        <summary>Master rows (v7 CSV)</summary>
+      <details>
+        <summary>Master rows (from CSV)</summary>
         <table>
           <thead>
             <tr>
@@ -107,7 +112,10 @@
   </div>
 
   <script>
-    // --------- CSV LOADER ----------
+    /* ======= CONFIG: set the CSV filename your app should read ======= */
+    const DATA_CSV = "./vsp_choice_master_v7_full_fixed.csv"; // or "./vsp_choice_master_v7.csv"
+
+    /* ======= CSV loader (simple, quote-safe) ======= */
     async function loadCSV(url){
       const res = await fetch(url, { cache: "no-store" });
       if (!res.ok) throw new Error("CSV not found");
@@ -115,11 +123,9 @@
       return parseCSV(text);
     }
     function parseCSV(text){
-      // simple CSV parser that handles quotes
-      const rows = [];
-      const lines = text.replace(/\r/g,"").split("\n").filter(x=>x.trim().length);
+      const rows=[]; const lines=text.replace(/\r/g,"").split("\n").filter(x=>x.trim().length);
       const headers = splitCSVLine(lines[0]);
-      for (let i=1; i<lines.length; i++){
+      for (let i=1;i<lines.length;i++){
         const cells = splitCSVLine(lines[i]);
         const row = {};
         headers.forEach((h,idx)=> row[h] = cells[idx] ?? "");
@@ -144,11 +150,10 @@
       out.push(cur);
       return out;
     }
+    const money = (n)=> Number(n||0).toLocaleString("en-US",{style:"currency",currency:"USD"});
 
-    const fmtCurrency = (n)=> Number(n||0).toLocaleString("en-US",{style:"currency",currency:"USD"});
-
-    // --------- GLOBAL DATA ----------
-    let MASTER = []; // v7 rows
+    /* ======= Global data ======= */
+    let MASTER = []; // v7 rows with numbers
 
     function renderMasterTable(){
       const tb = document.getElementById("master");
@@ -161,54 +166,28 @@
           <td>${r.enhancement||""}</td>
           <td>${r.code||""}</td>
           <td>${r.notes||""}</td>
-          <td style="text-align:right">${fmtCurrency(r.copay)}</td>
-          <td style="text-align:right">${fmtCurrency(r.vsp)}</td>
-          <td style="text-align:right">${fmtCurrency(r.chargeback)}</td>
+          <td style="text-align:right">${money(r.copay)}</td>
+          <td style="text-align:right">${money(r.vsp)}</td>
+          <td style="text-align:right">${money(r.chargeback)}</td>
           <td>${r.exclusive_key||""}</td>
           <td>${r.applies_to||""}</td>`;
-        document.getElementById("master").appendChild(tr);
+        tb.appendChild(tr);
       });
     }
 
-    // --------- PICKERS (DATA-DRIVEN, NO REGEX) ----------
-    function chooseMaterial(level){
-      const mats = MASTER.filter(r=>r.group==="Material");
-      const pick = (filter)=> {
-        const rows = mats.filter(filter);
-        return rows.sort((a,b)=> b.copay - a.copay)[0] || null;
-      };
-      if (level==="BASIC") return pick(r=>r.subtype==="Poly" || r.subtype==="CR");
-      if (level==="MID")   return pick(r=>r.subtype==="Mid" || r.subtype==="Poly");
-      // BEST
-      return pick(r=>r.subtype==="Hi70" || r.subtype==="Hi67" || r.subtype==="Mid" || r.subtype==="Poly" || r.subtype==="CR");
-    }
-
-    function chooseProgressive(level){
-      const progs = MASTER.filter(r=>r.group==="Progressive");
-      const families = level==="BEST" ? ["N","O","F"] : level==="MID" ? ["O","F","J"] : ["K","J","F"];
-      for (const fam of families){
-        const rows = progs.filter(r=>r.subtype===fam);
-        if (rows.length) return rows.sort((a,b)=> b.copay - a.copay)[0];
-      }
-      return progs.sort((a,b)=> b.copay - a.copay)[0] || null;
-    }
-
-    function chooseAR(level){
-      const ars = MASTER.filter(r=>r.group==="AR");
-      if (!ars.length) return null;
-      ars.sort((a,b)=> b.copay - a.copay);
-      if (level==="BEST") return ars[0];
-      if (level==="BASIC") return ars[ars.length-1];
-      return ars[Math.max(0, Math.floor(ars.length/2)-1)];
-    }
-
-    function chooseSun(choice){
-      if (!choice || choice==="Clear") return null;
-      const row = MASTER.find(r=>r.group==="Sun" && r.subtype===choice);
-      return row || null;
-    }
-
-    function enforceExclusivity(items){
+    /* ======= Helpers ======= */
+    const by = (fn) => MASTER.filter(fn);
+    const sum = (arr,k) => arr.reduce((s,r)=> s + Number(r[k]||0), 0);
+    const totals = (items)=> {
+      const copay = sum(items,"copay"), vsp = sum(items,"vsp"), cb = sum(items,"chargeback");
+      return { copay, vsp, cb, revenue: copay + vsp - cb };
+    };
+    const appliesTo = (row, track) => {
+      const a = (row.applies_to||"ALL").toUpperCase();
+      if (a==="ALL") return true;
+      return a.split(/\s*,\s*/).includes(track.toUpperCase());
+    };
+    const enforceExclusive = (items)=>{
       const seen = new Set();
       return items.filter(r=>{
         const key = (r.exclusive_key||"").trim();
@@ -217,120 +196,177 @@
         seen.add(key);
         return true;
       });
+    };
+
+    /* ======= Always-include AR, tier-specific selection ======= */
+    function pickARForTier(level){
+      const ars = MASTER.filter(r=>r.group==="AR");
+      if (!ars.length) return null;
+      ars.sort((a,b)=> b.copay - a.copay); // highest copay = richest AR
+      if (level==="BEST") return ars[0];
+      if (level==="BASIC") return ars[ars.length-1];
+      return ars[Math.max(0, Math.floor(ars.length/2)-1)];
     }
 
-    function totals(items){
-      const sum = (k)=> items.reduce((s,r)=> s + Number(r[k]||0), 0);
-      const copay = sum("copay"), vsp = sum("vsp"), cb = sum("chargeback");
-      return { copay, vsp, cb, revenue: copay + vsp - cb };
+    /* ======= Candidate base items per track ======= */
+    function candidatesForTrack(track){
+      if (track==="MF")  return MASTER.filter(r=>r.group==="Progressive"  && appliesTo(r,"MF"));
+      if (track==="OCC") return MASTER.filter(r=>r.group==="Occupational" && appliesTo(r,"OCC"));
+      return MASTER.filter(r=>r.group==="Material" && appliesTo(r,"SV")); // SV
     }
 
-    function appliesToTrack(row, track){
-      const a = (row.applies_to||"ALL").toUpperCase();
-      if (a==="ALL") return true;
-      return a.split(/\s*,\s*/).includes(track.toUpperCase());
+    /* ======= Optional add-ons (sun/oversize/rimless) applied to all tiers ======= */
+    function pickSunRow(subtype){
+      if (!subtype || subtype==="Clear") return null;
+      return MASTER.find(r=> r.group==="Sun" && r.subtype===subtype) || null;
+    }
+    function pickOversizeRow(overSel){
+      if (overSel==="80% of U&C") return MASTER.find(r=> r.group==="Oversize") || null;
+      return null;
+    }
+    function pickRimlessRow(rimSel){
+      if (rimSel==="Drill")  return MASTER.find(r=> r.group==="Rimless" && /drill/i.test(r.subtype||"")) || null;
+      if (rimSel==="Groove") return MASTER.find(r=> r.group==="Rimless" && /groove/i.test(r.subtype||"")) || null;
+      return null;
     }
 
-    function buildTier(track, sun, level){
-      const items = [];
-      if (track==="MF"){
-        const p = chooseProgressive(level); if (p && appliesToTrack(p, "MF")) items.push(p);
-      } else if (track==="SV" || track==="OCC"){
-        const m = chooseMaterial(level); if (m && appliesToTrack(m, track)) items.push(m);
+    /* ======= Build bundle for a given base + AR + shared add-ons ======= */
+    function buildBundle(base, ar, sharedAddons){
+      const items = [base].concat(ar ? [ar] : []).concat(sharedAddons.filter(Boolean));
+      return enforceExclusive(items);
+    }
+    function bundleStats(base, ar, sharedAddons){
+      const items = buildBundle(base, ar, sharedAddons);
+      return { items, ...totals(items) };
+    }
+
+    /* ======= Profit-first tiering ======= */
+    function buildProfitTiers(track, sunSel, overSel, rimSel){
+      const bases = candidatesForTrack(track);
+      const shared = [
+        pickSunRow(sunSel),
+        pickOversizeRow(overSel),
+        pickRimlessRow(rimSel)
+      ].filter(Boolean);
+
+      const arBest  = pickARForTier("BEST");
+      const arMid   = pickARForTier("MID");
+      const arBasic = pickARForTier("BASIC");
+
+      if (bases.length === 0){
+        return [
+          { name:"BEST", items:[], copay:0, vsp:0, cb:0, revenue:0 },
+          { name:"MID",  items:[], copay:0, vsp:0, cb:0, revenue:0 },
+          { name:"BASIC",items:[], copay:0, vsp:0, cb:0, revenue:0 }
+        ];
       }
-      const ar = chooseAR(level); if (ar && appliesToTrack(ar, track)) items.push(ar);
-      const s = chooseSun(sun);  if (s && appliesToTrack(s, track)) items.push(s);
-      return enforceExclusivity(items);
+
+      // Compute stats per candidate for each tier’s AR selection
+      const bestStats  = bases.map(b => ({ base:b, tier:"BEST",  ...bundleStats(b, arBest,  shared) }));
+      const basicStats = bases.map(b => ({ base:b, tier:"BASIC", ...bundleStats(b, arBasic, shared) }));
+      const midStats   = bases.map(b => ({ base:b, tier:"MID",   ...bundleStats(b, arMid,   shared) }));
+
+      // BEST: maximize revenue
+      bestStats.sort((a,b)=> b.revenue - a.revenue);
+      const best = bestStats[0];
+
+      // BASIC: minimize copay (cheapest possible for the patient)
+      basicStats.sort((a,b)=> a.copay - b.copay);
+      const basic = basicStats[0];
+
+      // MID: pick something between best and basic by revenue
+      midStats.sort((a,b)=> a.revenue - b.revenue);
+      // target halfway between best & basic revenue
+      const target = basic.revenue + (best.revenue - basic.revenue)/2;
+      let mid = midStats[0];
+      let mindiff = Math.abs(mid.revenue - target);
+      for (const m of midStats){
+        const d = Math.abs(m.revenue - target);
+        if (d < mindiff) { mid = m; mindiff = d; }
+      }
+
+      // Return normalized rows for rendering
+      return [
+        { name:"BEST",  items:best.items,  ...totals(best.items)  },
+        { name:"MID",   items:mid.items,   ...totals(mid.items)   },
+        { name:"BASIC", items:basic.items, ...totals(basic.items) }
+      ];
     }
 
+    /* ======= UI render helpers ======= */
     function renderTiers(tiers){
       document.getElementById("tiers").style.display = "block";
       const tb = document.getElementById("tierbody"); tb.innerHTML = "";
       const k = document.getElementById("kpis"); k.innerHTML = "";
       tiers.forEach(tt=>{
-        const x = totals(tt.items);
         const list = tt.items.map(i=> i.enhancement).join(", ");
         const tr = document.createElement("tr");
         tr.innerHTML = `
           <td><b>${tt.name}</b></td>
           <td class="items-cell">${list}</td>
-          <td style="text-align:right">${fmtCurrency(x.copay)}</td>
-          <td style="text-align:right">${fmtCurrency(x.vsp)}</td>
-          <td style="text-align:right">${fmtCurrency(x.cb)}</td>
-          <td style="text-align:right"><b>${fmtCurrency(x.revenue)}</b></td>`;
+          <td style="text-align:right">${money(tt.copay)}</td>
+          <td style="text-align:right">${money(tt.vsp)}</td>
+          <td style="text-align:right">${money(tt.cb)}</td>
+          <td style="text-align:right"><b>${money(tt.revenue)}</b></td>`;
         tb.appendChild(tr);
 
         const badge = document.createElement("span");
         badge.className = "kpi";
-        badge.innerHTML = `<small>${tt.name} revenue</small> <b>${fmtCurrency(x.revenue)}</b>`;
+        badge.innerHTML = `<small>${tt.name} revenue</small> <b>${money(tt.revenue)}</b>`;
         k.appendChild(badge);
       });
     }
 
-    // --------- EVENTS ----------
-    document.getElementById("build").addEventListener("click", ()=>{
-      const track = document.getElementById("track").value;      // SV | MF | OCC
-      const sun   = document.getElementById("sun").value;        // Clear | subtype
-      const over  = document.getElementById("over").value;
-      const rim   = document.getElementById("rim").value;
-
-      const tiers = [
-        { name:"BEST",  items: buildTier(track, sun, "BEST")  },
-        { name:"MID",   items: buildTier(track, sun, "MID")   },
-        { name:"BASIC", items: buildTier(track, sun, "BASIC") }
-      ];
-
-      // Optional add-ons that aren't exclusive to track
-      if (over !== "None"){
-        const os = MASTER.find(r=>r.group==="Oversize");
-        if (os) tiers.forEach(tt=> tt.items.push(os));
-      }
-      if (rim !== "None"){
-        const rl = MASTER.find(r=> r.group==="Rimless" && r.subtype===rim);
-        if (rl) tiers.forEach(tt=> tt.items.push(rl));
-      }
-
-      // Final exclusivity pass
-      tiers.forEach(tt=> tt.items = enforceExclusivity(tt.items));
-      renderTiers(tiers);
-    });
-
-    document.getElementById("csv").addEventListener("click", ()=>{
-      const track = document.getElementById("track").value;
-      const sun   = document.getElementById("sun").value;
-      const tiers = [
-        { name:"BEST",  items: buildTier(track, sun, "BEST")  },
-        { name:"MID",   items: buildTier(track, sun, "MID")   },
-        { name:"BASIC", items: buildTier(track, sun, "BASIC") }
-      ];
+    /* ======= CSV export of chosen tiers ======= */
+    function exportQuoteCSV(tiers){
       const rows = [["Tier","Group","Subtype","Enhancement","Code","Copay","VSP","Chargeback"]];
       tiers.forEach(tt=>{
         tt.items.forEach(i=>{
-          rows.push([tt.name, i.group, i.subtype, i.enhancement, i.code, i.copay||0, i.vsp||0, i.chargeback||0]);
-        })
+          rows.push([tt.name, i.group||"", i.subtype||"", i.enhancement||"", i.code||"", i.copay||0, i.vsp||0, i.chargeback||0]);
+        });
       });
       const csv = rows.map(r=> r.map(x=> `"${String(x??"").replace(/"/g,'""')}"`).join(",")).join("\n");
       const a = document.createElement("a");
       a.href = URL.createObjectURL(new Blob([csv], {type:"text/csv"}));
       a.download = "revopt_quote.csv";
       a.click();
+    }
+
+    /* ======= Events ======= */
+    document.getElementById("build").addEventListener("click", ()=>{
+      const track = document.getElementById("track").value;
+      const sun   = document.getElementById("sun").value;
+      const over  = document.getElementById("over").value;
+      const rim   = document.getElementById("rim").value;
+
+      const tiers = buildProfitTiers(track, sun, over, rim);
+      renderTiers(tiers);
     });
 
-    // --------- BOOT ---------
+    document.getElementById("csv").addEventListener("click", ()=>{
+      const track = document.getElementById("track").value;
+      const sun   = document.getElementById("sun").value;
+      const over  = document.getElementById("over").value;
+      const rim   = document.getElementById("rim").value;
+      const tiers = buildProfitTiers(track, sun, over, rim);
+      exportQuoteCSV(tiers);
+    });
+
+    /* ======= Boot: load CSV & coerce numerics ======= */
     (async function boot(){
       const status = document.getElementById("csvStatus");
       try{
-        MASTER = await loadCSV("./vsp_choice_master_v7.csv");
-        // Coerce numerics
-        MASTER = MASTER.map(r=>({
+        const rows = await loadCSV(DATA_CSV);
+        // coerce numerics
+        MASTER = rows.map(r=>({
           ...r,
-          copay: Number(r.copay||0),
-          vsp: Number(r.vsp||0),
-          chargeback: Number(r.chargeback||0)
+          copay: Number((r.copay||"").toString().replace(/[^0-9.\-]/g,""))||0,
+          vsp: Number((r.vsp||"").toString().replace(/[^0-9.\-]/g,""))||0,
+          chargeback: Number((r.chargeback||"").toString().replace(/[^0-9.\-]/g,""))||0
         }));
-        status.textContent = "Loaded v7 CSV.";
+        status.textContent = `Loaded ${DATA_CSV}.`;
       }catch(e){
-        status.textContent = "Could not find vsp_choice_master_v7.csv in this repo. Upload it to the repo root.";
+        status.textContent = `Could not find ${DATA_CSV}. Upload it next to app.html.`;
         MASTER = [];
       }
       renderMasterTable();
