@@ -76,11 +76,10 @@
     .code{font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size:12px; color:#cfe1ff}
     .money{font-weight:800}
 
-    /* sub-rows: keep them UNIFORM (same size as main rows) */
+    /* sub-rows use the same grid for uniformity; description only on first row */
     .subrow td{ font-size:var(--fz-13); color:var(--fg); }
     .subrow td.money{ font-weight:800; }
-    .subrow td:first-child{ } /* no indent */
-    .subbadge{ display:inline-block; margin-left:6px; padding:1px 6px; border:1px solid var(--line); border-radius:999px; font-size:11px; color:var(--muted); background:#0b1424 }
+    .desc-empty{ color:transparent; user-select:none; } /* keeps grid aligned w/ blank text */
 
     :focus-visible{ outline:2px solid var(--accent); outline-offset:2px; border-radius:8px }
     @media print{ header,.bar{display:none} body{background:#fff; color:#000} .tier{break-inside:avoid; border:1px solid #000; box-shadow:none} table, th, td{border-color:#000} }
@@ -131,9 +130,9 @@
     <div id="stack" class="stack"></div>
   </main>
 
-  <!-- Hard error overlay -->
+  <!-- Error overlay for any runtime issues -->
   <script>
-    if (!window.__PAYEREDGE_V6__) {
+    if (!window.__PAYEREDGE_V7__) {
       (function(){
         function showErrorOverlay(err, where){
           const wrap = document.createElement('div');
@@ -149,19 +148,18 @@
   </script>
 
   <script>
-  if (window.__PAYEREDGE_V6__) {
+  if (window.__PAYEREDGE_V7__) {
     console.warn('PayerEdge script already loaded; skipping second init.');
   } else {
-    window.__PAYEREDGE_V6__ = true;
+    window.__PAYEREDGE_V7__ = true;
 
     /* ================== Core config & utils ================== */
     const DEFAULT_CSV = 'data/vsp_choice_master_v7_full_fixed.csv';
-    const REQUIRE_D_CODES_FOR_SV_AND_LINED_POLARIZED = true;
 
-    /* ---------- Price-anchored tiers ---------- */
-    const BETTER_CAP_OF_MAX = 0.75; // 25% under MaxPrice
-    const GOOD_CAP_OF_MAX   = 0.50; // 50% under MaxPrice
-    const CAP_RELAX_FACTOR  = 0.90; // fallback cap relaxer
+    /* Price-anchored tiers (Best→Better→Good→Cheapest) */
+    const BETTER_CAP_OF_MAX = 0.75; // ≤75% of MaxPrice
+    const GOOD_CAP_OF_MAX   = 0.50; // ≤50% of MaxPrice
+    const CAP_RELAX_FACTOR  = 0.90; // fallback relaxer
 
     const el = (id)=>document.getElementById(id);
     const sum = (a)=>a.reduce((x,y)=>x+y,0);
@@ -174,19 +172,7 @@
     const isGlassBase = row => /glass/i.test(N(row?.enhancement || row?.subtype || ''));
     const preferPhotoCodeForBase = row => (isGlassBase(row) ? 'PM' : 'PR');
 
-    // -------- Per-office preferences --------
-    const OFFICE_ID = new URLSearchParams(location.search).get('office') || 'default';
-    const PREF_KEY  = `pe-prefs-${OFFICE_ID}`;
-    const loadPrefs = () => { try { return JSON.parse(localStorage.getItem(PREF_KEY) || '{}'); } catch { return {}; } };
-    const savePrefs = (p) => localStorage.setItem(PREF_KEY, JSON.stringify(p));
-
-    // ----- Custom Measurements helpers/eligibility -----
-    const isCustomMeasure = (row) => /custom\s*measure/i.test(N(row?.enhancement || row?.subtype || ''));
-    const isProgN = (label) => /\bprogressive\b.*\bN\b/i.test(N(label));
-    const isProgO = (label) => /\bprogressive\b.*\bO\b/i.test(N(label));
-    function cmEligibleForLabel(label){ const s=N(label); return isProgN(s)||isProgO(s); }
-
-    /* -------- CSV parsing & cache -------- */
+    /* CSV parsing & cache */
     function parseCSV(text){
       const rows=[]; let row=[], field='', q=false;
       for(let i=0;i<text.length;i++){
@@ -202,30 +188,25 @@
         const o={}; headers.forEach((h,i)=>o[h]=(r[i]||'').replace(/^\"|\"$/g,'').trim()); return o;
       });
     }
-
     const CACHE_KEY='rev-vsp-choice-csv-v1';
     const META_KEY='rev-vsp-choice-meta-v1';
     const setCache=(t,m)=>{ localStorage.setItem(CACHE_KEY,t); localStorage.setItem(META_KEY,JSON.stringify(m)); };
     const getCache=()=>({ text: localStorage.getItem(CACHE_KEY), meta: JSON.parse(localStorage.getItem(META_KEY)||'{}') });
     const clearCacheStorage=()=>{ localStorage.removeItem(CACHE_KEY); localStorage.removeItem(META_KEY); };
 
-    /* -------- Composite code indices (for ALL items) -------- */
-    let CODE_COPAY_INDEX = {};
-    let CODE_CB_INDEX    = {};
+    /* Build schedule indices so we can price composite codes by parts */
+    let DATA=[], CODE_COPAY_INDEX={}, CODE_CB_INDEX={};
     function buildCodeIndices(){
       CODE_COPAY_INDEX = {};
       CODE_CB_INDEX    = {};
       for (const r of DATA){
         const c = String(r.code||'').trim().toUpperCase();
         if (!c) continue;
-        const cop = num(r.copay);
-        const cb  = num(r.chargeback);
+        const cop = num(r.copay), cb=num(r.chargeback);
         if (Number.isFinite(cop)) CODE_COPAY_INDEX[c] = Math.max(CODE_COPAY_INDEX[c] ?? 0, cop);
-        if (Number.isFinite(cb))  CODE_CB_INDEX[c]    = Math.max(CODE_CB_INDEX[c]    ?? 0, cb);
+        if (Number.isFinite(cb))  CODE_CB_INDEX[c]    = Math.max(CODE_CB_INDEX[c] ?? 0, cb);
       }
     }
-
-    let DATA=[];
 
     async function loadCSV(){
       const status=el('status'); status.textContent=' loading…';
@@ -253,14 +234,12 @@
         }
       }
     }
-
     function renderMeta(count, meta){
       el('version').textContent = `plan=${meta.plan||'VSP_choice'} • rows=${count||0} • version=${meta.version||'—'} • source=${meta.source||'—'} • sha=${meta.sha||'—'}`;
     }
 
-    /* ---------------- Data selectors & ranking ---------------- */
+    /* Data filters */
     const byKey=(k)=>DATA.filter(r=>(r.active||'yes').toLowerCase()==='yes' && (r.exclusive_key||'').toLowerCase()===k);
-
     function applies(row, fam){
       const a=(row.applies_to||'ALL').toUpperCase();
       if(a.includes('ALL')) return true;
@@ -270,107 +249,67 @@
       return true;
     }
 
-    const profitOf = (row)=> num(row.copay) - num(row.chargeback);
-    const pickBest = (arr)=> (arr && arr.length ? [...arr].sort((a,b)=>profitOf(b)-profitOf(a))[0] : null);
+    /* Composite handling: split "JA + JB" / "NA+NJ" / "NA + ND" etc. */
+    const splitCodes = (s)=>{
+      return String(s||'')
+        .toUpperCase()
+        .replace(/[^\w+&/,\s-]/g,'')        // keep word chars and separators
+        .split(/[\s+&/,-]+/)               // split on +, &, /, comma, hyphen, spaces
+        .map(t=>t.trim())
+        .filter(Boolean);
+    };
 
-    function rankAR(ars){
-      const gradeVal = (s)=>{
-        const m = String(s||'').match(/\b([A-D])\b/i);
-        if(!m) return null;
-        const g = m[1].toUpperCase();
-        return {A:1,B:2,C:3,D:4}[g]||null;
-      };
-      return [...ars].sort((a,b)=>{
-        const ga = gradeVal(a.enhancement)||-1, gb = gradeVal(b.enhancement)||-1;
-        if(ga!==gb) return gb-ga;   // D..A
-        return profitOf(b)-profitOf(a);
-      });
-    }
-
-    function materialKey(label) {
-      const s = N(label);
-      if(/polycarb/.test(s)) return 'poly';
-      if(/trivex/.test(s)) return 'trivex';
-      if(/1\.74|1\.75/.test(s)) return 'hi174';
-      if(/1\.70|1\.71|above/.test(s)) return 'hi70';
-      if(/1\.66|1\.67/.test(s)) return 'hi167';
-      if(/cr[- ]?39|plastic(?!.*high)/.test(s)) return 'cr39';
-      return 'other';
-    }
-    function sunMatchesBase(sunRow, baseRow) {
-      const mk = materialKey(baseRow.enhancement || baseRow.subtype || '');
-      const t = N(sunRow.enhancement);
-      switch (mk) {
-        case 'poly':   return /polycarb/.test(t);
-        case 'trivex': return /trivex/.test(t);
-        case 'hi174':  return /(1\.74|1\.75)/.test(t);
-        case 'hi70':   return /(1\.70|1\.71|above)/.test(t);
-        case 'hi167':  return /(1\.66|1\.67)/.test(t);
-        case 'cr39':   return /(cr[- ]?39|plastic(?!.*high))/.test(t);
-        default:       return true;
-      }
-    }
-
-    /* -------- Composite-aware helpers -------- */
-    function line(row){
-      let cop = num(row.copay);
-      let cb  = num(row.chargeback);
-
+    /* Explode a schedule row into one or many visual rows
+       - If composite parts are fully known (found in index), render one row per part
+       - First row carries the description; subsequent rows use blank description for clean alignment
+       - If not all parts are known, fall back to a single row using the CSV amounts
+    */
+    function explodeRow(row){
+      const desc = row.enhancement || row.subtype || '—';
       const codeStr = String(row.code||'').trim().toUpperCase();
-      let partsArr = [];
-
-      if (codeStr.includes('+')){
-        const partCodes = codeStr.split('+').map(s=>s.trim()).filter(Boolean);
-
-        // Build per-part breakdown from indices
-        for (const p of partCodes){
-          const pc = CODE_COPAY_INDEX[p];
-          const pb = CODE_CB_INDEX[p];
-          if (pc != null || pb != null){
-            const copPart = pc ?? 0;
-            const cbPart  = pb ?? 0;
-            partsArr.push({ code:p, copay:copPart, chargeback:cbPart, profit:copPart - cbPart, name: row.enhancement || row.subtype || '—' });
+      const parts = splitCodes(codeStr);
+      if (parts.length>1){
+        const built=[];
+        for (const p of parts){
+          const cop = CODE_COPAY_INDEX[p];
+          const cb  = CODE_CB_INDEX[p];
+          if (cop==null && cb==null){ // unknown piece → abort breakdown
+            return [{
+              name: desc, code: codeStr,
+              copay: num(row.copay), chargeback: num(row.chargeback),
+              profit: num(row.copay)-num(row.chargeback)
+            }];
           }
+          built.push({ name:null, code:p, copay:cop??0, chargeback:cb??0 });
         }
-
-        // Prefer sums (but never less than row values)
-        if (partsArr.length){
-          const sumCop = partsArr.reduce((a,x)=>a + x.copay, 0);
-          const sumCb  = partsArr.reduce((a,x)=>a + x.chargeback, 0);
-          cop = Math.max(cop, sumCop);
-          cb  = Math.max(cb,  sumCb );
-        }
+        // attach description only to the first part row
+        if (built.length){ built[0].name = desc; }
+        built.forEach(x=> x.profit = x.copay - x.chargeback);
+        return built;
       }
-
-      const pr = cop - cb;
-      return {
-        name: row.enhancement || row.subtype || '—',
-        code: row.code || '',
-        copay: cop,
-        chargeback: cb,
-        profit: pr,
-        parts: partsArr
-      };
+      // simple row
+      const cop=num(row.copay), cb=num(row.chargeback);
+      return [{ name:desc, code:codeStr||'', copay:cop, chargeback:cb, profit:cop-cb }];
     }
 
     function makeBundle(base, addOns){
-      const items=[base, ...addOns.filter(Boolean)];
-      const lines = items.map(line);
+      const rows = [base, ...addOns.filter(Boolean)];
+      const lines = rows.flatMap(explodeRow);
       const cop = sum(lines.map(x=>x.copay));
       const cb  = sum(lines.map(x=>x.chargeback));
       const pr  = cop - cb;
       const ratio = cop>0 ? (pr/cop) : 0;
       const label = base.enhancement || base.subtype || base.code || 'Base';
-      return { label, lines, copay:cop, chargeback:cb, profit:pr, ratio, baseRow: base };
+      return { label, lines, copay:cop, chargeback:cb, profit:pr, ratio };
     }
 
-    /* ---------------- Presentation helpers ---------------- */
+    /* UI helpers */
     function animateNumber(el,to){
       const from=parseFloat(el.getAttribute('data-prev')||'0'); const start=performance.now(); const dur=380;
       function step(t){ const k=Math.min(1,(t-start)/dur); const v=from+(to-from)*(0.5-Math.cos(Math.PI*k)/2); el.textContent=`$${v.toFixed(2)}`; if(k<1)requestAnimationFrame(step); else el.setAttribute('data-prev',to); }
       requestAnimationFrame(step);
     }
-    function tdMoney(v){ return `<td class="money">$${v.toFixed(2)}</td>`; }
+    const tdMoney = v => `<td class="money">$${v.toFixed(2)}</td>`;
 
     function renderTier({name, cls, b}){
       const div=document.createElement('div'); div.className='tier';
@@ -392,27 +331,16 @@
           </div>
         </div>`;
 
-      // main rows + per-code breakdown for composites (UNIFORM layout)
-      const lines = b.lines.map(li=>{
-        const main = `
-          <tr>
-            <td>${li.name}</td>
+      const lines = b.lines.map((li,idx,arr)=>{
+        const showDesc = (li.name!=null); // only present on first row for composites
+        return `
+          <tr class="${showDesc? '' : 'subrow'}">
+            <td class="${showDesc? '' : 'desc-empty'}">${showDesc ? li.name : '•'}</td>
             <td class="code">${li.code || '—'}</td>
             ${tdMoney(li.copay)}
             ${tdMoney(li.chargeback)}
             ${tdMoney(li.profit)}
           </tr>`;
-        const parts = (li.parts && li.parts.length)
-          ? li.parts.map(p=>`
-              <tr class="subrow">
-                <td>${p.name} <span class="subbadge">breakdown</span></td>
-                <td class="code">${p.code}</td>
-                ${tdMoney(p.copay)}
-                ${tdMoney(p.chargeback)}
-                ${tdMoney(p.profit)}
-              </tr>`).join('')
-          : '';
-        return main + parts;
       }).join('');
 
       div.innerHTML = head + `
@@ -437,222 +365,195 @@
       const hero = div.querySelector('.hero'); animateNumber(hero, b.copay);
       return div;
     }
-
     function renderStack(rows){
-      const stack = el('stack');
-      stack.innerHTML='';
+      const stack = el('stack'); stack.innerHTML='';
       for(const row of rows){ stack.appendChild(renderTier(row)); }
     }
 
-    /* ================== Compute bundles ================== */
+    /* Compute bundles */
     function computeBundles(){
-      try{
-        if(!DATA.length){ el('stack').innerHTML=''; return; }
+      if(!DATA.length){ el('stack').innerHTML=''; return; }
 
-        const fam = el('lensFamily').value;
-        const wantAR = el('includeAR').checked;
-        const wantAsp = el('includeAspheric').checked;
-        const wantOS  = el('includeOversize').checked;
-        const wantGlass = el('includeGlass').checked;
-        const tintSel = el('lensTint').value;
+      const fam = el('lensFamily').value;
+      const wantAR = el('includeAR').checked;
+      const wantAsp = el('includeAspheric').checked;
+      const wantOS  = el('includeOversize').checked;
+      const wantGlass = el('includeGlass').checked;
+      const tintSel = el('lensTint').value;
 
-        const sunAll = byKey('sun_tech').filter(r=>applies(r,fam)).filter(r=>{
-          const n=N(r.enhancement);
-          if(!wantGlass && n.includes('glass')) return false;
-          return true;
+      const sunAll = byKey('sun_tech').filter(r=>applies(r,fam)).filter(r=>{
+        const n=N(r.enhancement);
+        if(!wantGlass && n.includes('glass')) return false;
+        return true;
+      });
+
+      const isCustomMeasure = (row) => /custom\s*measure/i.test(N(row?.enhancement || row?.subtype || ''));
+      const customPool = DATA.filter(r => applies(r, 'PAL')).filter(isCustomMeasure);
+
+      // base candidates
+      let base = [];
+      if (fam === 'PAL') {
+        base = byKey('progressive_level').filter(r=>applies(r,fam)).filter(r=>{
+          const name=N(r.enhancement);
+          if(!wantAsp && name.includes('aspheric')) return false;
+          if(!wantGlass && name.includes('glass'))  return false;
+          if(isCustomMeasure(r)) return false;
+          if (tintSel==='polarized') return /polariz/.test(name);
+          return !/(photochrom|polariz|tint|tinted|sunglass|gradient)/.test(name);
         });
-
-        const customPool = DATA.filter(r => applies(r, 'PAL')).filter(isCustomMeasure);
-
-        let base = [];
-        if (fam === 'PAL') {
-          base = byKey('progressive_level').filter(r=>applies(r,fam)).filter(r=>{
+      } else {
+        if (tintSel==='polarized') {
+          base = sunAll.filter(r => /polariz/.test(N(r.enhancement)) && isDCode(r));
+        } else {
+          const pool = (fam==='SV' ? byKey('base_material') : byKey('occupational'));
+          base = pool.filter(r=>applies(r,fam)).filter(r=>{
             const name=N(r.enhancement);
             if(!wantAsp && name.includes('aspheric')) return false;
             if(!wantGlass && name.includes('glass'))  return false;
-            if(isCustomMeasure(r)) return false;
-            if (tintSel==='polarized') return /polariz/.test(name);
-            return !/(photochrom|polariz|tint|tinted|sunglass|gradient)/.test(name);
+            if(/photochrom|polariz|tint|tinted|sunglass|gradient/.test(name)) return false;
+            return true;
           });
-        } else {
-          if (tintSel==='polarized') {
-            base = sunAll.filter(r => /polariz/.test(N(r.enhancement)) && isDCode(r));
-          } else {
-            const pool = (fam==='SV' ? byKey('base_material') : byKey('occupational'));
-            base = pool.filter(r=>applies(r,fam)).filter(r=>{
-              const name=N(r.enhancement);
-              if(!wantAsp && name.includes('aspheric')) return false;
-              if(!wantGlass && name.includes('glass'))  return false;
-              if(/photochrom|polariz|tint|tinted|sunglass|gradient/.test(name)) return false;
-              return true;
-            });
-          }
         }
+      }
 
-        const arPool = wantAR ? byKey('ar_level').filter(r=>applies(r,fam)) : [];
-        const arRanked = wantAR ? rankAR(arPool) : [];
-        const arOptions = wantAR && arRanked.length ? arRanked : [null];
+      // AR pool (ranked)
+      const arPool = wantAR ? byKey('ar_level').filter(r=>applies(r,fam)) : [];
+      const arRanked = wantAR ? [...arPool].sort((a,b)=>(num(b.copay)-num(b.chargeback)) - (num(a.copay)-num(a.chargeback))) : [];
+      const arOptions = wantAR && arRanked.length ? arRanked : [null];
 
-        function chooseSunFor(baseRow) {
-          if (tintSel==='clear' || tintSel==='polarized') return null;
-
-          if (tintSel==='transitions') {
-            const want = preferPhotoCodeForBase(baseRow);
-            let pool = sunAll.filter(r => /photochrom/.test(N(r.enhancement)));
-            let choice = pickBest(pool.filter(r => new RegExp('^' + want, 'i').test((r.code || '').trim())));
-            if (choice) return choice;
-            choice = pickBest(pool.filter(isPPhoto));
-            if (choice) return choice;
-            return pickBest(pool);
-          }
-
-          if (tintSel==='tinted') {
-            let pool = sunAll.filter(r=>{
-              const n=N(r.enhancement);
-              return sunMatchesBase(r, baseRow) && !/photochrom|polariz/.test(n) && /tint|tinted|solid|gradient|sunglass/.test(n);
-            });
-            return pickBest(pool);
-          }
-
-          return null;
+      function materialKey(label) {
+        const s = N(label);
+        if(/polycarb/.test(s)) return 'poly';
+        if(/trivex/.test(s)) return 'trivex';
+        if(/1\.74|1\.75/.test(s)) return 'hi174';
+        if(/1\.70|1\.71|above/.test(s)) return 'hi70';
+        if(/1\.66|1\.67/.test(s)) return 'hi167';
+        if(/cr[- ]?39|plastic(?!.*high)/.test(s)) return 'cr39';
+        return 'other';
+      }
+      function sunMatchesBase(sunRow, baseRow) {
+        const mk = materialKey(baseRow.enhancement || baseRow.subtype || '');
+        const t = N(sunRow.enhancement);
+        switch (mk) {
+          case 'poly':   return /polycarb/.test(t);
+          case 'trivex': return /trivex/.test(t);
+          case 'hi174':  return /(1\.74|1\.75)/.test(t);
+          case 'hi70':   return /(1\.70|1\.71|above)/.test(t);
+          case 'hi167':  return /(1\.66|1\.67)/.test(t);
+          case 'cr39':   return /(cr[- ]?39|plastic(?!.*high))/.test(t);
+          default:       return true;
         }
-
-        function customFor(baseRow) {
-          const cmToggle = el('includeCM')?.checked;
-          if (!cmToggle) return null;
-          if (fam !== 'PAL') return null;
-          const label = baseRow.enhancement || baseRow.subtype || baseRow.code || '';
-          if (!cmEligibleForLabel(label)) return null;
-          return pickBest(customPool) || null;
+      }
+      function chooseSunFor(baseRow) {
+        if (tintSel==='clear' || tintSel==='polarized') return null;
+        if (tintSel==='transitions') {
+          const want = preferPhotoCodeForBase(baseRow); // PM for glass, else PR
+          let pool = sunAll.filter(r => /photochrom/.test(N(r.enhancement)));
+          let choice = pool.find(r => new RegExp('^' + want, 'i').test((r.code || '').trim())) || pool.find(r=>isPPhoto(r));
+          return choice || null;
         }
-
-        const overs = wantOS ? pickBest(byKey('oversize').filter(r=>applies(r,fam)).filter(r=>{
-          const n=N(r.enhancement);
-          if(!wantGlass && n.includes('glass')) return false;
-          return true;
-        })) : null;
-
-        function buildBundle(m, arRow){ return makeBundle(m, [arRow, chooseSunFor(m), customFor(m), overs]); }
-        const all = [];
-        for(const m of base){ for(const ar of arOptions){ all.push(buildBundle(m, ar)); } }
-        if (!all.length){
-          renderStack([{name:'Good',cls:'good',b:null},{name:'Better',cls:'better',b:null},{name:'Best',cls:'best',b:null},{name:'Cheapest',cls:'good',b:null}]);
-          return;
+        if (tintSel==='tinted') {
+          let pool = sunAll.filter(r=>{
+            const n=N(r.enhancement);
+            return sunMatchesBase(r, baseRow) && !/photochrom|polariz/.test(n) && /tint|tinted|solid|gradient|sunglass/.test(n);
+          });
+          return pool[0] || null;
         }
+        return null;
+      }
+      function customFor(baseRow) {
+        const cmToggle = el('includeCM')?.checked;
+        if (!cmToggle || fam!=='PAL') return null;
+        // N/O eligibility is encoded in product names; conservative: allow toggle to control
+        return customPool[0] || null;
+      }
 
-        const MaxPrice = Math.max(...all.map(b => b.copay));
+      const overs = el('includeOversize').checked
+        ? (byKey('oversize').filter(r=>applies(r,fam)).find(r=>true) || null)
+        : null;
 
-        function mostProfit(arr){
-          let pick=null;
-          for(const b of arr){ if (!pick || b.profit>pick.profit || (b.profit===pick.profit && b.ratio>pick.ratio)) pick=b; }
-          return pick;
-        }
-        function mostProfitUnderCap(cap, exclude=new Set()){
-          let pick=null, bestProfit=-Infinity;
-          for(const b of all){
-            if (b.copay <= cap){
-              const lbl=b.label;
-              if (exclude.has(lbl)) continue;
-              if (b.profit>bestProfit || (b.profit===bestProfit && (b.copay<(pick?.copay??Infinity) || b.ratio>(pick?.ratio??-Infinity)))){
-                bestProfit=b.profit; pick=b;
-              }
-            }
-          }
-          if (pick) return pick;
-          for(const b of all){
-            if (b.copay <= cap){
-              if (!pick || b.profit>pick.profit || (b.profit===pick.profit && (b.copay<pick.copay || b.ratio>pick.ratio))){
-                pick=b;
-              }
-            }
-          }
-          return pick;
-        }
-        function cheapest(exclude=new Set()){
-          let pick=null;
-          for(const b of all){
+      function buildBundle(m, arRow){ return makeBundle(m, [arRow, chooseSunFor(m), customFor(m), overs]); }
+      const all = [];
+      for(const m of base){ for(const ar of arOptions){ all.push(buildBundle(m, ar)); } }
+      if (!all.length){
+        renderStack([{name:'Best',cls:'best',b:null},{name:'Better',cls:'better',b:null},{name:'Good',cls:'good',b:null},{name:'Cheapest',cls:'good',b:null}]);
+        return;
+      }
+
+      const MaxPrice = Math.max(...all.map(b => b.copay));
+      function mostProfit(arr){
+        let pick=null;
+        for(const b of arr){ if(!pick || b.profit>pick.profit || (b.profit===pick.profit && b.copay<pick.copay)) pick=b; }
+        return pick;
+      }
+      function mostProfitUnderCap(cap, exclude=new Set()){
+        let pick=null, bestProfit=-Infinity;
+        for(const b of all){
+          if (b.copay <= cap){
             const lbl=b.label;
             if (exclude.has(lbl)) continue;
-            if (!pick || b.copay < pick.copay || (b.copay===pick.copay && b.profit>(pick.profit))){
+            if (b.profit>bestProfit || (b.profit===bestProfit && b.copay<(pick?.copay??Infinity))){
+              bestProfit=b.profit; pick=b;
+            }
+          }
+        }
+        if (pick) return pick;
+        // relax
+        const looser = cap / CAP_RELAX_FACTOR;
+        for(const b of all){
+          if (b.copay <= looser){
+            const lbl=b.label;
+            if (exclude.has(lbl)) continue;
+            if (!pick || b.profit>pick.profit || (b.profit===pick.profit && b.copay<pick.copay)){
               pick=b;
             }
           }
-          if (pick) return pick;
-          for(const b of all){
-            if (!pick || b.copay < pick.copay || (b.copay===pick.copay && b.profit>(pick.profit))){
-              pick=b;
-            }
-          }
-          return pick;
         }
-
-        const best = mostProfit(all);
-        const used = new Set(best ? [best.label] : []);
-        const capBetter1 = MaxPrice * BETTER_CAP_OF_MAX;
-        let better = mostProfitUnderCap(capBetter1, used);
-        if (!better && CAP_RELAX_FACTOR !== 1){
-          const capBetter2 = MaxPrice * (BETTER_CAP_OF_MAX / CAP_RELAX_FACTOR);
-          better = mostProfitUnderCap(capBetter2, used);
-        }
-        if (better) used.add(better.label);
-
-        const capGood1 = MaxPrice * GOOD_CAP_OF_MAX;
-        let good = mostProfitUnderCap(capGood1, used);
-        if (!good && CAP_RELAX_FACTOR !== 1){
-          const capGood2 = MaxPrice * (GOOD_CAP_OF_MAX / CAP_RELAX_FACTOR);
-          good = mostProfitUnderCap(capGood2, used);
-        }
-        if (!good){ good = cheapest(used); }
-        if (good) used.add(good.label);
-
-        const cheap = cheapest(used);
-
-        renderStack([
-          {name:'Good',     cls:'good',    b:good},
-          {name:'Better',   cls:'better',  b:better},
-          {name:'Best',     cls:'best',    b:best},
-          {name:'Cheapest', cls:'good',    b:cheap}
-        ]);
-      }catch(err){
-        const wrap = document.createElement('div');
-        wrap.style.cssText = 'position:fixed;inset:12px;z-index:99999;background:#0b1220;border:1px solid #f44;box-shadow:0 8px 24px rgba(0,0,0,.5);color:#fff;border-radius:12px;padding:12px;overflow:auto;max-height:90vh;font:12px/1.4 ui-monospace,Menlo,Consolas,monospace';
-        wrap.innerHTML = '<b>computeBundles error:</b><pre style="white-space:pre-wrap;margin:8px 0 0">'+(err.stack||err.message||String(err))+'</pre>';
-        document.body.appendChild(wrap);
+        return pick;
       }
+      function cheapest(exclude=new Set()){
+        let pick=null;
+        for(const b of all){
+          const lbl=b.label; if (exclude.has(lbl)) continue;
+          if (!pick || b.copay<b.copay || b.copay<pick.copay || (b.copay===pick.copay && b.profit>(pick.profit))) pick=b;
+        }
+        if (pick) return pick;
+        for(const b of all){ if (!pick || b.copay<pick.copay || (b.copay===pick.copay && b.profit>(pick.profit))) pick=b; }
+        return pick;
+      }
+
+      // 1) BEST (leftmost)
+      const best = mostProfit(all);
+      const used = new Set(best ? [best.label] : []);
+
+      // 2) BETTER (≤75% of max)
+      const better = mostProfitUnderCap(MaxPrice*BETTER_CAP_OF_MAX, used);
+      if (better) used.add(better.label);
+
+      // 3) GOOD (≤50% of max)
+      let good = mostProfitUnderCap(MaxPrice*GOOD_CAP_OF_MAX, used);
+      if (!good) good = cheapest(used);
+      if (good) used.add(good.label);
+
+      // 4) CHEAPEST
+      const cheap = cheapest(used);
+
+      // Steve-order: Best → Better → Good → Cheapest
+      renderStack([
+        {name:'Best',     cls:'best',    b:best},
+        {name:'Better',   cls:'better',  b:better},
+        {name:'Good',     cls:'good',    b:good},
+        {name:'Cheapest', cls:'good',    b:cheap}
+      ]);
     }
 
-    /* ---------------- Wire-up ---------------- */
+    /* Wire-up */
     el('forceRefresh').onclick=()=>{ clearCacheStorage(); loadCSV(); };
     el('clearCache').onclick =()=>{ clearCacheStorage(); el('status').textContent=' cache cleared — click Force Refresh to reload'; };
-
     ['lensFamily','lensTint','includeAR','includeAspheric','includeOversize','includeGlass','includeCM']
-      .forEach(id => {
-        const node = el(id);
-        if (!node) return;
-        node.onchange = () => {
-          if (id === 'includeCM') {
-            const p = loadPrefs();
-            p.includeCM = node.checked;
-            savePrefs(p);
-          }
-          computeBundles();
-        };
-      });
+      .forEach(id => { const node=el(id); if(node) node.onchange=computeBundles; });
 
-    (function boot(){
-      try{
-        const prefs = loadPrefs();
-        if (el('includeCM') && typeof prefs.includeCM === 'boolean') {
-          el('includeCM').checked = prefs.includeCM;
-        }
-        loadCSV();
-      }catch(err){
-        const wrap = document.createElement('div');
-        wrap.style.cssText = 'position:fixed;inset:12px;z-index:99999;background:#0b1220;border:1px solid #f44;box-shadow:0 8px 24px rgba(0,0,0,.5);color:#fff;border-radius:12px;padding:12px;overflow:auto;max-height:90vh;font:12px/1.4 ui-monospace,Menlo,Consolas,monospace';
-        wrap.innerHTML = '<b>boot error:</b><pre style="white-space:pre-wrap;margin:8px 0 0">'+(err.stack||err.message||String(err))+'</pre>';
-        document.body.appendChild(wrap);
-      }
-    })();
+    (function boot(){ loadCSV(); })();
   }
   </script>
 </body>
