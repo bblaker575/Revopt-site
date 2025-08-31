@@ -1,8 +1,8 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>RevSight AI — VSP Choice Bundles</title>
   <style>
     :root{--bg:#0b0f14;--fg:#e7eefc;--muted:#9fb0c9;--card:#101722;--line:#233044}
@@ -30,7 +30,10 @@
   <header>
     <div>
       <h1>RevSight AI — VSP Choice Bundles</h1>
-      <div class="sub">Good/Better/Best ranked by <b>practice profit</b>. AR default <b>ON</b>. Polarized/Transitions are <b>add-ons</b>, not base materials.</div>
+      <div class="sub">
+        Good/Better/Best ranked by <b>practice profit</b>. AR default <b>ON</b>.
+        Polarized/Transitions are <b>add-ons</b>. Offline cache enabled.
+      </div>
     </div>
     <div class="sub" id="version">loading…</div>
   </header>
@@ -38,10 +41,10 @@
   <main>
     <div class="bar">
       <button class="btn" id="forceRefresh">Force Refresh</button>
-      <button class="btn" id="clearLocal">Clear Local Cache</button>
+      <button class="btn" id="clearCache">Clear Local Cache</button>
 
       <label class="switch">Lens family
-        <select id="lensFamily" class="input">
+        <select id="lensFamily">
           <option value="SV">Single Vision</option>
           <option value="LINED">Lined Bi/Tri</option>
           <option value="PAL">Progressive</option>
@@ -49,6 +52,7 @@
       </label>
 
       <label class="switch"><input type="checkbox" id="includeAR" checked> Include AR</label>
+      <label class="switch"><input type="checkbox" id="includeVSP" checked> Include VSP</label>
       <label class="switch"><input type="checkbox" id="includeAspheric"> Aspheric</label>
       <label class="switch"><input type="checkbox" id="includeOversize"> Oversize</label>
       <label class="switch"><input type="checkbox" id="includeGlass"> Glass</label>
@@ -80,201 +84,214 @@
   </main>
 
   <script>
-    // ---- Config ----
-    const DEFAULT_CSV = 'data/vsp_choice_master_v7.csv';
+    // ---------------- Config ----------------
+    // Locked to your repo path:
+    const DEFAULT_CSV = 'data/vsp_choice_master_v7_full_fixed.csv';
 
-    // ---- Utils ----
-    const $ = (id)=>document.getElementById(id);
+    // ---------------- Utils -----------------
+    const el = (id)=>document.getElementById(id);
     const sum = (a)=>a.reduce((x,y)=>x+y,0);
     const money = (v)=>`$${v.toFixed(2)}`;
-    const num = (v)=>{ const x=parseFloat(String(v??'').toString().replace(/[^0-9.\-]/g,'')); return isFinite(x)?x:0; };
-    const hash=(s)=>{ let h=2166136261>>>0; for(let i=0;i<s.length;i++){ h^=s.charCodeAt(i); h=Math.imul(h,16777619)>>>0; } return ('00000000'+h.toString(16)).slice(-8); };
+    const num = (v)=>{ const x=parseFloat(String(v??'').replace(/[^0-9.-]/g,'')); return isFinite(x)?x:0; };
+    const quickHash=(s)=>{ let h=2166136261>>>0; for(let i=0;i<s.length;i++){ h^=s.charCodeAt(i); h=Math.imul(h,16777619)>>>0; } return ('00000000'+h.toString(16)).slice(-8); };
 
-    // Robust CSV parser (quoted fields)
+    // Basic CSV parser (quoted-safe enough for our sheet)
     function parseCSV(text){
-      const out=[], row=[], push=()=>{ out.push(row.splice(0)); };
-      let f='', q=false, r=[];
+      const rows=[]; let row=[], field='', q=false;
       for(let i=0;i<text.length;i++){
-        const c=text[i];
-        if(c==='\"'){ q=!q; f+=c; continue; }
-        if(!q && c===','){ r.push(f); f=''; continue; }
-        if(!q && (c==='\n' || c==='\r')){ if(f!==''||r.length){ r.push(f); out.push(r); r=[]; f=''; } continue; }
-        f+=c;
+        const ch=text[i];
+        if(ch==='\"'){ // toggle quotes or handle escaped ""
+          if(q && text[i+1]==='\"'){ field+='\"'; i++; } else { q=!q; }
+          continue;
+        }
+        if(!q && ch===','){ row.push(field); field=''; continue; }
+        if(!q && (ch==='\n' || ch==='\r')){ if(field!==''||row.length){ row.push(field); rows.push(row); row=[]; field=''; } continue; }
+        field+=ch;
       }
-      if(f!==''||r.length){ r.push(f); out.push(r); }
-      const headers = out.shift().map(h=>h.replace(/^\"|\"$/g,'').trim());
-      return out.filter(r=>r.length>=headers.length).map(r=>{
-        const o={}; headers.forEach((h,i)=> o[h]=(r[i]||'').replace(/^\"|\"$/g,'').trim() ); return o;
+      if(field!==''||row.length){ row.push(field); rows.push(row); }
+      const headers = rows.shift().map(h=>h.replace(/^\"|\"$/g,'').trim());
+      return rows.filter(r=>r.length>=headers.length).map(r=>{
+        const o={}; headers.forEach((h,i)=>o[h]=(r[i]||'').replace(/^\"|\"$/g,'').trim()); return o;
       });
     }
 
     // Local cache
-    const CK='vsp-choice-csv', MK='vsp-choice-meta';
-    const setCache=(t,m)=>{ localStorage.setItem(CK,t); localStorage.setItem(MK,JSON.stringify(m)); };
-    const getCache=()=>({ text: localStorage.getItem(CK), meta: JSON.parse(localStorage.getItem(MK)||'{}') });
-    const clearCache=()=>{ localStorage.removeItem(CK); localStorage.removeItem(MK); $('status').textContent=' cache cleared'; };
+    const CACHE_KEY='rev-vsp-choice-csv-v1';
+    const META_KEY='rev-vsp-choice-meta-v1';
+    const setCache=(t,m)=>{ localStorage.setItem(CACHE_KEY,t); localStorage.setItem(META_KEY,JSON.stringify(m)); };
+    const getCache=()=>({ text: localStorage.getItem(CACHE_KEY), meta: JSON.parse(localStorage.getItem(META_KEY)||'{}') });
+    const clearCache=()=>{ localStorage.removeItem(CACHE_KEY); localStorage.removeItem(META_KEY); };
 
-    // ---- Data store ----
-    let ROWS=[];      // normalized rows
+    // ---------------- Data ------------------
+    let DATA=[];
 
-    // Normalize a raw CSV row so matching is bulletproof
-    function norm(r){
-      const lower = (x)=> String(x||'').toLowerCase().trim();
-      const ek = lower(r.exclusive_key);
-      const grp = lower(r.group);
-      const enh = (r.enhancement||'').trim();
-      const subtype = (r.subtype||'').trim();
-      const code = (r.code||'').trim();
-      const applies = String(r.applies_to||'').toUpperCase().split(/[|,\/\s]+/).filter(Boolean);
-      return {
-        group: grp,
-        subtype, enhancement: enh, code,
-        copay: num(r.copay), chargeback: num(r.chargeback),
-        exclusive_key: ek,
-        applies_to_tokens: applies,
-        active: String(r.active||'yes').toLowerCase().startsWith('y')
-      };
-    }
-
-    function appliesToFamily(row, fam){
-      if(!row.applies_to_tokens.length) return true;
-      if(fam==='LINED') return row.applies_to_tokens.some(t=> t==='LINED' || t==='OCC' || t==='BF' || t==='BIFOCAL');
-      return row.applies_to_tokens.includes(fam);
-    }
-
-    function byExclusive(key){ // tolerant to whitespace/case
-      key = key.toLowerCase().trim();
-      return ROWS.filter(r=>r.active && r.exclusive_key===key);
-    }
-
-    function byExclusiveAny(keys){ // first match among a set
-      const S = new Set(keys.map(k=>k.toLowerCase().trim()));
-      return ROWS.filter(r=>r.active && S.has(r.exclusive_key));
-    }
-
-    function loadCounts(fam){
-      const mats = byExclusive('material').filter(r=>appliesToFamily(r,fam));
-      const ars  = byExclusive('ar').filter(r=>appliesToFamily(r,fam));
-      const pals = byExclusive('progressive').filter(r=>appliesToFamily(r,fam));
-      const lins = byExclusive('lined').filter(r=>appliesToFamily(r,fam));
-      const trans= byExclusiveAny(['photochromic','transitions']).filter(r=>appliesToFamily(r,fam));
-      const pol  = byExclusive('polarized').filter(r=>appliesToFamily(r,fam));
-      const over = byExclusive('oversize').filter(r=>appliesToFamily(r,fam));
-      return {mats, ars, pals, lins, trans, pol, over};
-    }
-
-    function pickBestProfit(rows){
-      if(!rows.length) return null;
-      // Highest (copay - chargeback). If tie, prefer lower chargeback then nicer name.
-      return rows.slice().sort((a,b)=>{
-        const pa=(a.copay-a.chargeback), pb=(b.copay-b.chargeback);
-        if(pb!==pa) return pb-pa;
-        if(a.chargeback!==b.chargeback) return a.chargeback-b.chargeback;
-        return (a.enhancement||a.subtype||a.code).localeCompare(b.enhancement||b.subtype||b.code);
-      })[0];
-    }
-
-    function compute(){
-      if(!ROWS.length){ $('bundleTable').querySelector('tbody').innerHTML=''; return; }
-
-      const fam = $('lensFamily').value;
-      const wantAR = $('includeAR').checked;
-      const wantAsp = $('includeAspheric').checked;
-      const wantOS  = $('includeOversize').checked;
-      const wantGlass = $('includeGlass').checked;
-      const addTR = $('addTransitions').checked;
-      const addPO = $('addPolarized').checked;
-
-      const {mats, ars, pals, lins, trans, pol, over} = loadCounts(fam);
-
-      // Base materials (exclude Polarized/Transitions as base, and respect aspheric/glass toggles)
-      const materials = mats.filter(m=>{
-        const n = (m.enhancement||'').toLowerCase();
-        if(n.includes('polarized') || n.includes('transition')) return false;
-        if(!wantAsp && /aspheric/i.test(n)) return false;
-        if(!wantGlass && /glass/i.test(n)) return false;
-        return true;
-      });
-
-      // Pick the best add-on (by profit) in each category if selected
-      const selAR  = wantAR ? pickBestProfit(ars)   : null;
-      const selPAL = fam==='PAL'   ? pickBestProfit(pals) : null;
-      const selLIN = fam==='LINED' ? pickBestProfit(lins) : null;
-      const selTR  = addTR ? pickBestProfit(trans) : null;
-      const selPO  = addPO ? pickBestProfit(pol)   : null;
-      const selOS  = wantOS? pickBestProfit(over)  : null;
-
-      const bundles = materials.map(m=>{
-        const items = [m];
-        if(selAR)  items.push(selAR);
-        if(selPAL) items.push(selPAL);
-        if(selLIN) items.push(selLIN);
-        if(selTR)  items.push(selTR);
-        if(selPO)  items.push(selPO);
-        if(selOS)  items.push(selOS);
-        const cop = sum(items.map(x=>x.copay));
-        const cb  = sum(items.map(x=>x.chargeback));
-        const pr  = cop - cb;
-        return {
-          material: m.enhancement || m.subtype || m.code,
-          addOns: items.filter(i=>i!==m),
-          copay: cop, chargeback: cb, profit: pr,
-          ratio: cop>0 ? (pr/cop) : (pr>0?Infinity:0)
-        };
-      });
-
-      // Good/Better/Best
-      const byProfit = bundles.slice().sort((a,b)=>b.profit-a.profit);
-      const byCopay  = bundles.slice().sort((a,b)=>a.copay-b.copay);
-      const best  = byProfit[0] || null;
-      const mid   = byProfit.find(b => best && b.material!==best.material) || byProfit[1] || null;
-      const good  = byCopay[0] || null;
-
-      // Render
-      const tbody = $('bundleTable').querySelector('tbody'); tbody.innerHTML='';
-      const rows = [['Good','good',good],['Better','better',mid],['Best','best',best]];
-      for(const [name, cls, b] of rows){
-        const tr = document.createElement('tr');
-        if(!b){ tr.innerHTML = `<td>${name}</td><td colspan="6" class="sub">no viable bundle</td>`; tbody.appendChild(tr); continue; }
-        const addBadges = b.addOns.map(a=>`<span class="badge">${a.enhancement||a.subtype||a.code}</span>`).join(' ');
-        tr.innerHTML = `
-          <td><span class="badge ${cls}">${name}</span></td>
-          <td>${b.material}</td>
-          <td>${addBadges||''}</td>
-          <td class="money">${money(b.copay)}</td>
-          <td class="money">${money(b.chargeback)}</td>
-          <td class="money">${money(b.profit)}</td>
-          <td>${(b.ratio===Infinity?'∞':b.ratio.toFixed(2))}</td>`;
-        tbody.appendChild(tr);
-      }
-      $('bundleCount').textContent = 'Computed: '+rows.filter(r=>r[2]).length+' / 3';
-    }
-
-    async function boot(){
-      $('status').textContent=' loading…';
+    async function loadCSV(){
+      const status=el('status'); status.textContent=' loading…';
       try{
         const res = await fetch(DEFAULT_CSV,{cache:'no-store'});
         if(!res.ok) throw new Error('HTTP '+res.status);
-        const txt = await res.text();
-        const meta = { plan:'VSP_choice', version:new Date().toISOString().slice(0,10)+'.gbb', source:'network:'+DEFAULT_CSV, sha:hash(txt) };
-        setCache(txt, meta);
-        const raw = parseCSV(txt);
-        ROWS = raw.map(norm);          // << normalization fixes toggle issues
-        $('version').textContent = `plan=${meta.plan} • version=${meta.version} • source=${meta.source} • sha=${meta.sha}`;
-        $('status').textContent = ` [ok] loaded ${ROWS.length} rows`;
-        compute();
-      }catch(e){
-        $('status').textContent=' load failed: '+e.message;
+        const text = await res.text();
+        const meta = { plan:'VSP_choice', version:new Date().toISOString().slice(0,10)+'.gbb', source:'network:'+DEFAULT_CSV, sha:quickHash(text) };
+        setCache(text, meta);
+        DATA = parseCSV(text);
+        renderMeta(DATA.length, meta);
+        status.textContent = ` [ok] loaded ${DATA.length} rows`;
+        computeBundles();
+      }catch(err){
+        const {text, meta} = getCache();
+        if(text){
+          DATA = parseCSV(text);
+          renderMeta(DATA.length, {...meta, source:'cache'});
+          el('status').textContent = ` Network failed (${err.message}). Using cached data (${DATA.length} rows).`;
+          computeBundles();
+        }else{
+          el('status').textContent = ' Load failed: '+err.message+' (no cache available)';
+        }
       }
     }
 
-    // Wire-up
-    $('forceRefresh').onclick = ()=>{ clearCache(); boot(); };
-    $('clearLocal').onclick   = ()=> clearCache();
-    ['lensFamily','includeAR','includeAspheric','includeOversize','includeGlass','addTransitions','addPolarized']
-      .forEach(id=> $(id).onchange = compute);
+    function renderMeta(count, meta){
+      el('version').textContent =
+        `plan=${meta.plan||'VSP_choice'} • rows=${count||0} • version=${meta.version||'—'} • source=${meta.source||'—'} • sha=${meta.sha||'—'}`;
+    }
 
-    boot(); // start
+    // ---------------- Business Logic ------------------
+
+    const byKey=(k)=>DATA.filter(r=>(r.active||'yes').toLowerCase()==='yes' && (r.exclusive_key||'').toLowerCase()===k);
+
+    function applies(row, fam){
+      const a=(row.applies_to||'ALL').toUpperCase();
+      if(a.includes('ALL')) return true;
+      if(fam==='SV')     return a.includes('SV');
+      if(fam==='LINED')  return a.includes('OCC');   // bifocal/occupational tracks
+      if(fam==='PAL')    return a.includes('MF');    // multifocal (progressive)
+      return true;
+    }
+
+    function profitOf(row, useVSP){
+      return num(row.copay) + (useVSP ? num(row.vsp) : 0) - num(row.chargeback);
+    }
+
+    function pickBest(arr, useVSP){
+      if(!arr || !arr.length) return null;
+      return [...arr].sort((a,b)=> profitOf(b,useVSP) - profitOf(a,useVSP))[0];
+    }
+
+    function computeBundles(){
+      if(!DATA.length){ document.querySelector('#bundleTable tbody').innerHTML=''; return; }
+
+      const fam = el('lensFamily').value;
+      const wantAR = el('includeAR').checked;
+      const useVSP = el('includeVSP').checked;
+      const wantAsp = el('includeAspheric').checked;
+      const wantOS  = el('includeOversize').checked;
+      const wantGlass = el('includeGlass').checked;
+      const addTR = el('addTransitions').checked;
+      const addPO = el('addPolarized').checked;
+
+      // ---- Base candidates by family (avoid double materials) ----
+      let base = [];
+      if(fam==='SV'){
+        base = byKey('base_material').filter(r=>applies(r,fam));
+      }else if(fam==='LINED'){
+        base = byKey('occupational').filter(r=>applies(r,fam));
+      }else if(fam==='PAL'){
+        base = byKey('progressive_level').filter(r=>applies(r,fam));
+      }
+
+      // Global filters on base choices
+      base = base.filter(r=>{
+        const name=(r.enhancement||'').toLowerCase();
+        if(!wantAsp   && name.includes('aspheric')) return false;
+        if(!wantGlass && name.includes('glass'))    return false;
+        // For PAL: handle Polarized at the base level to avoid double-adding
+        if(fam==='PAL'){
+          if(addPO  && !/polariz/.test(name)) return false; // require polarized when toggle ON
+          if(!addPO &&  /polariz/.test(name)) return false; // exclude polarized when toggle OFF
+        }
+        return true;
+      });
+
+      // Add-ons (best single choice in each category)
+      const ars   = wantAR ? byKey('ar_level').filter(r=>applies(r,fam)) : [];
+      const bestAR = pickBest(ars, useVSP);
+
+      // Sun tech (Transitions / Polarized) lives under sun_tech; we do not add Polarized for PAL if base already polarized.
+      const sunAll = byKey('sun_tech').filter(r=>applies(r,fam)).filter(r=>{
+        const n=(r.enhancement||'').toLowerCase();
+        if(!wantGlass && n.includes('glass')) return false;
+        return true;
+      });
+      const trans = addTR ? sunAll.filter(r=>/photochrom/.test((r.enhancement||'').toLowerCase())) : [];
+      const pol   = addPO && fam!=='PAL' ? sunAll.filter(r=>/polariz/.test((r.enhancement||'').toLowerCase())) : []; // PAL handled at base
+      const bestTR = pickBest(trans, useVSP);
+      const bestPO = pickBest(pol,   useVSP);
+
+      // Oversize
+      const overs = wantOS ? byKey('oversize').filter(r=>applies(r,fam)).filter(r=>{
+        const n=(r.enhancement||'').toLowerCase();
+        if(!wantGlass && n.includes('glass')) return false;
+        return true;
+      }) : [];
+      const bestOS = pickBest(overs, useVSP);
+
+      // Build bundles: each base + selected best-of add-ons
+      const bundles = base.map(m=>{
+        const items=[m];
+        if(bestAR) items.push(bestAR);
+        if(bestTR) items.push(bestTR);
+        if(bestPO) items.push(bestPO);
+        if(bestOS) items.push(bestOS);
+
+        const cop = sum(items.map(x=>num(x.copay)));
+        const vsp = sum(items.map(x=>num(x.vsp)));
+        const cb  = sum(items.map(x=>num(x.chargeback)));
+        const revenue = cop + (useVSP ? vsp : 0);
+        const pr  = revenue - cb;
+
+        const label = m.enhancement || m.subtype || m.code || 'Base';
+        return { label, items, copay:cop, vsp, chargeback:cb, profit:pr, ratio: cop>0 ? (pr/cop) : 0 };
+      });
+
+      // Rank & pick tiers (distinct materials when possible)
+      const byProfit=[...bundles].sort((a,b)=>b.profit-a.profit);
+      const byCopay=[...bundles].sort((a,b)=>a.copay-b.copay);
+      const best = byProfit[0] || null;
+      const mid  = byProfit.find(b=>best && b.label!==best.label) || byProfit[1] || null;
+      let good   = byCopay.find(b=>{
+        if(!best) return true;
+        if(mid && b.label!==best.label && b.label!==mid.label) return true;
+        if(!mid && b.label!==best.label) return true;
+        return false;
+      }) || byCopay[0] || null;
+
+      // Render
+      const tbody=document.querySelector('#bundleTable tbody');
+      tbody.innerHTML='';
+      for(const [name,cls,b] of [['Good','good',good],['Better','better',mid],['Best','best',best]]){
+        const tr=document.createElement('tr');
+        if(!b){ tr.innerHTML=`<td>${name}</td><td colspan=6 class="sub">no viable bundle</td>`; tbody.appendChild(tr); continue; }
+        const addons=b.items.slice(1); // everything except base
+        tr.innerHTML=`<td><span class="badge ${cls}">${name}</span></td>
+          <td>${b.label}</td>
+          <td>${addons.map(a=>`<span class="badge">${a.enhancement||a.subtype||a.code}</span>`).join(' ') || '<span class="sub">—</span>'}</td>
+          <td class="money">${money(b.copay)}</td>
+          <td class="money">${money(b.chargeback)}</td>
+          <td class="money">${money(b.profit)}</td>
+          <td>${b.ratio.toFixed(2)}</td>`;
+        tbody.appendChild(tr);
+      }
+      el('bundleCount').textContent='Computed: '+[good,mid,best].filter(Boolean).length+' / 3';
+    }
+
+    // ---------------- Wire-up ----------------
+    el('forceRefresh').onclick=()=>{ clearCache(); loadCSV(); };
+    el('clearCache').onclick =()=>{ clearCache(); el('status').textContent=' cache cleared — click Force Refresh to reload'; };
+    ['lensFamily','includeAR','includeVSP','includeAspheric','includeOversize','includeGlass','addTransitions','addPolarized']
+      .forEach(id=> el(id).onchange=computeBundles );
+
+    // Boot
+    (async()=>{ await loadCSV(); })();
   </script>
 </body>
 </html>
