@@ -65,7 +65,6 @@
     .stars .tag{font-size:var(--fz-12); color:var(--muted); padding:2px 8px; border:1px solid var(--line); border-radius:999px; background:#0c1424}
     .stars.best{color:var(--tier-best)} .stars.better{color:var(--tier-better)} .stars.good{color:var(--tier-good)}
 
-    /* Scoreboard: Copay is hero, Service Fee secondary */
     .figures{ text-align:right; display:grid; gap:2px }
     .hero{ font-size:var(--fz-36); font-weight:800; line-height:1.0; letter-spacing:.2px; color:#cfe6ff; text-shadow: 0 6px 18px rgba(114,168,255,.18) }
     .caption{ color:var(--muted); font-size:var(--fz-12) }
@@ -117,7 +116,6 @@
         <label class="switch"><input type="checkbox" id="includeAspheric"> Aspheric</label>
         <label class="switch"><input type="checkbox" id="includeOversize"> Oversize</label>
         <label class="switch"><input type="checkbox" id="includeGlass"> Glass</label>
-        <!-- Global office toggle: default OFF -->
         <label class="switch"><input type="checkbox" id="includeCM"> Custom measurements (N/O only)</label>
       </div>
       <span id="status" aria-live="polite"></span>
@@ -126,7 +124,7 @@
     <div id="stack" class="stack"></div>
   </main>
 
-  <!-- Hard error overlay: never lets errors be silent -->
+  <!-- Hard error overlay -->
   <script>
     if (!window.__PAYEREDGE_V4__) {
       (function(){
@@ -145,7 +143,6 @@
 
   <script>
   if (window.__PAYEREDGE_V4__) {
-    // If somehow loaded twice, do nothing (prevents redeclare crashes)
     console.warn('PayerEdge script already loaded; skipping second init.');
   } else {
     window.__PAYEREDGE_V4__ = true;
@@ -163,7 +160,6 @@
 
     const el = (id)=>document.getElementById(id);
     const sum = (a)=>a.reduce((x,y)=>x+y,0);
-    const money = (v)=>`$${v.toFixed(2)}`;
     const num = (v)=>{ const x=parseFloat(String(v??'').replace(/[^0-9.-]/g,'')); return isFinite(x)?x:0; };
     const quickHash=(s)=>{ let h=2166136261>>>0; for(let i=0;i<s.length;i++){ h^=s.charCodeAt(i); h=Math.imul(h,16777619)>>>0; } return ('00000000'+h.toString(16)).slice(-8); };
     const N = s => String(s||'').toLowerCase();
@@ -173,7 +169,7 @@
     const isGlassBase = row => /glass/i.test(N(row?.enhancement || row?.subtype || ''));
     const preferPhotoCodeForBase = row => (isGlassBase(row) ? 'PM' : 'PR');
 
-    // -------- Per-office preferences (persisted by URL ?office=slug) --------
+    // -------- Per-office preferences --------
     const OFFICE_ID = new URLSearchParams(location.search).get('office') || 'default';
     const PREF_KEY  = `pe-prefs-${OFFICE_ID}`;
     const loadPrefs = () => { try { return JSON.parse(localStorage.getItem(PREF_KEY) || '{}'); } catch { return {}; } };
@@ -211,6 +207,22 @@
     const getCache=()=>({ text: localStorage.getItem(CACHE_KEY), meta: JSON.parse(localStorage.getItem(META_KEY)||'{}') });
     const clearCacheStorage=()=>{ localStorage.removeItem(CACHE_KEY); localStorage.removeItem(META_KEY); };
 
+    /* -------- Composite code index (for ALL items) -------- */
+    let CODE_COPAY_INDEX = {};
+    let CODE_CB_INDEX    = {};
+    function buildCodeIndices(){
+      CODE_COPAY_INDEX = {};
+      CODE_CB_INDEX    = {};
+      for (const r of DATA){
+        const c = String(r.code||'').trim().toUpperCase();
+        if (!c) continue;
+        const cop = num(r.copay);
+        const cb  = num(r.chargeback);
+        if (Number.isFinite(cop)) CODE_COPAY_INDEX[c] = Math.max(CODE_COPAY_INDEX[c] ?? 0, cop);
+        if (Number.isFinite(cb))  CODE_CB_INDEX[c]    = Math.max(CODE_CB_INDEX[c]    ?? 0, cb);
+      }
+    }
+
     let DATA=[];
 
     async function loadCSV(){
@@ -222,6 +234,7 @@
         const meta = { plan:'VSP_choice', version:new Date().toISOString().slice(0,10)+'.gbb', source:'network:'+DEFAULT_CSV, sha:quickHash(text) };
         setCache(text, meta);
         DATA = parseCSV(text);
+        buildCodeIndices();  // <-- build composite indices
         renderMeta(DATA.length, meta);
         status.textContent = ` [ok] loaded ${DATA.length} rows`;
         computeBundles();
@@ -229,6 +242,7 @@
         const {text, meta} = getCache();
         if(text){
           DATA = parseCSV(text);
+          buildCodeIndices();  // <-- build composite indices (cache path)
           renderMeta(DATA.length, {...meta, source:'cache'});
           el('status').textContent = ` Network failed (${err.message}). Using cached data (${DATA.length} rows).`;
           computeBundles();
@@ -295,9 +309,39 @@
       }
     }
 
+    /* -------- Composite-aware line builder -------- */
+    function compositeSum(parts, indexMap){
+      let found=false, total=0;
+      for(const p of parts){
+        const v = indexMap[p];
+        if (v != null){ found = true; total += v; }
+      }
+      return {found,total};
+    }
+
     function line(row){
-      const cop = num(row.copay), cb=num(row.chargeback), pr=cop-cb;
-      return { name: row.enhancement||row.subtype||'—', code: row.code||'', copay:cop, chargeback:cb, profit:pr };
+      // Start with the row's amounts
+      let cop = num(row.copay);
+      let cb  = num(row.chargeback);
+
+      // If code is a composite (e.g., "NA+NJ+…"), prefer sum of parts
+      const codeStr = String(row.code||'').trim().toUpperCase();
+      if (codeStr.includes('+')){
+        const parts = codeStr.split('+').map(s=>s.trim()).filter(Boolean);
+        const {found:foundCop, total:sumCop} = compositeSum(parts, CODE_COPAY_INDEX);
+        const {found:foundCb,  total:sumCb } = compositeSum(parts, CODE_CB_INDEX);
+        if (foundCop) cop = Math.max(cop, sumCop);
+        if (foundCb)  cb  = Math.max(cb,  sumCb );
+      }
+
+      const pr = cop - cb;
+      return {
+        name: row.enhancement || row.subtype || '—',
+        code: row.code || '',
+        copay: cop,
+        chargeback: cb,
+        profit: pr
+      };
     }
 
     function makeBundle(base, addOns){
@@ -306,7 +350,7 @@
       const cop = sum(lines.map(x=>x.copay));
       const cb  = sum(lines.map(x=>x.chargeback));
       const pr  = cop - cb;
-      const ratio = cop>0 ? (pr/cop) : 0; // tie-breaker only
+      const ratio = cop>0 ? (pr/cop) : 0;
       const label = base.enhancement || base.subtype || base.code || 'Base';
       return { label, lines, copay:cop, chargeback:cb, profit:pr, ratio, baseRow: base };
     }
@@ -394,7 +438,7 @@
           return true;
         });
 
-        // CM pool (PAL-only feature)
+        // CM pool (PAL-only)
         const customPool = DATA.filter(r => applies(r, 'PAL')).filter(isCustomMeasure);
 
         // base candidates
@@ -470,7 +514,7 @@
           return true;
         })) : null;
 
-        // Build ALL bundles across bases x AR options (with current sun/custom/overs toggles)
+        // Build ALL bundles across bases x AR options
         function buildBundle(m, arRow){ return makeBundle(m, [arRow, chooseSunFor(m), customFor(m), overs]); }
         const all = [];
         for(const m of base){
@@ -528,6 +572,7 @@
             }
           }
           if (pick) return pick;
+          // retry without excludes
           for(const b of all){
             if (!pick || b.copay<pick.copay || (b.copay===pick.copay && b.profit>(pick.profit))){
               pick=b;
@@ -559,7 +604,7 @@
         if (!good){ good = cheapest(used); }
         if (good) used.add(good.label);
 
-        // 4) CHEAPEST (absolute min copay with current toggles)
+        // 4) CHEAPEST
         const cheap = cheapest(used);
 
         renderStack([
@@ -569,7 +614,6 @@
           {name:'Cheapest', cls:'good',    b:cheap}
         ]);
       }catch(err){
-        // Surface any unexpected error
         const wrap = document.createElement('div');
         wrap.style.cssText = 'position:fixed;inset:12px;z-index:99999;background:#0b1220;border:1px solid #f44;box-shadow:0 8px 24px rgba(0,0,0,.5);color:#fff;border-radius:12px;padding:12px;overflow:auto;max-height:90vh;font:12px/1.4 ui-monospace,Menlo,Consolas,monospace';
         wrap.innerHTML = '<b>computeBundles error:</b><pre style="white-space:pre-wrap;margin:8px 0 0">'+(err.stack||err.message||String(err))+'</pre>';
