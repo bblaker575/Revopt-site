@@ -1,5 +1,443 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>Revopt — Profit-First Choice Configurator</title><style>:root{--bg:#0B1020;--card:#12162A;--ink:#E6E9F5;--muted:#9CA3AF;--line:#1E2450;--line2:#242947;--btn:#0E1530;--primary:#4F46E5}html,body{margin:0;height:100%}body{font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--ink)}.wrap{max-width:1100px;margin:0 auto;padding:16px}.card{background:var(--card);border:1px solid var(--line2);border-radius:14px;padding:14px;margin:10px 0}.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}label{display:inline-flex;gap:8px;align-items:center}select,button{background:var(--btn);border:1px solid var(--line2);border-radius:10px;color:var(--ink);padding:8px 10px}input[type=checkbox]{margin-left:6px;transform:scale(1.05)}button.primary{background:var(--primary);border:none;font-weight:700;color:var(--bg)}table{width:100%;border-collapse:collapse}th,td{border-bottom:1px solid var(--line);padding:8px;font-size:14px;text-align:left;vertical-align:top}th{color:#C7CBF5}small{color:var(--muted)}.kpi{display:inline-block;margin-right:12px;background:var(--btn);border:1px solid var(--line);border-radius:12px;padding:8px 10px}.badges{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:6px}.items-cell{max-width:800px}.warn{color:#ffd966}</style></head><body><div class="wrap"><h1>Revopt — Profit-First Choice Configurator</h1><div class="card"><small>This build is **GitHub Pages–ready**. It auto-loads <code>vsp_choice_master_v7_full_fixed.csv</code> from the same folder. Optional: override via <code>?csv=FULL_URL</code>.</small><div id="csvStatus" class="warn" style="margin-top:6px"></div></div><div class="card"><div class="row"><label>Track<select id="t"><option value="SV">SV</option><option value="MF">Progressive (MF)</option><option value="OCC">Occupational</option></select></label><label>Sun<select id="s"><option value="Clear">Clear</option><option>SolidTint</option><option>GradientTint</option><option>Mirror</option><option>Photochromic</option><option>Polarized</option></select></label><label>Rimless<select id="r"><option>None</option><option>Drill</option><option>Groove</option></select></label><label>Oversize<input id="chkOver" type="checkbox"/></label><label>Include AR<input id="chkAR" type="checkbox" checked/></label><label>Include Aspheric<input id="chkAsph" type="checkbox"/></label><label>Include Glass<input id="chkGlass" type="checkbox"/></label><button class="primary" id="go">Build tiers</button></div></div><div class="card" id="tiers" style="display:none"><div id="k" class="badges"></div><table><thead><tr><th>Tier</th><th>Items</th><th style="text-align:right">Copay</th><th style="text-align:right">VSP</th><th style="text-align:right">Chargeback</th><th style="text-align:right">Revenue</th></tr></thead><tbody id="tb"></tbody></table></div><div class="card"><details open><summary>Master rows (from CSV)</summary><table><thead><tr><th>Group</th><th>Subtype</th><th>Enhancement</th><th>Code</th><th>Notes</th><th style="text-align:right">Copay</th><th style="text-align:right">VSP</th><th style="text-align:right">Chargeback</th><th>Exclusive</th><th>Applies</th></tr></thead><tbody id="m"></tbody></table></details></div></div><script>(function(){const fmt=Intl.NumberFormat('en-US',{style:'currency',currency:'USD'});const money=n=>fmt.format(+n||0);let MASTER=[];const q=s=>s==null?"":String(s).trim();const up=s=>q(s).toUpperCase();function parseQS(){const p=new URLSearchParams(location.search);return { csv:p.get('csv') };}function split(line){const out=[];let cur="",inq=false;for(let i=0;i<line.length;i++){const ch=line[i];if(inq){if(ch==='"'&&line[i+1]==='"'){cur+='"';i++;}else if(ch==='"'){inq=false;}else cur+=ch;}else{if(ch===','){out.push(cur);cur="";}else if(ch==='"'){inq=true;}else cur+=ch;}}out.push(cur);return out;}function parse(text){const lines=text.replace(/\r/g,'').split('\n').filter(x=>x.trim());if(!lines.length)return[];const headers=split(lines[0]).map(h=>h.trim().toLowerCase());const rows=[];for(let i=1;i<lines.length;i++){const cells=split(lines[i]);const r={};headers.forEach((h,j)=>r[h]=cells[j]??"");rows.push(r);}return rows;}function ignore(row){const t=`${row.enhancement||""} ${row.notes||""}`.toLowerCase();return t.includes('custom measurement');}function applies(row,track){if(!row||!row.applies_to_tokens)return true;const T=(track||'').toUpperCase();return row.applies_to_tokens.includes('ALL')||row.applies_to_tokens.includes(T);}function exclusive(items){const seen=new Set();return items.filter(r=>{const k=(r.exclusive_key||'').trim();if(!k)return true;if(seen.has(k))return false;seen.add(k);return true;});}const sum=(a,k)=>a.reduce((s,r)=>s+(+r[k]||0),0);const totals=items=>{const copay=sum(items,'copay'),vsp=sum(items,'vsp'),cb=sum(items,'chargeback');return{copay,vsp,cb,revenue:copay+vsp-cb}};function pickAR(level){const ars=MASTER.filter(r=>r.group==='AR');if(!ars.length)return null;const s=[...ars].sort((a,b)=>b.copay-a.copay);if(level==='BEST')return s[0];if(level==='BASIC')return s[s.length-1];return s[Math.max(0,Math.floor(s.length/2)-1)];}const pickSun=t=>!t||t==='Clear'?null:(MASTER.find(r=>r.group==='SUN'&&(r.subtype||'')===t)||null);const pickOver=flag=>flag?(MASTER.find(r=>r.group==='OVERSIZE')||null):null;function pickRim(t){if(t==='Drill')return MASTER.find(r=>r.group==='RIMLESS'&&/drill/i.test(r.subtype||''))||null;if(t==='Groove')return MASTER.find(r=>r.group==='RIMLESS'&&/groove/i.test(r.subtype||''))||null;return null;}function bundle(base,ar,shared){const baseArr=Array.isArray(base)?base:[base];return exclusive(baseArr.filter(Boolean).concat(ar?[ar]:[]).concat(shared.filter(Boolean)));}function stats(base,ar,shared){const items=bundle(base,ar,shared);return{items,...totals(items)}}function keyBase(s){const b=s.items.find(x=>x.group==='PROGRESSIVE')||s.items.find(x=>x.group==='MATERIAL')||s.items.find(x=>x.group==='OCCUPATIONAL')||{};return`${b.group||''}|${b.subtype||''}|${b.enhancement||''}|${b.code||''}`}function candidates(track,allowAsph,allowGlass){if(track==='MF')return[];let c=[];if(track==='OCC')c=MASTER.filter(r=>r.group==='OCCUPATIONAL'&&applies(r,'OCC'));else c=MASTER.filter(r=>r.group==='MATERIAL'&&applies(r,'SV'));if(!allowAsph){const notA=x=>!/aspheric/i.test(`${x.enhancement||''} ${x.subtype||''} ${x.notes||''}`);c=c.filter(notA);}if(!allowGlass){const notG=x=>!/glass/i.test(`${x.enhancement||''} ${x.subtype||''} ${x.notes||''}`);c=c.filter(notG);}if(!c.length){if(track==='OCC')c=MASTER.filter(r=>r.group==='OCCUPATIONAL');if(track==='SV')c=MASTER.filter(r=>r.group==='MATERIAL');}return c.filter(r=>!ignore(r));}function tiers(track,sun,overFlag,includeAR,allowAsph,allowGlass,rim){const shared=[pickSun(sun),pickOver(overFlag),pickRim(rim)].filter(Boolean),arB=includeAR?pickAR('BEST'):null,arM=includeAR?pickAR('MID'):null,arL=includeAR?pickAR('BASIC'):null;if(track==='MF'){let P=MASTER.filter(r=>r.group==='PROGRESSIVE'&&applies(r,'MF')&&!ignore(r));let MATS=MASTER.filter(r=>r.group==='MATERIAL'&&applies(r,'MF')&&!ignore(r));if(!allowAsph){const notA=x=>!/aspheric/i.test(`${x.enhancement||''} ${x.subtype||''} ${x.notes||''}`);P=P.filter(notA);MATS=MATS.filter(notA);}if(!allowGlass){const notG=x=>!/glass/i.test(`${x.enhancement||''} ${x.subtype||''} ${x.notes||''}`);MATS=MATS.filter(notG);}if(!P.length)P=MASTER.filter(r=>r.group==='PROGRESSIVE'&&!ignore(r));if(!MATS.length)MATS=MASTER.filter(r=>r.group==='MATERIAL'&&!ignore(r));if(!P.length||!MATS.length)return[{name:'BEST',items:[],copay:0,vsp:0,cb:0,revenue:0},{name:'MID',items:[],copay:0,vsp:0,cb:0,revenue:0},{name:'BASIC',items:[],copay:0,vsp:0,cb:0,revenue:0}];const combos=[];P.forEach(p=>MATS.forEach(m=>combos.push([p,m])));const A=combos.map(c=>({tier:'BEST',...stats(c,arB,shared)}));const B=combos.map(c=>({tier:'MID',...stats(c,arM,shared)}));const C=combos.map(c=>({tier:'BASIC',...stats(c,arL,shared)}));A.sort((a,b)=>b.revenue-a.revenue);B.sort((a,b)=>b.revenue-a.revenue);const best=A[0];const bestP=(best.items.find(x=>x.group==='PROGRESSIVE')||{}).enhancement||'';const bestM=(best.items.find(x=>x.group==='MATERIAL')||{}).enhancement||'';const bestKey=bestP+'||'+bestM;let mid=null;for(let i=0;i<B.length;i++){const itm=B[i].items;const p=(itm.find(x=>x.group==='PROGRESSIVE')||{}).enhancement||'';const m=(itm.find(x=>x.group==='MATERIAL')||{}).enhancement||'';if((p+'||'+m)!==bestKey){mid=B[i];break}}if(!mid)mid=B[0];C.sort((a,b)=>a.copay-b.copay);const used=new Set([keyBase(best),keyBase(mid)]);let basic=null;for(let i=0;i<C.length;i++){if(!used.has(keyBase(C[i]))){basic=C[i];break}}if(!basic)basic=C[0];return[{name:'BEST',items:best.items,...totals(best.items)},{name:'MID',items:mid.items,...totals(mid.items)},{name:'BASIC',items:basic.items,...totals(basic.items)}];}const B=candidates(track,allowAsph,allowGlass);if(!B.length)return[{name:'BEST',items:[],copay:0,vsp:0,cb:0,revenue:0},{name:'MID',items:[],copay:0,vsp:0,cb:0,revenue:0},{name:'BASIC',items:[],copay:0,vsp:0,cb:0,revenue:0}];const A=B.map(b=>({tier:'BEST',...stats(b,arB,shared)}));const C=B.map(b=>({tier:'MID',...stats(b,arM,shared)}));const D=B.map(b=>({tier:'BASIC',...stats(b,arL,shared)}));A.sort((a,b)=>b.revenue-a.revenue);C.sort((a,b)=>b.revenue-a.revenue);const best=A[0];const bestKey=keyBase(best);let mid=null;for(let i=0;i<C.length;i++){if(keyBase(C[i])!==bestKey){mid=C[i];break}}if(!mid)mid=C[0];D.sort((a,b)=>a.copay-b.copay);const used=new Set([bestKey,keyBase(mid)]);let basic=null;for(let i=0;i<D.length;i++){if(!used.has(keyBase(D[i]))){basic=D[i];break}}if(!basic)basic=D[0];return[{name:'BEST',items:best.items,...totals(best.items)},{name:'MID',items:mid.items,...totals(mid.items)},{name:'BASIC',items:basic.items,...totals(basic.items)}];}function renderTiers(list){document.getElementById('tiers').style.display='block';const tb=document.getElementById('tb');tb.innerHTML='';const k=document.getElementById('k');k.innerHTML='';list.forEach(tt=>{const names=tt.items.map(i=>i.enhancement).join(', ');const tr=document.createElement('tr');tr.innerHTML=`<td><b>${tt.name}</b></td><td class="items-cell">${names}</td><td style="text-align:right">${money(tt.copay)}</td><td style="text-align:right">${money(tt.vsp)}</td><td style="text-align:right">${money(tt.cb)}</td><td style="text-align:right"><b>${money(tt.revenue)}</b></td>`;tb.appendChild(tr);const badge=document.createElement('span');badge.className='kpi';badge.innerHTML=`<small>${tt.name} revenue</small> <b>${money(tt.revenue)}</b>`;k.appendChild(badge);});}function renderMaster(){const tb=document.getElementById('m');tb.innerHTML='';MASTER.forEach(r=>{const tr=document.createElement('tr');tr.innerHTML=`<td>${r.group||''}</td><td>${r.subtype||''}</td><td>${r.enhancement||''}</td><td>${r.code||''}</td><td>${r.notes||''}</td><td style="text-align:right">${money(r.copay)}</td><td style="text-align:right">${money(r.vsp)}</td><td style="text-align:right">${money(r.chargeback)}</td><td>${r.exclusive_key||''}</td><td>${(r.applies_to_tokens||[]).join(', ')}</td>`;tb.appendChild(tr);});}function mapRows(rows){return rows.map(r=>({group:up(r.group||r.category||r.type||r.bucket),subtype:q(r.subtype||r.sub_type),enhancement:q(r.enhancement||r.name||r.item||r.description),code:q(r.code||r.sku),notes:q(r.notes||r.note||r.remark||r.comments),exclusive_key:q(r.exclusive_key||r.exclusive||r.family||r.mutex).toLowerCase(),applies_to_tokens:(()=>{const tok=up(r.applies_to||r.applies||r.track||'ALL').split(/[,;\s]+/).filter(Boolean);return tok.length?tok:['ALL']})(),copay:+q(r.copay||r.patient||r.patient_pay).replace(/[^0-9.\-]/g,'')||0,vsp:+q(r.vsp||r.vsp_reimb||r.vsp_payment||r.allowance||r.reimbursement).replace(/[^0-9.\-]/g,'')||0,chargeback:+q(r.chargeback||r.charge_back||r.cb||r.lab||r.lab_fee).replace(/[^0-9.\-]/g,'')||0})).filter(r=>r.group&&!ignore(r));}
-// ===== Boot: auto-load CSV (GitHub Pages ready) =====
-async function boot(){const status=document.getElementById('csvStatus');const qs=parseQS();const DATA_CSV=qs.csv||'./vsp_choice_master_v7_full_fixed.csv';try{status.textContent='Loading '+DATA_CSV+' …';const res=await fetch(DATA_CSV,{cache:'no-store'});if(!res.ok) throw new Error('Fetch failed: '+res.status+' '+res.statusText);const text=await res.text();const raw=parse(text);MASTER=mapRows(raw);status.textContent='Loaded '+DATA_CSV+' · '+MASTER.length+' rows';renderMaster();}catch(e){status.textContent='Could not load '+DATA_CSV+' — place the CSV next to index.html or pass ?csv=FULL_URL';MASTER=[];renderMaster();}}
-function wire(){document.getElementById('go').addEventListener('click',()=>{const track=document.getElementById('t').value;const sun=document.getElementById('s').value;const rim=document.getElementById('r').value;const over=document.getElementById('chkOver').checked;const incAR=document.getElementById('chkAR').checked;const asph=document.getElementById('chkAsph').checked;const glass=document.getElementById('chkGlass').checked;renderTiers(tiers(track,sun,over,incAR,asph,glass,rim));});}
-wire();boot();})();</script></body></html>
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Revopt — Profit-First Choice Configurator</title>
+  <style>
+    :root{--bg:#0B1020;--card:#12162A;--ink:#E6E9F5;--muted:#9CA3AF;--line:#1E2450;--line2:#242947;--btn:#0E1530;--primary:#4F46E5}
+    html,body{margin:0;height:100%}
+    body{font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--ink)}
+    .wrap{max-width:1100px;margin:0 auto;padding:16px}
+    .card{background:var(--card);border:1px solid var(--line2);border-radius:14px;padding:14px;margin:10px 0}
+    .row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+    label{display:inline-flex;gap:8px;align-items:center}
+    select,button{background:var(--btn);border:1px solid var(--line2);border-radius:10px;color:var(--ink);padding:8px 10px}
+    input[type=checkbox]{margin-left:6px;transform:scale(1.05)}
+    button.primary{background:var(--primary);border:none;font-weight:700;color:var(--bg)}
+    table{width:100%;border-collapse:collapse}
+    th,td{border-bottom:1px solid var(--line);padding:8px;font-size:14px;text-align:left;vertical-align:top}
+    th{color:#C7CBF5}
+    small{color:var(--muted)}
+    .kpi{display:inline-block;margin-right:12px;background:var(--btn);border:1px solid var(--line);border-radius:12px;padding:8px 10px}
+    .badges{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:6px}
+    .items-cell{max-width:800px}
+    .warn{color:#ffd966}
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Revopt — Profit-First Choice Configurator</h1>
+
+  <div class="card">
+    <small>This build is <b>GitHub Pages–ready</b>. It auto-loads
+      <code>vsp_choice_master_v7_full_fixed.csv</code> from the same folder.
+      Optional: override via <code>?csv=FULL_URL</code>.
+    </small>
+    <div id="csvStatus" class="warn" style="margin-top:6px"></div>
+  </div>
+
+  <div class="card">
+    <div class="row">
+      <label>Track
+        <select id="t">
+          <option value="SV">SV</option>
+          <option value="MF" selected>Progressive (MF)</option>
+          <option value="OCC">Occupational</option>
+        </select>
+      </label>
+
+      <label>Sun
+        <select id="s">
+          <option value="Clear" selected>Clear</option>
+          <option>SolidTint</option>
+          <option>GradientTint</option>
+          <option>Mirror</option>
+          <option>Photochromic</option>
+          <option>Polarized</option>
+        </select>
+      </label>
+
+      <label>Rimless
+        <select id="r">
+          <option selected>None</option>
+          <option>Drill</option>
+          <option>Groove</option>
+        </select>
+      </label>
+
+      <label>Oversize <input id="chkOver" type="checkbox"/></label>
+      <label>Include AR <input id="chkAR" type="checkbox" checked/></label>
+      <label>Include Aspheric <input id="chkAsph" type="checkbox"/></label>
+      <label>Include Glass <input id="chkGlass" type="checkbox"/></label>
+
+      <button class="primary" id="go">Build tiers</button>
+    </div>
+  </div>
+
+  <div class="card" id="tiers" style="display:none">
+    <div id="k" class="badges"></div>
+    <table>
+      <thead>
+      <tr>
+        <th>Tier</th>
+        <th>Items</th>
+        <th style="text-align:right">Copay</th>
+        <th style="text-align:right">VSP</th>
+        <th style="text-align:right">Chargeback</th>
+        <th style="text-align:right">Revenue</th>
+      </tr>
+      </thead>
+      <tbody id="tb"></tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <details open>
+      <summary>Master rows (from CSV)</summary>
+      <table>
+        <thead>
+        <tr>
+          <th>Group</th><th>Subtype</th><th>Enhancement</th><th>Code</th><th>Notes</th>
+          <th style="text-align:right">Copay</th>
+          <th style="text-align:right">VSP</th>
+          <th style="text-align:right">Chargeback</th>
+          <th>Exclusive</th><th>Applies</th>
+        </tr>
+        </thead>
+        <tbody id="m"></tbody>
+      </table>
+    </details>
+  </div>
+</div>
+
+<script>
+(function () {
+  const fmt = Intl.NumberFormat('en-US', { style:'currency', currency:'USD' });
+  const money = n => fmt.format(+n || 0);
+
+  let MASTER = [];
+
+  const q  = s => s == null ? "" : String(s).trim();
+  const up = s => q(s).toUpperCase();
+
+  function parseQS() {
+    const p = new URLSearchParams(location.search);
+    return { csv: p.get('csv') };
+  }
+
+  function splitCSVLine(line) {
+    const out = []; let cur = ""; let inQ = false;
+    for (let i=0;i<line.length;i++) {
+      const ch=line[i];
+      if (inQ) {
+        if (ch==='"' && line[i+1]==='"') { cur+='"'; i++; }
+        else if (ch === '"') inQ=false;
+        else cur+=ch;
+      } else {
+        if (ch===',') { out.push(cur); cur=""; }
+        else if (ch==='"') inQ=true;
+        else cur+=ch;
+      }
+    }
+    out.push(cur);
+    return out;
+  }
+
+  function parseCSV(text) {
+    const lines = text.replace(/\r/g,'').split('\n').filter(x=>x.trim().length);
+    if (!lines.length) return [];
+    const headers = splitCSVLine(lines[0]).map(h=>h.trim().toLowerCase());
+    const rows = [];
+    for (let i=1;i<lines.length;i++){
+      const cells = splitCSVLine(lines[i]);
+      const row = {};
+      headers.forEach((h,idx)=> row[h] = cells[idx] ?? "");
+      rows.push(row);
+    }
+    return rows;
+  }
+
+  function ignoreRow(r) {
+    const t = `${r.enhancement||""} ${r.notes||""}`.toLowerCase();
+    return t.includes('custom measurement');
+  }
+
+  function appliesTo(r, track) {
+    if (!r || !r.applies_to_tokens) return true;
+    const T = (track||'').toUpperCase();
+    return r.applies_to_tokens.includes('ALL') || r.applies_to_tokens.includes(T);
+  }
+
+  function exclusive(items) {
+    const seen = new Set();
+    return items.filter(r=>{
+      const k=(r.exclusive_key||'').trim();
+      if (!k) return true;
+      if (seen.has(k)) return false;
+      seen.add(k);
+      return true;
+    });
+  }
+
+  const sum = (a,k)=> a.reduce((s,r)=> s + (+r[k]||0), 0);
+  const totals = items => {
+    const copay = sum(items,'copay'), vsp = sum(items,'vsp'), cb = sum(items,'chargeback');
+    return { copay, vsp, cb, revenue: copay + vsp - cb };
+  };
+
+  // Pickers
+  function pickAR(level) {
+    const ars = MASTER.filter(r=>r.group==='AR');
+    if (!ars.length) return null;
+    const sorted = [...ars].sort((a,b)=> b.copay - a.copay);
+    if (level==='BEST') return sorted[0];
+    if (level==='BASIC') return sorted[sorted.length-1];
+    return sorted[Math.max(0, Math.floor(sorted.length/2)-1)];
+  }
+  const pickSun   = t => !t||t==='Clear' ? null : (MASTER.find(r=>r.group==='SUN' && (r.subtype||'')===t) || null);
+  const pickOver  = flag => flag ? (MASTER.find(r=>r.group==='OVERSIZE') || null) : null;
+  function pickRim(t){
+    if (t==='Drill')  return MASTER.find(r=>r.group==='RIMLESS' && /drill/i.test(r.subtype||'')) || null;
+    if (t==='Groove') return MASTER.find(r=>r.group==='RIMLESS' && /groove/i.test(r.subtype||''))|| null;
+    return null;
+  }
+
+  function bundle(base, ar, shared){
+    const bases = Array.isArray(base) ? base : [base];
+    return exclusive(bases.filter(Boolean).concat(ar ? [ar] : []).concat(shared.filter(Boolean)));
+  }
+  function stats(base, ar, shared){
+    const items = bundle(base, ar, shared);
+    return { items, ...totals(items) };
+  }
+
+  function keyBaseFor(s){
+    // identity by main base row(s)
+    const b = s.items.find(x=>x.group==='PROGRESSIVE') ||
+              s.items.find(x=>x.group==='MATERIAL')   ||
+              s.items.find(x=>x.group==='OCCUPATIONAL') || {};
+    return `${b.group||''}|${b.subtype||''}|${b.enhancement||''}|${b.code||''}`;
+  }
+
+  // Candidate helpers with filters
+  const notAspheric = x => !/aspher(?:ic|ical)/i.test(`${x.enhancement||''} ${x.subtype||''} ${x.notes||''}`);
+  const notGlass    = x => !/glass/i.test(`${x.enhancement||''} ${x.subtype||''} ${x.notes||''}`);
+
+  function candidatesForTrack(track, allowAsph, allowGlass){
+    if (track === 'OCC') {
+      let c = MASTER.filter(r=> r.group==='OCCUPATIONAL' && appliesTo(r,'OCC') && !ignoreRow(r));
+      if (!allowAsph) c = c.filter(notAspheric);
+      // glass toggle not relevant for OCC base, but we leave as-is
+      if (!c.length) c = MASTER.filter(r=> r.group==='OCCUPATIONAL' && !ignoreRow(r));
+      return c;
+    }
+    if (track === 'SV') {
+      let c = MASTER.filter(r=> r.group==='MATERIAL' && appliesTo(r,'SV') && !ignoreRow(r));
+      if (!allowAsph) c = c.filter(notAspheric);
+      if (!allowGlass) c = c.filter(notGlass);
+      if (!c.length) c = MASTER.filter(r=> r.group==='MATERIAL' && !ignoreRow(r));
+      return c;
+    }
+    // MF handled separately
+    return [];
+  }
+
+  function tiers(track, sun, overFlag, includeAR, allowAsph, allowGlass, rim){
+    const shared = [ pickSun(sun), pickOver(overFlag), pickRim(rim) ].filter(Boolean);
+    const arB = includeAR ? pickAR('BEST')  : null;
+    const arM = includeAR ? pickAR('MID')   : null;
+    const arL = includeAR ? pickAR('BASIC') : null;
+
+    // === MF (Progressive) : EXACTLY 1 PROGRESSIVE + 1 MATERIAL ===
+    if (track === 'MF') {
+      let P = MASTER.filter(r => r.group==='PROGRESSIVE' && appliesTo(r,'MF') && !ignoreRow(r));
+      let M = MASTER.filter(r => r.group==='MATERIAL'    && appliesTo(r,'MF') && !ignoreRow(r));
+
+      if (!allowAsph) {
+        P = P.filter(notAspheric);   // no aspheric progressives
+        M = M.filter(notAspheric);   // no aspheric materials
+      }
+      if (!allowGlass) {
+        M = M.filter(notGlass);      // no glass materials
+      }
+
+      if (!P.length) P = MASTER.filter(r=> r.group==='PROGRESSIVE' && !ignoreRow(r));
+      if (!M.length) M = MASTER.filter(r=> r.group==='MATERIAL'    && !ignoreRow(r));
+
+      if (!P.length || !M.length) {
+        return [
+          { name:'BEST',  items:[], copay:0, vsp:0, cb:0, revenue:0 },
+          { name:'MID',   items:[], copay:0, vsp:0, cb:0, revenue:0 },
+          { name:'BASIC', items:[], copay:0, vsp:0, cb:0, revenue:0 },
+        ];
+      }
+
+      const combos = [];
+      P.forEach(p => M.forEach(m => combos.push([p,m])));
+
+      const A = combos.map(c => ({ tier:'BEST',  ...stats(c, arB, shared) }));
+      const B = combos.map(c => ({ tier:'MID',   ...stats(c, arM, shared) }));
+      const C = combos.map(c => ({ tier:'BASIC', ...stats(c, arL, shared) }));
+
+      A.sort((a,b)=> b.revenue - a.revenue);
+      B.sort((a,b)=> b.revenue - a.revenue);
+
+      const baseSig = (items)=>{
+        const p = (items.find(x=>x.group==='PROGRESSIVE')||{}).enhancement||'';
+        const m = (items.find(x=>x.group==='MATERIAL')   ||{}).enhancement||'';
+        return p + '||' + m;
+      };
+
+      const best = A[0];
+      const bestKey = baseSig(best.items);
+      let mid = B.find(x => baseSig(x.items) !== bestKey) || B[0];
+
+      C.sort((a,b)=> a.copay - b.copay);
+      const used = new Set([ baseSig(best.items), baseSig(mid.items) ]);
+      const basic = C.find(x => !used.has(baseSig(x.items))) || C[0];
+
+      return [
+        { name:'BEST',  items:best.items,  ...totals(best.items)  },
+        { name:'MID',   items:mid.items,   ...totals(mid.items)   },
+        { name:'BASIC', items:basic.items, ...totals(basic.items) },
+      ];
+    }
+
+    // === SV or OCC (single base row) ===
+    const B = candidatesForTrack(track, allowAsph, allowGlass);
+    if (!B.length) {
+      return [
+        { name:'BEST',  items:[], copay:0, vsp:0, cb:0, revenue:0 },
+        { name:'MID',   items:[], copay:0, vsp:0, cb:0, revenue:0 },
+        { name:'BASIC', items:[], copay:0, vsp:0, cb:0, revenue:0 },
+      ];
+    }
+
+    const L1 = B.map(b => ({ tier:'BEST',  ...stats(b, arB, shared) }));
+    const L2 = B.map(b => ({ tier:'MID',   ...stats(b, arM, shared) }));
+    const L3 = B.map(b => ({ tier:'BASIC', ...stats(b, arL, shared) }));
+
+    L1.sort((a,b)=> b.revenue - a.revenue);
+    L2.sort((a,b)=> b.revenue - a.revenue);
+
+    const best = L1[0];
+    const bestKey = keyBaseFor(best);
+
+    let mid = L2.find(x => keyBaseFor(x) !== bestKey) || L2[0];
+
+    L3.sort((a,b)=> a.copay - b.copay);
+    const used = new Set([ bestKey, keyBaseFor(mid) ]);
+    const basic = L3.find(x => !used.has(keyBaseFor(x))) || L3[0];
+
+    return [
+      { name:'BEST',  items:best.items,  ...totals(best.items)  },
+      { name:'MID',   items:mid.items,   ...totals(mid.items)   },
+      { name:'BASIC', items:basic.items, ...totals(basic.items) },
+    ];
+  }
+
+  // Rendering
+  function renderTiers(list){
+    document.getElementById('tiers').style.display = 'block';
+    const tb = document.getElementById('tb'); tb.innerHTML = '';
+    const k  = document.getElementById('k');  k.innerHTML  = '';
+
+    list.forEach(tt=>{
+      const names = tt.items.map(i=> i.enhancement).join(', ');
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td><b>${tt.name}</b></td>
+        <td class="items-cell">${names}</td>
+        <td style="text-align:right">${money(tt.copay)}</td>
+        <td style="text-align:right">${money(tt.vsp)}</td>
+        <td style="text-align:right">${money(tt.cb)}</td>
+        <td style="text-align:right"><b>${money(tt.revenue)}</b></td>
+      `;
+      tb.appendChild(tr);
+
+      const badge = document.createElement('span');
+      badge.className = 'kpi';
+      badge.innerHTML = `<small>${tt.name} revenue</small> <b>${money(tt.revenue)}</b>`;
+      k.appendChild(badge);
+    });
+  }
+
+  function renderMaster(){
+    const tb = document.getElementById('m'); tb.innerHTML = '';
+    MASTER.forEach(r=>{
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${r.group||''}</td>
+        <td>${r.subtype||''}</td>
+        <td>${r.enhancement||''}</td>
+        <td>${r.code||''}</td>
+        <td>${r.notes||''}</td>
+        <td style="text-align:right">${money(r.copay)}</td>
+        <td style="text-align:right">${money(r.vsp)}</td>
+        <td style="text-align:right">${money(r.chargeback)}</td>
+        <td>${r.exclusive_key||''}</td>
+        <td>${(r.applies_to_tokens||[]).join(', ')}</td>
+      `;
+      tb.appendChild(tr);
+    });
+  }
+
+  function mapRows(rows){
+    return rows.map(r=>({
+      group: up(r.group||r.category||r.type||r.bucket),
+      subtype: q(r.subtype||r.sub_type),
+      enhancement: q(r.enhancement||r.name||r.item||r.description),
+      code: q(r.code||r.sku),
+      notes: q(r.notes||r.note||r.remark||r.comments),
+      exclusive_key: q(r.exclusive_key||r.exclusive||r.family||r.mutex).toLowerCase(),
+      applies_to_tokens: (()=>{
+        const tok = up(r.applies_to||r.applies||r.track||'ALL').split(/[,;\s]+/).filter(Boolean);
+        return tok.length ? tok : ['ALL'];
+      })(),
+      copay: (+q(r.copay||r.patient||r.patient_pay).replace(/[^0-9.\-]/g,'')) || 0,
+      vsp: (+q(r.vsp||r.vsp_reimb||r.vsp_payment||r.allowance||r.reimbursement).replace(/[^0-9.\-]/g,'')) || 0,
+      chargeback: (+q(r.chargeback||r.charge_back||r.cb||r.lab||r.lab_fee).replace(/[^0-9.\-]/g,'')) || 0
+    })).filter(r=> r.group && !ignoreRow(r));
+  }
+
+  // Boot (GitHub Pages auto-load)
+  async function boot(){
+    const status = document.getElementById('csvStatus');
+    const { csv } = parseQS();
+    const DATA_CSV = csv || './vsp_choice_master_v7_full_fixed.csv';
+    try{
+      status.textContent = 'Loading ' + DATA_CSV + ' …';
+      const res = await fetch(DATA_CSV, { cache:'no-store' });
+      if (!res.ok) throw new Error('Fetch failed: ' + res.status + ' ' + res.statusText);
+      const text = await res.text();
+      const raw  = parseCSV(text);
+      MASTER = mapRows(raw);
+      status.textContent = 'Loaded ' + DATA_CSV + ' · ' + MASTER.length + ' rows';
+      renderMaster();
+    }catch(err){
+      status.textContent = 'Could not load ' + DATA_CSV + ' — place the CSV next to index.html or pass ?csv=FULL_URL';
+      console.error(err);
+      MASTER = [];
+      renderMaster();
+    }
+  }
+
+  // Wire UI
+  document.getElementById('go').addEventListener('click', ()=>{
+    const track = document.getElementById('t').value;
+    const sun   = document.getElementById('s').value;
+    const rim   = document.getElementById('r').value;
+    const over  = document.getElementById('chkOver').checked;
+    const incAR = document.getElementById('chkAR').checked;
+    const asph  = document.getElementById('chkAsph').checked;
+    const glass = document.getElementById('chkGlass').checked;
+
+    renderTiers( tiers(track, sun, over, incAR, asph, glass, rim) );
+  });
+
+  boot();
+})();
+</script>
+</body>
+</html>
