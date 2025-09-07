@@ -37,7 +37,7 @@
       <h1>RevSight AI — VSP Choice Bundles</h1>
       <div class="sub">
         SV-first. Ranked by <b>practice profit (copay − chargeback)</b>. AR default <b>ON</b> with step-down (Best→Better→Good).
-        Sun is <b>mutually exclusive</b>: Clear / Tinted / Polarized / Transitions®. Offline cache enabled.
+        Sun is <b>mutually exclusive</b>: Clear / Solid / Gradient / Polarized / Transitions®. Offline cache enabled.
       </div>
     </div>
     <div class="sub" id="version">loading…</div>
@@ -61,7 +61,8 @@
       <label class="switch">Lens tint
         <select id="lensTint">
           <option value="clear" selected>Clear</option>
-          <option value="tinted">Tinted</option>
+          <option value="tintSolid">Solid (MN)</option>
+          <option value="tintGradient">Gradient (MP)</option>
           <option value="polarized">Polarized</option>
           <option value="transitions">Transitions®</option>
         </select>
@@ -71,6 +72,7 @@
       <label class="switch"><input type="checkbox" id="includeAspheric"> Aspheric</label>
       <label class="switch"><input type="checkbox" id="includeOversize"> Oversize</label>
       <label class="switch"><input type="checkbox" id="includeGlass"> Glass</label>
+      <label class="switch"><input type="checkbox" id="includeCustomNO"> Custom N/O (PAL only)</label>
 
       <span class="sub" id="status"></span>
     </div>
@@ -82,6 +84,7 @@
     // ---------------- Config ----------------
     const DEFAULT_CSV = 'data/vsp_choice_master_v7_full_fixed.csv';
     const REQUIRE_D_CODES_FOR_SV_AND_LINED_POLARIZED = true; // polarized is material for SV/LINED
+    const CUSTOM_NO_DEFAULT_FEE = 25; // fallback if no CSV row exists
 
     // ---------------- Utils -----------------
     const el = (id)=>document.getElementById(id);
@@ -94,6 +97,7 @@
     const isPPhoto = r => /^p(m|r)/i.test((r.code||'').trim()); // PM/PR
     const isGlassBase = row => /glass/i.test(N(row?.enhancement || row?.subtype || ''));
     const preferPhotoCodeForBase = row => (isGlassBase(row) ? 'PM' : 'PR'); // everything not glass => PR
+    const looksNO = row => /\b(n\/?o|near[ -]?only)\b/i.test(row?.enhancement || row?.subtype || '');
 
     function parseCSV(text){
       const rows=[]; let row=[], field='', q=false;
@@ -142,6 +146,7 @@
           computeBundles();
         }else{
           el('status').textContent = ' Load failed: '+err.message+' (no cache available)';
+          el('stack').innerHTML='';
         }
       }
     }
@@ -208,9 +213,15 @@
       return { name: row.enhancement||row.subtype||'—', code: row.code||'', copay:cop, chargeback:cb, profit:pr };
     }
 
+    // Create a synthetic add-on line (e.g., Custom N/O or MN/MP suffix only)
+    function syntheticLine({name, code, copay=0, chargeback=0}){
+      const pr = copay - chargeback;
+      return { name, code, copay, chargeback, profit: pr, _synthetic:true };
+    }
+
     function makeBundle(base, addOns){
       const items=[base, ...addOns.filter(Boolean)];
-      const lines = items.map(line);
+      const lines = items.map(li => li._synthetic ? li : line(li));
       const cop = sum(lines.map(x=>x.copay));
       const cb  = sum(lines.map(x=>x.chargeback));
       const pr  = cop - cb;
@@ -227,9 +238,10 @@
       const wantAsp = el('includeAspheric').checked;
       const wantOS  = el('includeOversize').checked;
       const wantGlass = el('includeGlass').checked;
-      const tintSel = el('lensTint').value; // clear|tinted|polarized|transitions
+      const tintSel = el('lensTint').value; // clear|tintSolid|tintGradient|polarized|transitions
+      const wantCustomNO = el('includeCustomNO').checked;
 
-      // ---- Pools built early (sunAll used for SV/LINED polarized material) ----
+      // ---- Pools built early (sunAll used for SV/LINED polarized material and tints) ----
       const sunAll = byKey('sun_tech').filter(r=>applies(r,fam)).filter(r=>{
         if(!wantGlass && N(r.enhancement).includes('glass')) return false;
         return true;
@@ -242,13 +254,18 @@
           const name=N(r.enhancement);
           if(!wantAsp && name.includes('aspheric')) return false;
           if(!wantGlass && name.includes('glass'))  return false;
-          if (tintSel==='polarized') return /polariz/.test(name); // polarized is material
+
+          // For PAL + Polarized: polarized is the base material; exclude non-polarized bases
+          if (tintSel==='polarized') return /polariz/.test(name);
+
+          // Otherwise exclude any sun/tint/photochromic in base
           return !/(photochrom|polariz|tint|tinted|sunglass|gradient)/.test(name);
         });
       } else {
         if (tintSel==='polarized') {
           // SV & LINED: D-coded polarized is the *material* (replace A-code base)
-          base = sunAll.filter(r => /polariz/.test(N(r.enhancement)) && isDCode(r));
+          const candidates = sunAll.filter(r => /polariz/.test(N(r.enhancement)));
+          base = REQUIRE_D_CODES_FOR_SV_AND_LINED_POLARIZED ? candidates.filter(isDCode) : candidates;
         } else {
           const pool = (fam==='SV' ? byKey('base_material') : byKey('occupational'));
           base = pool.filter(r=>applies(r,fam)).filter(r=>{
@@ -271,7 +288,7 @@
 
         if (tintSel==='transitions') {
           // Prefer P-code by substrate: PM (glass) vs PR (plastic).
-          // Do NOT require material matching—PR/PM are generic add-ons.
+          // Do NOT require material matching—PR/PM are generic add-ons when present.
           const want = preferPhotoCodeForBase(baseRow); // 'PM' for glass, else 'PR'
           let pool = sunAll.filter(r => /photochrom/.test(N(r.enhancement)));
 
@@ -287,23 +304,36 @@
           return pickBest(pool);
         }
 
-        if (tintSel==='tinted') {
+        if (tintSel==='tintSolid' || tintSel==='tintGradient') {
+          // Try to pick a tint row that matches material family where possible
           let pool = sunAll.filter(r=>{
             const n=N(r.enhancement);
             return sunMatchesBase(r, baseRow) && !/photochrom|polariz/.test(n) && /tint|tinted|solid|gradient|sunglass/.test(n);
           });
-          return pickBest(pool);
+          const chosen = pickBest(pool);
+          if (chosen) {
+            // Ensure code suffix MN/MP for display clarity (does not change pricing)
+            const suffix = (tintSel==='tintSolid') ? 'MN' : 'MP';
+            const clone = Object.assign({}, chosen);
+            clone.code = ((clone.code||'') + ' +' + suffix).trim();
+            return clone;
+          }
+          // If no tint row exists, create a zero-fee synthetic line with code only (still shows MN/MP)
+          const suffix = (tintSel==='tintSolid') ? 'MN' : 'MP';
+          return syntheticLine({name: suffix==='MN' ? 'Solid Tint' : 'Gradient Tint', code: suffix, copay:0, chargeback:0});
         }
 
         return null;
       }
 
       // Oversize add-on (independent)
-      const overs = wantOS ? pickBest(byKey('oversize').filter(r=>applies(r,fam)).filter(r=>{
-        const n=N(r.enhancement);
-        if(!wantGlass && n.includes('glass')) return false;
-        return true;
-      })) : null;
+      const overs = el('includeOversize').checked
+        ? pickBest(byKey('oversize').filter(r=>applies(r,fam)).filter(r=>{
+            const n=N(r.enhancement);
+            if(!wantGlass && n.includes('glass')) return false;
+            return true;
+          }))
+        : null;
 
       function arForTier(idx){
         if(!wantAR || !arRanked.length) return null;
@@ -311,12 +341,35 @@
         return arRanked[arRanked.length-1];
       }
 
+      // Optional custom N/O line (only for PAL and only if base is N/O)
+      function customNOFor(baseRow){
+        if(!(fam==='PAL' && el('includeCustomNO').checked && looksNO(baseRow))) return null;
+
+        // Try to find a dedicated CSV row if you have one; else fall back to a synthetic $25 line.
+        let csvRow = byKey('custom_no_progressive').find(r=>applies(r,'PAL'))
+                 || byKey('custom_no').find(r=>applies(r,'PAL'))
+                 || byKey('custom_measure').find(r=>applies(r,'PAL'));
+        if(csvRow){
+          return syntheticLine({
+            name: csvRow.enhancement || 'Custom N/O',
+            code: csvRow.code || 'N/O',
+            copay: num(csvRow.copay),
+            chargeback: num(csvRow.chargeback)
+          });
+        }
+        return syntheticLine({name:'Custom N/O Measurement', code:'N/O', copay:CUSTOM_NO_DEFAULT_FEE, chargeback:0});
+      }
+
+      function buildBundleFor(baseRow, arRow){
+        return makeBundle(baseRow, [arRow, chooseSunFor(baseRow), overs, customNOFor(baseRow)]);
+      }
+
       function selectMaxProfit(candidates, arRow, excludeLabels=new Set()){
         let best=null;
         for(const m of candidates){
           const lbl=(m.enhancement||m.subtype||m.code||'Base');
           if(excludeLabels.has(lbl)) continue;
-          const b = makeBundle(m, [arRow, chooseSunFor(m), overs]);
+          const b = buildBundleFor(m, arRow);
           if(!best || b.profit>best.profit || (b.profit===best.profit && b.ratio>best.ratio)) best=b;
         }
         return best;
@@ -326,14 +379,16 @@
         for(const m of candidates){
           const lbl=(m.enhancement||m.subtype||m.code||'Base');
           if(excludeLabels.has(lbl)) continue;
-          const b = makeBundle(m, [arRow, chooseSunFor(m), overs]);
+          const b = buildBundleFor(m, arRow);
           if(!best || b.copay<best.copay || (b.copay===best.copay && b.profit>best.profit)) best=b;
         }
         return best;
       }
 
+      // -------- AR assignment per tier (step-down) --------
       const bestAR = arForTier(0), midAR = arForTier(1), lowAR = arForTier(2);
 
+      // -------- Pick tiers --------
       const best = selectMaxProfit(base, bestAR);
       const used = new Set(best ? [best.label] : []);
       const mid  = selectMaxProfit(base, midAR, used) || selectMaxProfit(base, bestAR, used);
@@ -373,7 +428,7 @@
           ${tdMoney(li.profit)}
         </tr>`).join('');
 
-      div.innerHTML = head + `
+      const table = `
         <table>
           <thead>
             <tr>
@@ -392,6 +447,8 @@
             </tr>
           </tfoot>
         </table>`;
+
+      div.innerHTML = head + table;
       return div;
     }
 
@@ -406,7 +463,7 @@
     // ---------------- Wire-up ----------------
     el('forceRefresh').onclick=()=>{ clearCache(); loadCSV(); };
     el('clearCache').onclick =()=>{ clearCache(); el('status').textContent=' cache cleared — click Force Refresh to reload'; };
-    ['lensFamily','lensTint','includeAR','includeAspheric','includeOversize','includeGlass']
+    ['lensFamily','lensTint','includeAR','includeAspheric','includeOversize','includeGlass','includeCustomNO']
       .forEach(id=> el(id).onchange=computeBundles );
 
     // Boot
