@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>PayerEdge — VSP Bundles (App v17)</title>
+  <title>PayerEdge — VSP Bundles (App v17.3)</title>
 
   <!-- Typography -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -134,7 +134,7 @@
 
   <!-- Error overlay for runtime issues -->
   <script>
-    if (!window.__PAYEREDGE_V17__) {
+    if (!window.__PAYEREDGE_V173__) {
       (function(){
         function showErrorOverlay(err, where){
           const wrap = document.createElement('div');
@@ -150,10 +150,10 @@
   </script>
 
   <script>
-  if (window.__PAYEREDGE_V17__) {
+  if (window.__PAYEREDGE_V173__) {
     console.warn('PayerEdge APP script already loaded; skipping second init.');
   } else {
-    window.__PAYEREDGE_V17__ = true;
+    window.__PAYEREDGE_V173__ = true;
 
     /* ================== Config & utils ================== */
 
@@ -176,8 +176,18 @@
 
     const isDCode  = r => /^d/i.test((r.code||'').trim());
     const isPPhoto = r => /^p(m|r)\b/i.test((r.code||'').trim());
-    const isGlassText = s => /glass/.test(N(s||''));
-    const isGlassBase = row => isGlassText(row?.enhancement) || isGlassText(row?.subtype);
+
+    // ===== Glass detection by code & text =====
+    const GLASS_BASE_CODES = new Set(['AF','DE','FE']); // expand if needed
+    function isGlassByCode(row){
+      const raw = String(row?.code || '').trim().toUpperCase();
+      const parts = raw.split(/[\s+&/,\-]+/).filter(Boolean);
+      const base = parts[0] || raw; // base A-code
+      return GLASS_BASE_CODES.has(base);
+    }
+    const isGlassText = s => /glass/i.test(String(s||''));
+    const isGlassBase = row => isGlassByCode(row) || isGlassText(row?.enhancement) || isGlassText(row?.subtype);
+
     const preferPhotoCodeForBase = row => (isGlassBase(row) ? 'PM' : 'PR');
 
     const splitCodes = (s)=> String(s||'')
@@ -258,7 +268,7 @@
       }
 
       if (loaded){
-        const meta = { plan:'VSP_choice', version:new Date().toISOString().slice(0,10)+'.ui17', source:'network:'+loaded.url, sha:quickHash(loaded.text) };
+        const meta = { plan:'VSP_choice', version:new Date().toISOString().slice(0,10)+'.ui17.3', source:'network:'+loaded.url, sha:quickHash(loaded.text) };
         setCache(loaded.text, meta);
         DATA = parseCSV(loaded.text);
         buildSimpleIndex();
@@ -486,6 +496,7 @@
       return 'other';
     }
 
+    // Strict glass policy (now that we detect by code too)
     function enforceGlassPolicy(rows, wantGlassOnly){
       return rows.filter(r => wantGlassOnly ? isGlassBase(r) : !isGlassBase(r));
     }
@@ -505,19 +516,29 @@
       }
     }
 
+    // PAL polarized base identification: NP / OP (or composites using them)
+    function isPolarizedPAL(row){
+      const code = String(row.code||'').trim().toUpperCase();
+      if (code==='NP' || code==='OP') return true;
+      const parts = splitCodes(code);
+      return parts.includes('NP') || parts.includes('OP');
+    }
+
+    // PAL N/O base eligibility for CM: base must be NA* or OA*
     function isNOBase(row){
-      const t=N(row.enhancement || row.subtype || '');
-      return /(near\s*office|office|computer|workspace|work\s*space|desk)/i.test(row.enhancement||row.subtype||'');
+      const code = String(row.code||'').trim().toUpperCase();
+      return code.startsWith('NA') || code.startsWith('OA');
     }
 
     function chooseTransitionsFor(baseRow){
-      // Return PR/PM sun_tech row matching base material and glass policy
       const fam = el('lensFamily').value;
       const wantGlassOnly = el('includeGlass').checked;
-      const all = enforceGlassPolicy(byKey('sun_tech').filter(r=>applies(r,fam)), wantGlassOnly)
-                    .filter(r => /photochrom/i.test(r.enhancement||''));
-      const want = preferPhotoCodeForBase(baseRow); // PM for glass base else PR
-      // Prefer same-code start (PR/PM) then material match
+      const PHOTO_RX = /(photochrom|transitions)/i;
+      const all = enforceGlassPolicy(
+        byKey('sun_tech').filter(r=>applies(r,fam)),
+        wantGlassOnly
+      ).filter(r => PHOTO_RX.test(r.enhancement||r.subtype||''));
+      const want = preferPhotoCodeForBase(baseRow); // PM for glass, else PR
       let best = all.find(r => new RegExp('^'+want+'\\b','i').test((r.code||'').trim()));
       if (!best){
         const pool = all.filter(r => sunMatchesBase(r, baseRow));
@@ -526,7 +547,7 @@
       return best || null;
     }
 
-    // Pick MN / MP tint row by family/material/variant (“solid” vs “gradient”) from CSV
+    // Tint pickers
     function pickTintRow(baseRow, variant){
       const fam = el('lensFamily').value;
       const wantGlassOnly = el('includeGlass').checked;
@@ -561,8 +582,33 @@
         if (wantSolid && /solid/.test(t))   s+=1;
         return s;
       };
-
       return pool.sort((a,b)=>score(b)-score(a))[0] || null;
+    }
+
+    function chooseTintSunFallback(baseRow, variant){
+      const fam = el('lensFamily').value;
+      const wantGlassOnly = el('includeGlass').checked;
+      const wantGrad  = variant === 'tint-gradient';
+      const wantSolid = variant === 'tint-solid';
+
+      let pool = enforceGlassPolicy(
+        byKey('sun_tech').filter(r=>applies(r,fam)),
+        wantGlassOnly
+      ).filter(r=>{
+        const t = N(r.enhancement||r.subtype||'');
+        if (/(polariz|photochrom|transitions)/i.test(t)) return false;
+        if (!/tint|tinted|sunglass|gradient/.test(t))    return false;
+        if (wantGrad)  return /gradient|grad/i.test(t);
+        if (wantSolid) return /solid/.test(t) || (/tint/i.test(t) && !/gradient/i.test(t));
+        return true;
+      });
+
+      pool = pool.sort((a,b)=>{
+        const aM = sunMatchesBase(a, baseRow) ? 1 : 0;
+        const bM = sunMatchesBase(b, baseRow) ? 1 : 0;
+        return bM - aM;
+      });
+      return pool[0] || null;
     }
 
     /* ===== Compute bundles ===== */
@@ -573,30 +619,34 @@
       const wantAR = el('includeAR').checked;
       const wantAsp = el('includeAspheric').checked;
       const wantOS  = el('includeOversize').checked;
-      const wantGlassOnly = el('includeGlass').checked; // hard policy
+      const wantGlassOnly = el('includeGlass').checked;
       const tintSel = el('lensTint').value;
 
-      // Pools
-      const sunAll = enforceGlassPolicy(byKey('sun_tech').filter(r=>applies(r,fam)), wantGlassOnly);
       const customPool = DATA.filter(r => applies(r, 'PAL'))
                              .filter(r => /custom\s*measure/i.test(N(r.enhancement||r.subtype||'')));
 
-      // ----- Base candidates
       let base = [];
+
       if (fam === 'PAL') {
+        // PAL: materials from progressive_level. Polarized uses NP/OP (not D-codes).
         base = byKey('progressive_level').filter(r=>applies(r,fam)).filter(r=>{
           const name=N(r.enhancement||r.subtype||'');
+          const code=String(r.code||'').toUpperCase();
           if(!wantAsp && name.includes('aspheric')) return false;
           if (/photochrom|tint|tinted|sunglass|gradient/.test(name)) return false;
-          if (tintSel==='polarized') return /polariz/.test(name); // polarized as material (exclusive)
-          return !/polariz/.test(name); // non-sun materials when not polarized
+          if (tintSel==='polarized') return isPolarizedPAL(r);  // NP/OP present
+          return !/polariz/i.test(name) && !/NP|OP/.test(code);
         });
         base = enforceGlassPolicy(base, wantGlassOnly);
       } else {
         if (tintSel==='polarized') {
-          // SV/LINED polarized base must be D-code polarized
-          base = sunAll.filter(r => /polariz/.test(N(r.enhancement||r.subtype||'')) && isDCode(r));
+          // SV/LINED: D-coded polarized base (exclusive); DO NOT apply glass policy here
+          base = byKey('sun_tech')
+            .filter(r => applies(r, fam))
+            .filter(r => /polariz/i.test(r.enhancement || r.subtype || ''))
+            .filter(isDCode);
         } else {
+          // Normal SV or LINED bases
           const pool = (fam==='SV' ? byKey('base_material') : byKey('occupational'));
           base = pool.filter(r=>applies(r,fam)).filter(r=>{
             const name=N(r.enhancement||r.subtype||'');
@@ -604,7 +654,7 @@
             if(/photochrom|polariz|tint|tinted|sunglass|gradient/.test(name)) return false;
             return true;
           });
-          base = enforceGlassPolicy(base, wantGlassOnly);
+          base = enforceGlassPolicy(base, wantGlassOnly); // exposes AF/DE/FE when Glass=ON
         }
       }
 
@@ -628,32 +678,28 @@
       function computeAddOnsFor(baseRow){
         const addOns = [];
 
-        // Transitions (exclusive vs others handled by UI choice)
         if (tintSel==='transitions'){
           const tr = chooseTransitionsFor(baseRow);
           if (tr) addOns.push(tr);
         }
 
-        // Tint (MN/MP)
         if (tintSel==='tint-solid' || tintSel==='tint-gradient'){
-          const tintRow = pickTintRow(baseRow, tintSel);
+          const tintRow = pickTintRow(baseRow, tintSel) || chooseTintSunFallback(baseRow, tintSel);
           if (tintRow) addOns.push(tintRow);
         }
 
-        // Custom N/O (only when base is an N/O PAL)
+        // CM only for PAL when base is NA* or OA*
         if (el('includeCM')?.checked && fam==='PAL' && isNOBase(baseRow)){
           if (customPool.length) addOns.push(customPool[0]);
         }
 
-        // Oversize
         if (overs) addOns.push(overs);
-
         return addOns;
       }
 
       function buildBundle(m, arRow){
-        // Polarized is exclusive: do not add any sun/tint/transition add-ons.
-        const addOns = (tintSel==='polarized') ? [] : computeAddOnsFor(m);
+        // Polarized is exclusive for SV/LINED (handled by base choice). For PAL, NP/OP already in base.
+        const addOns = (tintSel==='polarized' && fam!=='PAL') ? [] : computeAddOnsFor(m);
         return makeBundle(m, [arRow, ...addOns]);
       }
 
