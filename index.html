@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8"/>
-  <title>PayerEdge — VSP Bundles (v12.4)</title>
+  <title>PayerEdge — VSP Bundles (v12.5)</title>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <style>
     :root{--bg:#0b0f14;--fg:#e7eefc;--muted:#9fb0c9;--card:#101722;--line:#233044;--ok:#10b981}
@@ -37,7 +37,7 @@
       <div class="meta">Scoreboard shows <b>patient copay</b> and <b>service fee</b> (Copay − Holdback). Sun choices are exclusive.</div>
     </div>
     <div style="display:flex;gap:8px;align-items:center">
-      <span class="meta">plan=<b id="planName">VSP_choice</b> • version=<b>v12.4</b> • source=<span id="src" class="muted">…</span></span>
+      <span class="meta">plan=<b id="planName">VSP_choice</b> • version=<b>v12.5</b> • source=<span id="src" class="muted">…</span></span>
       <button class="btn" id="refresh">Force Refresh</button>
       <button class="btn" id="clear">Clear Cache</button>
     </div>
@@ -64,9 +64,8 @@
     </div>
 
     <div class="group" style="gap:12px">
-      <label class="muted">AR</label>
+      <label><input type="checkbox" id="ar" checked/> Include AR</label>
       <select id="arTier">
-        <option value="none">None</option>
         <option value="QM">Tier A (QM)</option>
         <option value="QT">Tier C (QT)</option>
         <option value="QV">Tier D (QV)</option>
@@ -89,9 +88,12 @@
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
   <script>
     /*************** CONFIG ***************/
-    const CSV_PATH = "./data/vsp_choice_master_v9_strict.csv"; // strict file you uploaded
+    const CSV_PATH = "./data/vsp_choice_master_v9_strict.csv"; // strict file
     const PLAN = "VSP_choice";
     const CACHE_KEY = "payeredge_v12_cache";
+
+    // Fallback BA base holdback (used only if CSV lacks a BA row)
+    const BA_HOLDBACK_DEFAULT = { SV: 24, MF: 34 };
 
     const CARDS = [
       {key:"Hi67", level:"Hi67", title:"Hi67"},
@@ -103,6 +105,8 @@
     const $cards = document.getElementById("cards");
     const $meta  = document.getElementById("meta");
     const $net   = document.getElementById("net");
+    const $arCbx = document.getElementById("ar");
+    const $arSel = document.getElementById("arTier");
     document.getElementById("src").textContent = CSV_PATH;
 
     const money = n => `$${Number(n||0).toFixed(2).replace(/\.00$/,'')}`;
@@ -195,7 +199,8 @@
         oversize: document.getElementById("oversize").checked,
         glass: document.getElementById("glass").checked,
         no_only: document.getElementById("noOnly").checked,
-        arTier: document.getElementById("arTier").value // 'none' | 'QM' | 'QT' | 'QV'
+        arOn: document.getElementById("ar").checked,
+        arTier: document.getElementById("arTier").value // QM/QT/QV
       };
     }
 
@@ -209,11 +214,10 @@
       if ((r.exclusive_group||"").trim()) return true; // e.g. sun
       const req = r.requires_flags||[];
       return req.includes("oversize") || req.includes("no_only") || req.includes("glass");
-      // NOTE: AR handled separately by tier picker
+      // NOTE: AR handled separately by checkbox + tier picker
     }
 
     function pickExclusive(rows){
-      // Keep one row per exclusive_group; prefer higher copay (deterministic)
       const winners = new Map();
       const passthrough = [];
       for (const r of rows){
@@ -228,33 +232,66 @@
       return [...passthrough, ...winners.values()];
     }
 
-    function pickAR(rowsForFam, tier){
-      if (tier==="none") return null;
-      // Find a row with requires_flags containing 'ar' and matching the code (QM/QT/QV)
+    function pickAR(rowsForFam, flags){
+      if (!flags.arOn) return null;
+      const code = flags.arTier; // QM/QT/QV
       const ar = rowsForFam.find(r => r.kind==="addon"
         && (r.requires_flags||[]).includes("ar")
-        && r.code===tier);
+        && r.code===code);
       return ar || null;
+    }
+
+    // Try to find BA base row in CSV; else use fallback per-family value.
+    function getBaBaseHoldback(rowsForFam, fam){
+      const ba = rowsForFam.find(r => r.code==="BA"); // any kind
+      if (ba){
+        const {hold} = familyRowVal(ba, fam);
+        if (hold != null) return hold;
+      }
+      return BA_HOLDBACK_DEFAULT[fam] || 0;
+    }
+
+    // Build a virtual row that contributes holdback only (no copay)
+    function makeBaHoldbackRow(holdSV, holdMF){
+      return {
+        item: "BA (base) — holdback only",
+        code: "BA(HB)",
+        kind: "addon",
+        family: "BOTH",
+        material_level: "—",
+        sun: "—",
+        exclusive_group: "",
+        requires_flags: [],
+        forbids_flags: [],
+        applies_to: "bundle_only",
+        pair_with: "BA",
+        copay_sv: 0, holdback_sv: holdSV,
+        copay_mf: 0, holdback_mf: holdMF
+      };
     }
 
     function bundleRows(rows, fam, level, tint, flags){
       const rowsForFam = rows.filter(r=> r.family==="BOTH" || r.family===fam);
 
-      // Pair/base
       const pair = rowsForFam.find(r=> r.kind==="pair" && r.material_level===level && r.sun!=="Polarized");
       const cr   = rowsForFam.find(r=> r.kind==="base" && r.code==="AA");
 
-      // Non-AR add-ons (sun + oversize/no_only/glass via flags)
       const addOnsAll = rowsForFam.filter(r=> r.kind==="addon" && isPositiveSignalAddon(r));
       const addOns = addOnsAll.filter(r=> flagsAllow(r, flags) && (
         r.sun==="Any" || r.sun==="—" || r.sun===tint
       ));
       const addOnsExclusive = pickExclusive(addOns);
 
-      // AR: exactly one tier (or none)
-      const arRow = pickAR(rowsForFam, flags.arTier);
+      const arRow = pickAR(rowsForFam, flags);
 
-      return {pair, cr, addOns:addOnsExclusive, arRow};
+      // BA base holdback should ALWAYS be withheld on pair bundles (not on CR)
+      const baHold = getBaBaseHoldback(rowsForFam, fam);
+      const baRow  = makeBaHoldbackRow(
+        fam==="SV" ? baHold : 0,
+        fam==="MF" ? baHold : 0
+      );
+
+      return {pair, cr, addOns:addOnsExclusive, arRow, baRow};
     }
 
     function computeLines(row, fam){
@@ -310,7 +347,14 @@
         </div>`;
     }
 
+    function toggleArTierDisabled(){
+      $arSel.disabled = !$arCbx.checked;
+      $arSel.style.opacity = $arCbx.checked ? 1 : 0.5;
+    }
+
     async function run(){
+      toggleArTierDisabled();
+
       const fam  = famKey(document.getElementById("lensFamily").value);
       const tint = document.getElementById("lensTint").value;
       const flags = flagsFromUI();
@@ -320,17 +364,20 @@
 
       const out = [];
       for (const c of CARDS){
-        const {pair, cr, addOns, arRow} = bundleRows(rows, fam, c.level, tint, flags);
+        const {pair, cr, addOns, arRow, baRow} = bundleRows(rows, fam, c.level, tint, flags);
 
         if (c.level === "CR"){
           if (!cr){ out.push(`<div class="card"><div class="meta">Missing AA (CR) row.</div></div>`); continue; }
           const extras = [...addOns.filter(a=> a.applies_to!="bundle_only")];
-          if (arRow) extras.push(arRow);
+          if (flags.arOn && arRow) extras.push(arRow);
+          // No BA base holdback on CR
           out.push(renderCard("CR", cr, fam, extras));
         } else {
           if (!pair){ out.push(`<div class="card"><div class="meta">Missing pair for ${c.level}.</div></div>`); continue; }
           const extras = [...addOns.filter(a=> a.applies_to!="cr_only")];
-          if (arRow) extras.push(arRow);
+          if (flags.arOn && arRow) extras.push(arRow);
+          // Always add BA base holdback to bundles
+          extras.push(baRow);
           out.push(renderCard(c.title, pair, fam, extras));
         }
       }
@@ -341,7 +388,7 @@
     // events
     document.getElementById("lensFamily").addEventListener("change", ()=>{ sessionStorage.removeItem(CACHE_KEY); run(); });
     document.getElementById("lensTint").addEventListener("change", run);
-    ["aspheric","oversize","glass","noOnly","arTier"].forEach(id=> document.getElementById(id).addEventListener("change", run));
+    ["aspheric","oversize","glass","noOnly","ar","arTier"].forEach(id=> document.getElementById(id).addEventListener("change", run));
     document.getElementById("refresh").addEventListener("click", ()=>{ sessionStorage.removeItem(CACHE_KEY); run(); });
     document.getElementById("clear").addEventListener("click", ()=>{ sessionStorage.clear(); $meta.textContent="cache cleared"; run(); });
 
