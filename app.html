@@ -2,822 +2,338 @@
 <html lang="en">
 <head>
   <meta charset="utf-8"/>
+  <title>RevSight AI — VSP Choice Bundles (v9)</title>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>PayerEdge — VSP Bundles (App v18.0.0)</title>
-
-  <!-- Typography -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
-
   <style>
     :root{
-      --bg:#090e16; --bg-elev:#0c1320; --fg:#eaf1ff; --muted:#9fb0c9; --line:#263448;
-      --accent:#72a8ff; --accent-2:#7be0c3;
-      --tier-best:#ffd166; --tier-better:#a9c2ff; --tier-good:#7be0c3;
-      --shadow-lg:0 18px 40px rgba(0,0,0,.35); --shadow-md:0 10px 26px rgba(0,0,0,.28);
-      --radius:18px; --radius-sm:12px;
-      --fz-12:12px; --fz-13:13px; --fz-15:15px; --fz-18:18px; --fz-20:20px; --fz-36:36px;
+      --bg:#0b0f14;--fg:#e7eefc;--muted:#9fb0c9;--card:#101722;--line:#233044;
+      --ok:#0f6a52;--warn:#7c5c19;--err:#b91c1c;--chip:#172234;--blue:#3b82f6
     }
-    *{box-sizing:border-box}
-    html,body{height:100%}
-    body{
-      margin:0;
-      background:
-        radial-gradient(1200px 600px at 20% -10%, rgba(90,168,255,.12), transparent 60%),
-        radial-gradient(900px 500px at 110% 10%, rgba(123,224,195,.10), transparent 60%),
-        var(--bg);
-      color:var(--fg);
-      font:var(--fz-15)/1.45 Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-      -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
-      font-variant-numeric: tabular-nums;
-    }
-
-    header{
-      position:sticky; top:0; z-index:20; display:flex; justify-content:space-between; align-items:center; gap:14px;
-      padding:16px 20px; background:linear-gradient(180deg, rgba(9,14,22,.95), rgba(9,14,22,.78));
-      border-bottom:1px solid var(--line); backdrop-filter: blur(10px);
-    }
-    h1{margin:0; font-weight:800; font-size:var(--fz-20); letter-spacing:.2px}
-    .sub{color:var(--muted); font-size:var(--fz-12)}
-    .version{color:var(--muted)}
-    main{padding:18px}
-
-    .bar{
-      display:flex; align-items:center; flex-wrap:wrap; gap:10px 14px;
-      background:linear-gradient(180deg, var(--bg-elev), #0b1220);
-      border:1px solid var(--line); border-radius:var(--radius); padding:12px 12px;
-      box-shadow: var(--shadow-md);
-    }
-    .group{display:flex; gap:10px; align-items:center; padding:6px 10px; border-radius:999px; background:#0b1424}
-    .btn{ background:#121f35; border:1px solid var(--line); color:var(--fg); padding:8px 12px; border-radius:var(--radius-sm); cursor:pointer; font-weight:600; transition:.15s }
-    .btn:hover{ background:#162844; border-color:#2e4260 }
-    .switch{display:inline-flex; align-items:center; gap:8px}
-    .switch select, .switch input[type="checkbox"]{ accent-color:var(--accent) }
-    select{ background:#0e1a30; color:#fff; border:1px solid var(--line); border-radius:10px; padding:6px 8px; outline:none }
-    select:focus{ box-shadow:0 0 0 3px rgba(114,168,255,.25) }
-    #status{ margin-left:auto; padding:6px 10px; border-radius:999px; border:1px dashed var(--line); background:#0b1422; color:#c7d6ef }
-
-    .stack{ display:grid; gap:18px; grid-template-columns:repeat(auto-fit, minmax(320px,1fr)); align-items:stretch; margin-top:16px }
-    .tier{ background:linear-gradient(180deg, #0f1726, #0c1422); border:1px solid var(--line); border-radius:var(--radius); box-shadow: var(--shadow-lg); padding:16px; transition:.25s }
-    .tierHead{display:grid; grid-template-columns:1fr auto; align-items:center; gap:10px; margin-bottom:12px}
-    .stars{font-weight:800; display:flex; align-items:center; gap:8px}
-    .stars .tag{font-size:var(--fz-12); color:var(--muted); padding:2px 8px; border:1px solid var(--line); border-radius:999px; background:#0c1424}
-    .stars.best{color:var(--tier-best)} .stars.better{color:var(--tier-better)} .stars.good{color:var(--tier-good)}
-
-    .figures{ text-align:right; display:grid; gap:2px }
-    .hero{ font-size:var(--fz-36); font-weight:800; line-height:1.0; letter-spacing:.2px; color:#cfe6ff; text-shadow: 0 6px 18px rgba(114,168,255,.18) }
-    .caption{ color:var(--muted); font-size:var(--fz-12) }
-    .svc{ font-weight:800; color:var(--accent-2) }
-
-    table{width:100%; border-collapse:collapse; margin-top:12px}
-    th,td{border-bottom:1px dashed #203043; padding:9px 6px; text-align:left; font-size:var(--fz-13)}
-    th{color:var(--muted); font-weight:700}
-    .code{font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size:12px; color:#cfe1ff}
-    .money{font-weight:800}
-
-    .break { margin:6px 0 10px; background:#0b1424; border:1px solid var(--line); border-radius:10px; }
-    .break table{ width:100%; border-collapse:collapse; }
-    .break th,.break td{ border:0; padding:6px 8px; text-align:left; font-size:12px; }
-    .break .codepill{ display:inline-block; padding:2px 8px; border:1px solid var(--line); border-radius:999px; font-family:ui-monospace,Menlo,Consolas,monospace; font-size:12px; color:#cfe1ff; background:#0e1a30; }
-    .break .colhed{ color:var(--muted); font-weight:600; }
-
-    :focus-visible{ outline:2px solid var(--accent); outline-offset:2px; border-radius:8px }
-    @media print{ header,.bar{display:none} body{background:#fff; color:#000} .tier{break-inside:avoid; border:1px solid #000; box-shadow:none} table, th, td{border-color:#000} }
+    *{box-sizing:border-box} body{background:var(--bg);color:var(--fg);font:15px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;margin:0}
+    header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 20px;border-bottom:1px solid #1b2535}
+    h1{font-size:18px;margin:0} .sub{color:var(--muted);font-size:12px}
+    .row{display:flex;gap:12px;flex-wrap:wrap;padding:12px 20px}
+    .btn{background:#162130;border:1px solid var(--line);color:var(--fg);padding:8px 12px;border-radius:10px;cursor:pointer}
+    .btn:active{transform:translateY(1px)} .btn.warn{border-color:#5c3d10}
+    .group{background:#0f1621;border:1px solid var(--line);border-radius:12px;padding:10px 12px;display:flex;gap:10px;align-items:center}
+    .chip{background:var(--chip);padding:6px 9px;border-radius:999px;border:1px solid var(--line);font-size:12px}
+    .ctrl{display:flex;align-items:center;gap:8px}
+    select, .text{background:#152033;border:1px solid var(--line);color:var(--fg);padding:6px 10px;border-radius:8px}
+    .cards{display:grid;grid-template-columns:repeat(4,minmax(260px,1fr));gap:14px;padding:0 20px 40px}
+    .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px}
+    .card h2{margin:0 0 2px 0;font-size:32px}
+    .kicker{color:var(--muted);font-size:12px;margin-bottom:12px}
+    table{width:100%;border-collapse:collapse;font-size:13px}
+    th,td{padding:8px;border-top:1px solid #1b2535;text-align:left}
+    .right{text-align:right} .muted{color:var(--muted)}
+    .ok{color:#10b981} .warn{color:#f59e0b}
+    .err{background:#2a0f12;border:1px solid var(--err);color:#fca5a5;padding:8px 10px;border-radius:8px;margin:10px 20px}
+    .pill{display:inline-flex;gap:6px;align-items:center;font-size:12px;background:#122238;border:1px solid var(--line);padding:4px 8px;border-radius:999px}
+    .note{font-size:12px;color:var(--muted)}
+    .headergrid{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center}
+    @media(max-width:1200px){.cards{grid-template-columns:repeat(2,minmax(260px,1fr))}}
+    @media(max-width:700px){.cards{grid-template-columns:1fr}}
   </style>
 </head>
 <body>
   <header>
     <div>
-      <h1>PayerEdge — VSP Bundles</h1>
+      <div class="headergrid">
+        <h1>PayerEdge — VSP Bundles</h1>
+        <span class="pill">plan=<b>VSP_choice</b> • version=<b>v9</b> • source=<span id="src" class="muted">…</span></span>
+      </div>
       <div class="sub">Scoreboard shows <b>patient copay</b> and <b>service fee</b> (Copay − Holdback). Sun choices are exclusive.</div>
     </div>
-    <div class="version sub" id="version">loading…</div>
+    <div class="ctrl">
+      <button class="btn" id="refresh">Force Refresh</button>
+      <button class="btn" id="clear">Clear Cache</button>
+    </div>
   </header>
 
-  <main>
-    <div class="bar" role="toolbar" aria-label="Bundle controls">
-      <div class="group">
-        <button class="btn" id="forceRefresh" title="Reload CSV and recompute">Force Refresh</button>
-        <button class="btn" id="clearCache" title="Clear local CSV cache">Clear Cache</button>
-      </div>
-      <div class="group">
-        <label class="switch">Lens family
-          <select id="lensFamily" aria-label="Lens family">
-            <option value="SV" selected>Single Vision</option>
-            <option value="LINED">Lined Bi/Tri</option>
-            <option value="PAL">Progressive</option>
-          </select>
-        </label>
-        <label class="switch">Lens tint
-          <select id="lensTint" aria-label="Lens tint">
-            <option value="clear" selected>Clear</option>
-            <option value="tint-solid">Solid Tint</option>
-            <option value="tint-gradient">Gradient Tint</option>
-            <option value="polarized">Polarized</option>
-            <option value="transitions">Transitions®</option>
-          </select>
-        </label>
-      </div>
-      <div class="group">
-        <label class="switch"><input type="checkbox" id="includeAR" checked> Include AR (tiered)</label>
-        <label class="switch"><input type="checkbox" id="includeAspheric"> Aspheric</label>
-        <label class="switch"><input type="checkbox" id="includeOversize"> Oversize</label>
-        <label class="switch"><input type="checkbox" id="includeGlass"> Glass</label>
-        <label class="switch"><input type="checkbox" id="includeCM"> Custom measurements (N/O only)</label>
-      </div>
-      <span id="status" aria-live="polite"></span>
+  <div class="row">
+    <div class="group">
+      <span class="muted">Lens family</span>
+      <select id="lensFamily">
+        <option value="SV">Single Vision</option>
+        <option value="MF">Multifocal</option>
+      </select>
     </div>
+    <div class="group">
+      <span class="muted">Lens tint</span>
+      <select id="lensTint">
+        <option value="Clear">Clear</option>
+        <option value="Solid">Solid Tint</option>
+        <option value="Gradient">Gradient Tint</option>
+        <option value="Photochromic">Photochromic (Transitions)</option>
+        <option value="Polarized">Polarized</option>
+      </select>
+    </div>
+    <div class="group">
+      <label><input type="checkbox" id="ar" checked/> Include AR (tiered)</label>
+      <label><input type="checkbox" id="aspheric" /> Aspheric</label>
+      <label><input type="checkbox" id="oversize" /> Oversize</label>
+      <label><input type="checkbox" id="glass" /> Glass</label>
+      <label><input type="checkbox" id="noOnly" /> Custom measurements (N/O only)</label>
+    </div>
+    <div class="group">
+      <span class="muted">[debug]</span>
+      <span id="meta" class="chip">…</span>
+    </div>
+  </div>
 
-    <div id="stack" class="stack"></div>
-  </main>
+  <div id="err" class="err" style="display:none"></div>
+  <div class="cards" id="cards"></div>
 
-  <!-- Error overlay -->
+  <!-- PapaParse for CSV -->
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js" integrity="sha256-kW3F6TjDk7p4Y+9lE8N0vC3X8vF4W6lZyqE5N9w3+8w=" crossorigin="anonymous"></script>
   <script>
-    if (!window.__PAYEREDGE_V1800__) {
-      (function(){
-        function showErrorOverlay(err, where){
-          const wrap = document.createElement('div');
-          wrap.style.cssText = 'position:fixed;inset:12px;z-index:99999;background:#0b1220;border:1px solid #f44;box-shadow:0 8px 24px rgba(0,0,0,.5);color:#fff;border-radius:12px;padding:12px;overflow:auto;max-height:90vh;font:12px/1.4 ui-monospace,Menlo,Consolas,monospace';
-          wrap.innerHTML = '<b>JS Error @ '+where+':</b><pre style="white-space:pre-wrap;margin:8px 0 0">'+
-            (err && (err.stack||err.message||String(err))) + '</pre>';
-          document.body.appendChild(wrap);
-        }
-        window.addEventListener('error', e=>showErrorOverlay(e.error||e,'window.error'));
-        window.addEventListener('unhandledrejection', e=>showErrorOverlay(e.reason||e,'unhandledrejection'));
-      })();
-    }
-  </script>
+    /********************
+     * CONFIG + VERSION *
+     ********************/
+    // Update this to your actual CSV:
+    // e.g., "./data/vsp_choice_master_v8_from_patched.csv"
+    // If it fails to load, the app will use a tiny fallback dataset just to render.
+    const CSV_PATH = "./data/vsp_choice_master_v8_from_patched.csv";
+    document.getElementById("src").textContent = CSV_PATH;
 
-  <script>
-  if (window.__PAYEREDGE_V1800__) {
-    console.warn('PayerEdge APP script already loaded; skipping second init.');
-  } else {
-    window.__PAYEREDGE_V1800__ = true;
-
-    /* ================== Config & utils ================== */
-
-    // Primary points to v8-from-patched in /data. Others are fallbacks.
-    const CSV_CANDIDATES = [
-      './data/vsp_choice_master_v8_from_patched.csv',
-      './data/vsp_choice_master_v8.csv',
-      './data/vsp_choice_master_v7_full_fixed_patched.csv',
-      './data/vsp_choice_master_v7_full_fixed.csv',
-      './vsp_choice_master_v8_from_patched.csv',
-      './vsp_choice_master_v8.csv',
-      './vsp_choice_master_v7_full_fixed_patched.csv',
-      './vsp_choice_master_v7_full_fixed.csv'
-    ];
-
-    const BETTER_CAP_OF_MAX = 0.75;
-    const GOOD_CAP_OF_MAX   = 0.50;
-    const CAP_RELAX_FACTOR  = 0.90;
-
-    const el = (id)=>document.getElementById(id);
-    const sum = (a)=>a.reduce((x,y)=>x+y,0);
-    const num = (v)=>{ const x=parseFloat(String(v??'').replace(/[^0-9.-]/g,'')); return isFinite(x)?x:0; };
-    const quickHash=(s)=>{ let h=2166136261>>>0; for(let i=0;i<s.length;i++){ h^=s.charCodeAt(i); h=Math.imul(h,16777619)>>>0; } return ('00000000'+h.toString(16)).slice(-8); };
-    const N = s => String(s||'').toLowerCase();
-
-    const isDCode  = r => /^d/i.test((r.code||'').trim());
-
-    /* ===== Code/material understanding ===== */
-    const GLASS_BASE_CODES = new Set(['AF','DE','FE']); // add more if needed
-    const baseCodeOf = row => {
-      const raw = String(row?.code || '').trim().toUpperCase();
-      const parts = raw.split(/[\s+&/,\-]+/).filter(Boolean);
-      return parts[0] || raw;
+    // v9: Authoritative Digital Aspheric pricing (from your posted chart)
+    const DIGITAL_ASPHERIC = {
+      SV: {
+        "BA":    { cb:24, sf:21, base:45, add:0,  allowed:true },
+        "BA+BB": { cb:16, sf:12, base:45, add:28, allowed:true },
+        "BA+BH": { cb:37, sf:21, base:45, add:58, allowed:true },
+        "BA+BJ": { cb:57, sf:29, base:45, add:86, allowed:true },
+        "BA+BD": { cb:10, sf: 0, base:45, add:10, allowed:true }
+      },
+      MF: {
+        "BA":    { cb:34, sf:21, base:55, add:0,  allowed:true },
+        "BA+BB": { cb:16, sf:12, base:55, add:28, allowed:true },
+        "BA+BH": { cb:40, sf:28, base:55, add:68, allowed:true },
+        "BA+BJ": { cb:null, sf:null, base:null, add:null, allowed:false },
+        "BA+BD": { cb:10, sf: 0, base:55, add:10, allowed:true }
+      }
     };
-    const isGlassByCode = row => GLASS_BASE_CODES.has(baseCodeOf(row));
-    const isGlassText   = s => /glass/i.test(String(s||''));
-    const isGlassBase   = row => isGlassByCode(row) || isGlassText(row?.enhancement) || isGlassText(row?.subtype);
 
-    const preferPhotoCodeForBase = row => (isGlassBase(row) ? 'PM' : 'PR'); // Transitions PR vs PM
-
-    const splitCodes = (s)=> String(s||'')
-      .toUpperCase().replace(/[^\w+&/,\s-]/g,'')
-      .split(/[\s+&/,\-]+/).map(t=>t.trim()).filter(Boolean);
-
-    function parseNumbersSplit(str){
-      const m = String(str||'').match(/[0-9]+(?:\.[0-9]{1,2})?/g);
-      return m ? m.map(x=>parseFloat(x)) : [];
-    }
-
-    function parseCSV(text){
-      const rows=[]; let row=[], field='', q=false;
-      for(let i=0;i<text.length;i++){
-        const ch=text[i];
-        if(ch==='\"'){ if(q && text[i+1]==='\"'){ field+='\"'; i++; } else { q=!q; } continue; }
-        if(!q && ch===','){ row.push(field); field=''; continue; }
-        if(!q && (ch==='\n' || ch==='\r')){ if(field!==''||row.length){ row.push(field); rows.push(row); row=[]; field=''; } continue; }
-        field+=ch;
+    // Polarized / tint exclusivity rules (summary)
+    // - Polarized acts as MATERIAL for MF; excludes other materials.
+    // - For SV/MF: selecting Polarized/Tint/Photochromic excludes the others.
+    function enforceExclusivity(state){
+      const t = state.tint;
+      state.notes = [];
+      if (t === "Polarized") state.notes.push("Polarized selected — treat as material; exclude other materials.");
+      if (["Solid","Gradient","Photochromic","Polarized"].includes(t)){
+        state.notes.push("Sun options are exclusive.");
       }
-      if(field!==''||row.length){ row.push(field); rows.push(row); }
-      const headers = rows.shift().map(h=>h.replace(/^\"|\"$/g,'').trim());
-      return rows.filter(r=>r.length>=headers.length).map(r=>{
-        const o={}; headers.forEach((h,i)=>o[h]=(r[i]||'').replace(/^\"|\"$/g,'').trim()); return o;
-      });
+      return state;
     }
 
-    const CACHE_KEY='rev-vsp-choice-csv-v1';
-    const META_KEY='rev-vsp-choice-meta-v1';
-    const setCache=(t,m)=>{ localStorage.setItem(CACHE_KEY,t); localStorage.setItem(META_KEY,JSON.stringify(m)); };
-    const getCache=()=>({ text: localStorage.getItem(CACHE_KEY), meta: JSON.parse(localStorage.getItem(META_KEY)||'{}') });
-    const clearCacheStorage=()=>{ localStorage.removeItem(CACHE_KEY); localStorage.removeItem(META_KEY); };
+    // CSV cache
+    const CACHE_KEY = "vsp_csv_v9";
+    const META = document.getElementById("meta");
+    const ERRBOX = document.getElementById("err");
+    const CARDS = document.getElementById("cards");
 
-    let DATA=[];
-    let SIMPLE_BY_CODE = new Map(); // code -> array of single-code rows
-
-    function buildSimpleIndex(){
-      SIMPLE_BY_CODE = new Map();
-      for (const r of DATA){
-        const parts = splitCodes(r.code);
-        if (parts.length === 1){
-          const code = parts[0];
-          if (!SIMPLE_BY_CODE.has(code)) SIMPLE_BY_CODE.set(code, []);
-          SIMPLE_BY_CODE.get(code).push(r);
-        }
+    /********************
+     * LOAD CSV (robust)
+     ********************/
+    async function loadCsv(){
+      const cached = sessionStorage.getItem(CACHE_KEY);
+      if (cached){
+        const { rows, when } = JSON.parse(cached);
+        META.textContent = `rows=${rows.length} • cache ${(new Date(when)).toLocaleTimeString()}`;
+        return rows;
       }
-    }
-
-    function pickBaseByExactCode(baseCode){
-      const list = SIMPLE_BY_CODE.get(baseCode) || [];
-      if (!list.length) return null;
-      const score = s => (s.includes('plastic') && !s.includes('high') ? 2 : 0);
-      return list
-        .map(r => ({ r, s: (r.enhancement || r.subtype || '').toLowerCase() }))
-        .sort((a,b) => score(b.s) - score(a.s))[0].r;
-    }
-
-    async function tryFetch(url){
       try{
-        const res = await fetch(url, { cache:'no-store' });
-        if(!res.ok) throw new Error('HTTP '+res.status);
-        const text = await res.text();
-        return { ok:true, text, url };
+        const data = await fetch(CSV_PATH,{cache:"no-store"});
+        if(!data.ok) throw new Error(`HTTP ${data.status}`);
+        const text = await data.text();
+        const parsed = Papa.parse(text, {header:true, skipEmptyLines:true});
+        const rows = parsed.data;
+        sessionStorage.setItem(CACHE_KEY, JSON.stringify({rows, when:Date.now()}));
+        META.textContent = `rows=${rows.length} • fresh`;
+        return rows;
       }catch(e){
-        return { ok:false, err:String(e), url };
+        ERRBOX.style.display="block";
+        ERRBOX.textContent = `CSV load failed (${e.message}). Using fallback sample so UI keeps working.`;
+        META.textContent = "rows=sample • degraded";
+        return sampleRows();
       }
     }
 
-    async function loadCSV(){
-      const status=el('status'); status.textContent=' loading…';
-      const tried = [];
-      let loaded = null;
-
-      for (const url of CSV_CANDIDATES){
-        const r = await tryFetch(url);
-        tried.push(r);
-        if (r.ok){ loaded = r; break; }
-      }
-
-      if (loaded){
-        const meta = { plan:'VSP_choice', version:new Date().toISOString().slice(0,10)+'.ui18.0.0', source:'network:'+loaded.url, sha:quickHash(loaded.text) };
-        setCache(loaded.text, meta);
-        DATA = parseCSV(loaded.text);
-        buildSimpleIndex();
-        renderMeta(DATA.length, meta);
-        status.textContent = ` [ok] ${loaded.url} • ${DATA.length} rows`;
-        computeBundles();
-        return;
-      }
-
-      const {text, meta} = getCache();
-      if(text){
-        DATA = parseCSV(text);
-        buildSimpleIndex();
-        renderMeta(DATA.length, {...meta, source:'cache'});
-        status.textContent = ` Network failed. Using cached data (${DATA.length} rows).`;
-        computeBundles();
-        return;
-      }
-
-      const diag = document.createElement('div');
-      diag.style.cssText = 'margin-top:12px; padding:10px; border:1px solid #843; background:#1a0f16; color:#f8cdd5; border-radius:10px; font-size:13px';
-      const urls = CSV_CANDIDATES.map(u => `<li><code>${u}</code></li>`).join('');
-      const errs = tried.map(t => `<li><code>${t.url}</code> → ${t.ok ? 'OK' : t.err}</li>`).join('');
-      let hint = '';
-      if (location.protocol === 'file:') {
-        hint = `<div style="margin-top:6px">Open via a local server:
-                <br/><code>python -m http.server 8080</code> → <code>http://localhost:8080/app.html</code></div>`;
-      }
-      diag.innerHTML = `
-        <b>Load failed — no cache available.</b>
-        <div style="margin-top:6px">Tried these paths (first wins):</div>
-        <ul>${urls}</ul>
-        <div style="margin-top:6px">Results:</div>
-        <ul>${errs}</ul>${hint}`;
-      el('status').textContent = ' load failed (see diagnostics below)';
-      document.querySelector('main').appendChild(diag);
+    // Minimal fallback data (keeps UI rendering if CSV fails)
+    function sampleRows(){
+      return [
+        { item:"Digital Aspheric", code:"BA+BD", family:"SV", copay:"", holdback:"10", service_fee:"0" },
+        { item:"Digital Aspheric", code:"BA+BH", family:"SV", copay:"", holdback:"37", service_fee:"21" },
+        { item:"CR", code:"AA", family:"SV", copay:"31", holdback:"10", service_fee:"21" },
+        { item:"A/R", code:"QM", family:"SV", copay:"41", holdback:"21", service_fee:"20" }
+      ];
     }
 
-    function renderMeta(count, meta){
-      el('version').textContent = `plan=${meta.plan||'VSP_choice'} • rows=${count||0} • version=${meta.version||'—'} • source=${meta.source||'—'} • sha=${meta.sha||'—'}`;
+    // Normalize a CSV row into a consistent shape
+    function norm(row){
+      const r = Object.fromEntries(Object.entries(row).map(([k,v])=>[String(k).trim().toLowerCase(), typeof v==="string"?v.trim():v]));
+      return {
+        item: r.item || r.lens || r.category || "",
+        code: (r.code || r.codes || "").toUpperCase(),
+        family: (r.family || r.lens_family || r.type || "").toUpperCase().includes("MF") ? "MF" : "SV",
+        copay: num(r.copay || r.patient_copay),
+        holdback: num(r.holdback || r.chargeback || r.charge_back),
+        serviceFee: num(r.service_fee || r.servicefee || r.fee)
+      };
+    }
+    const num = (v)=> v==null||v==="" ? null : Number(String(v).replace(/[^\d.-]/g,""));
+
+    /********************
+     * PRICING OVERRIDES
+     ********************/
+    function priceDigitalAspheric(lensFamily, code){
+      const fam = lensFamily==="MF" ? DIGITAL_ASPHERIC.MF : DIGITAL_ASPHERIC.SV;
+      const rec = fam[code];
+      if(!rec || !rec.allowed) return null; // not applicable
+      const copay = (rec.base ?? 0) + (rec.add ?? 0);
+      return { copay, holdback: rec.cb ?? 0, serviceFee: rec.sf ?? 0, _source:"v9:aspheric-map" };
     }
 
-    const byKey=(k)=>DATA.filter(r=>(r.active||'yes').toLowerCase()==='yes' && (r.exclusive_key||'').toLowerCase()===k);
-    function applies(row, fam){
-      const a=(row.applies_to||'ALL').toUpperCase();
-      if(a.includes('ALL')) return true;
-      if(fam==='SV')     return a.includes('SV');
-      if(fam==='LINED')  return a.includes('OCC');
-      if(fam==='PAL')    return a.includes('MF');
-      return true;
-    }
+    // Merge CSV rows with overrides
+    function applyOverrides(rows, state){
+      const out = [];
+      for (const raw of rows){
+        const r = norm(raw);
+        let priced = null;
 
-    /* ===== Per-line math (composites split into base A + add-on(s)) ===== */
-    function line(row, fam){
-      const desc = row.enhancement || row.subtype || '—';
-      const codeStr = String(row.code||'').trim().toUpperCase();
-      const partsCodes = splitCodes(codeStr);
-
-      // Single-code line
-      if (partsCodes.length === 1){
-        const cop = num(row.copay), cb = num(row.chargeback);
-        return { name:desc, code:codeStr, copay:cop, chargeback:cb, profit:cop-cb, parts:[] };
-      }
-
-      // Composite
-      const compositeCopayNums  = parseNumbersSplit(row.copay);
-      const compositeCBsplitRaw = row.chargeback_split || row.cb_split || '';
-      const compositeCBsplit    = parseNumbersSplit(compositeCBsplitRaw);
-      const compositeAddOnCB    = num(row.chargeback); // sum of add-on CBs in many sheets
-      const compositeTotalCopay = compositeCopayNums.length ? compositeCopayNums.reduce((a,b)=>a+b,0) : num(row.copay);
-      const ctx                 = (row.enhancement || row.subtype || '').toLowerCase();
-
-      // Family+material aware single-row picker
-      function pickSimpleMatched(code){
-        let cands = (SIMPLE_BY_CODE.get(code) || []).filter(r => applies(r, fam));
-        if (!cands.length) return null;
-        function score(r){
-          const t = (r.enhancement || r.subtype || '').toLowerCase();
-          let s = 0;
-          if (/polycarb/.test(ctx) && /polycarb/.test(t)) s += 6;
-          if (/trivex/.test(ctx)   && /trivex/.test(t))   s += 6;
-          if (/glass/.test(ctx)    && /glass/.test(t))    s += 6;
-          if (/(cr[\s-]?39|plastic)/.test(ctx) && /(cr[\s-]?39|plastic)/.test(t) && !/high/.test(t)) s += 4;
-          if (/1\.66|1\.67/.test(ctx) && /1\.66|1\.67/.test(t)) s += 9;
-          if (/1\.70|1\.71/.test(ctx) && /1\.70|1\.71/.test(t)) s += 8;
-          if (/1\.74|1\.75/.test(ctx) && /1\.74|1\.75/.test(t)) s += 8;
-          if (/1\.53|1\.60/.test(ctx) && /1\.53|1\.60/.test(t)) s += 6;
-          if (/polariz|photochrom|transitions|tint|tinted|gradient|sunglass/.test(t)) s -= 20;
-          if (splitCodes(String(r.code||'')).length === 1) s += 1;
-          return s;
+        // If code begins with BA, use authoritative map
+        if (r.code.startsWith("BA")){
+          priced = priceDigitalAspheric(state.family, r.code);
+          if (priced){
+            out.push({
+              item: "Digital Aspheric",
+              code: r.code,
+              family: state.family,
+              copay: priced.copay,
+              holdback: priced.holdback,
+              serviceFee: priced.serviceFee,
+              source: priced._source
+            });
+            continue;
+          }
         }
-        return cands.slice().sort((a,b)=>score(b)-score(a))[0] || cands[0];
+
+        // Default: pass-through CSV values
+        out.push({
+          item: r.item || "Item",
+          code: r.code || "",
+          family: r.family || state.family,
+          copay: r.copay ?? 0,
+          holdback: r.holdback ?? 0,
+          serviceFee: r.serviceFee ?? 0,
+          source: "csv"
+        });
       }
-
-      const parts = [];
-
-      // Base part
-      const baseCode  = partsCodes[0];
-      const baseRow   = pickBaseByExactCode(baseCode) || pickSimpleMatched(baseCode);
-
-      // Copay split: prefer explicit per-part split; else derive
-      let baseCopay, addonCopays = [];
-      if (compositeCopayNums.length === partsCodes.length){
-        baseCopay   = compositeCopayNums[0];
-        addonCopays = compositeCopayNums.slice(1);
-      } else {
-        const baseFromSimple = baseRow ? num(baseRow.copay) : 0;
-        baseCopay = (baseFromSimple || 0);
-        const remain = Math.max(compositeTotalCopay - baseCopay, 0);
-        const addonCount = partsCodes.length - 1;
-        const each = addonCount ? remain / addonCount : 0;
-        addonCopays = Array.from({length:addonCount}, ()=>each);
-      }
-
-      // Chargeback split: prefer chargeback_split if provided; else synthesize
-      let baseCB, addonCBs = [];
-      if (compositeCBsplit.length === partsCodes.length){
-        baseCB  = compositeCBsplit[0];
-        addonCBs= compositeCBsplit.slice(1);
-      } else {
-        // If the sheet's 'chargeback' is the add-on total and there's 1 add-on, use that.
-        if (partsCodes.length === 2 && isFinite(compositeAddOnCB) && compositeAddOnCB>0){
-          baseCB   = baseRow ? num(baseRow.chargeback) : 0;
-          addonCBs = [compositeAddOnCB];
-        } else {
-          // Fall back to single rows
-          baseCB   = baseRow ? num(baseRow.chargeback) : 0;
-          addonCBs = partsCodes.slice(1).map(c=>{
-            const s = pickSimpleMatched(c);
-            return s ? num(s.chargeback) : 0;
-          });
-        }
-      }
-
-      parts.push({ code:baseCode, copay:baseCopay, chargeback:baseCB, profit:baseCopay-baseCB });
-
-      for (let i=1;i<partsCodes.length;i++){
-        const code = partsCodes[i];
-        const cop  = num(addonCopays[i-1] ?? 0);
-        const cb   = num(addonCBs[i-1] ?? 0);
-        parts.push({ code, copay:cop, chargeback:cb, profit:cop-cb });
-      }
-
-      const totalCop = parts.reduce((a,x)=>a+x.copay,0);
-      const totalCB  = parts.reduce((a,x)=>a+x.chargeback,0);
-      return { name:desc, code:codeStr, copay:totalCop, chargeback:totalCB, profit:totalCop-totalCB, parts };
+      return out;
     }
 
-    function makeBundle(base, addOns, fam){
-      const rows = [base, ...addOns.filter(Boolean)];
-      const lines = rows.map(r => line(r, fam));
-      const cop = sum(lines.map(x=>x.copay));
-      const cb  = sum(lines.map(x=>x.chargeback));
-      const pr  = cop - cb;
-      const ratio = cop>0 ? (pr/cop) : 0;
-      const label = base.enhancement || base.subtype || base.code || 'Base';
-      return { label, lines, copay:cop, chargeback:cb, profit:pr, ratio };
-    }
-
-    /* ===== UI helpers ===== */
-    function animateNumber(el,to){
-      const from=parseFloat(el.getAttribute('data-prev')||'0'); const start=performance.now(); const dur=380;
-      function step(t){ const k=Math.min(1,(t-start)/dur); const v=from+(to-from)*(0.5-Math.cos(Math.PI*k)/2); el.textContent=`$${v.toFixed(2)}`; if(k<1)requestAnimationFrame(step); else el.setAttribute('data-prev',to); }
-      requestAnimationFrame(step);
-    }
-    const tdMoney = v => `<td class="money">$${v.toFixed(2)}</td>`;
-
-    function renderTier({name, cls, b}){
-      const div=document.createElement('div'); div.className='tier';
-      if(!b){
-        div.innerHTML=`<div class="tierHead"><div class="stars ${cls}"><span class="tag">${name}</span></div><div class="figures"><div class="hero">—</div><div class="caption">Patient Copay</div></div></div><div class="sub">No viable bundle</div>`;
-        return div;
+    /********************
+     * RENDER CARDS
+     ********************/
+    function groupForScoreboard(rows, state){
+      // Example buckets like your screenshot (Hi, Mid, Poly, CR). You can refine mapping here.
+      const buckets = {
+        "Hi67": [], "Mid": [], "Poly": [], "CR": []
+      };
+      for (const r of rows){
+        if (r.code.startsWith("BA+BH") || r.code.startsWith("BJ")) buckets["Hi67"].push(r);
+        else if (r.code.startsWith("BA+BB")) buckets["Mid"].push(r);
+        else if (r.code.startsWith("BA+BD")) buckets["Poly"].push(r);
+        else if (r.code==="AA" || r.item.toUpperCase()==="CR") buckets["CR"].push(r);
       }
-      const stars = name==='Best' ? '★★★' : name==='Better' ? '★★' : name==='Good' ? '★' : '◎';
-      const head = `
-        <div class="tierHead">
-          <div class="stars ${cls}">
-            <div aria-label="${name}" title="${name}" style="font-size:18px">${stars}</div>
-            <span class="tag">${b.label}</span>
-          </div>
-          <div class="figures">
-            <div class="hero" aria-label="Patient Copay" data-prev="0">$${b.copay.toFixed(2)}</div>
-            <div class="caption">Patient Copay</div>
-            <div class="caption">Service Fee (Practice Profit): <span class="svc">$${b.profit.toFixed(2)}</span></div>
-          </div>
-        </div>`;
+      return buckets;
+    }
 
-      const lines = b.lines.map(li=>{
-        const main = `
-          <tr>
-            <td>${li.name}</td>
-            <td class="code">${li.code || '—'}</td>
-            ${tdMoney(li.copay)}
-            ${tdMoney(li.chargeback)}
-            ${tdMoney(li.profit)}
-          </tr>`;
+    function money(n){ return `$${Number(n||0).toFixed(2).replace(/\.00$/,"")}`; }
 
-        const parts = (li.parts && li.parts.length)
-          ? `
-            <tr>
-              <td colspan="5">
-                <div class="break">
-                  <table>
-                    <thead>
-                      <tr>
-                        <th class="colhed" style="width:120px">Code</th>
-                        <th class="colhed">Copay</th>
-                        <th class="colhed">Holdback</th>
-                        <th class="colhed">Service Fee</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      ${li.parts.map(p=>`
-                        <tr>
-                          <td><span class="codepill">${p.code}</span></td>
-                          ${tdMoney(p.copay)}
-                          ${tdMoney(p.chargeback)}
-                          ${tdMoney(p.profit)}
-                        </tr>`).join('')}
-                    </tbody>
-                  </table>
-                </div>
-              </td>
-            </tr>`
-          : '';
+    function totals(list){
+      const copay = list.reduce((s,x)=>s+(x.copay||0),0);
+      const hold  = list.reduce((s,x)=>s+(x.holdback||0),0);
+      const fee   = list.reduce((s,x)=>s+(x.serviceFee||0),0);
+      return { copay, hold, fee, profit: fee };
+    }
 
-        return main + parts;
-      }).join('');
-
-      div.innerHTML = head + `
+    function renderCard(title, badge, list){
+      const t = totals(list);
+      return `
+      <div class="card">
+        <h2>${money(t.copay)}</h2>
+        <div class="kicker">Patient Copay<br><span class="ok">Service Fee (Practice Profit): ${money(t.fee)}</span></div>
+        <div class="pill"><span>${badge}</span></div>
         <table>
-          <thead>
+          <thead><tr><th>Item</th><th>Code</th><th class="right">Copay</th><th class="right">Holdback</th><th class="right">Service Fee</th></tr></thead>
+          <tbody>
+            ${list.map(x=>`
+              <tr>
+                <td>${x.item}</td>
+                <td class="muted">${x.code}</td>
+                <td class="right">${money(x.copay)}</td>
+                <td class="right">${money(x.holdback)}</td>
+                <td class="right">${money(x.serviceFee)}</td>
+              </tr>`).join("")}
             <tr>
-              <th>Item</th>
-              <th>Code</th>
-              <th class="nowrap">Copay</th>
-              <th class="nowrap">Holdback</th>
-              <th class="nowrap">Service Fee</th>
+              <td class="muted">Totals</td><td></td>
+              <td class="right"><b>${money(t.copay)}</b></td>
+              <td class="right"><b>${money(t.hold)}</b></td>
+              <td class="right"><b>${money(t.fee)}</b></td>
             </tr>
-          </thead>
-          <tbody>${lines}</tbody>
-          <tfoot>
-            <tr>
-              <th colspan="2" style="text-align:right">Totals</th>
-              ${tdMoney(b.copay)}${tdMoney(b.chargeback)}${tdMoney(b.profit)}
-            </tr>
-          </tfoot>
-        </table>`;
-      const hero = div.querySelector('.hero'); animateNumber(hero, b.copay);
-      return div;
-    }
-    function renderStack(rows){
-      const stack = el('stack'); stack.innerHTML='';
-      for(const row of rows){ stack.appendChild(renderTier(row)); }
+          </tbody>
+        </table>
+      </div>`;
     }
 
-    /* ===== material & sun helpers ===== */
-    function materialKey(label) {
-      const s = N(label);
-      if (s.includes('polycarb')) return 'poly';
-      if (s.includes('trivex')) return 'trivex';
-      if (/1\.74|1\.75/.test(s)) return 'hi174';
-      if (/1\.70|1\.71|above/.test(s)) return 'hi70';
-      if (/1\.66|1\.67/.test(s)) return 'hi167';
-      if (/cr[\s-]?39/.test(s) || (s.includes('plastic') && !s.includes('high'))) return 'cr39';
-      if (s.includes('glass')) return 'glass';
-      return 'other';
+    function draw(buckets){
+      CARDS.innerHTML = [
+        renderCard("Hi67","Hi67", buckets["Hi67"]),
+        renderCard("Mid","Mid", buckets["Mid"]),
+        renderCard("Poly","Poly", buckets["Poly"]),
+        renderCard("CR","CR", buckets["CR"]),
+      ].join("");
     }
 
-    function enforceGlassPolicy(rows, wantGlassOnly){
-      return rows.filter(r => wantGlassOnly ? isGlassBase(r) : !isGlassBase(r));
-    }
-
-    function sunMatchesBase(sunRow, baseRow) {
-      const mk = materialKey(baseRow.enhancement || baseRow.subtype || '');
-      const t = N(sunRow.enhancement || sunRow.subtype || '');
-      switch (mk) {
-        case 'poly':   return /polycarb/.test(t);
-        case 'trivex': return /trivex/.test(t);
-        case 'hi174':  return /(1\.74|1\.75)/.test(t);
-        case 'hi70':   return /(1\.70|1\.71|above)/.test(t);
-        case 'hi167':  return /(1\.66|1\.67)/.test(t);
-        case 'glass':  return /glass/.test(t);
-        case 'cr39':   return (/(cr[\s-]?39|plastic)/.test(t) && !/high/.test(t));
-        default:       return true;
-      }
-    }
-
-    // PAL polarized: NP/OP; SV/LINED polarized: D-codes
-    function isPolarizedPAL(row){
-      const parts = splitCodes(String(row.code||'').trim().toUpperCase());
-      return parts.includes('NP') || parts.includes('OP');
-    }
-
-    // CM only when base starts with NA/OA
-    function isNOBase(row){
-      const code = baseCodeOf(row);
-      return code.startsWith('NA') || code.startsWith('OA');
-    }
-
-    function chooseTransitionsFor(baseRow){
-      const fam = el('lensFamily').value;
-      const wantGlassOnly = el('includeGlass').checked;
-      const PHOTO_RX = /(photochrom|transitions)/i;
-      const all = enforceGlassPolicy(
-        byKey('sun_tech').filter(r=>applies(r,fam)),
-        wantGlassOnly
-      ).filter(r => PHOTO_RX.test(r.enhancement||r.subtype||''));
-      const want = preferPhotoCodeForBase(baseRow); // PR vs PM
-      let best = all.find(r => new RegExp('^'+want+'\\b','i').test((r.code||'').trim()));
-      if (!best){
-        const pool = all.filter(r => sunMatchesBase(r, baseRow));
-        best = pool[0] || all[0] || null;
-      }
-      return best || null;
-    }
-
-    function pickTintRow(baseRow, variant){
-      const fam = el('lensFamily').value;
-      const wantGlassOnly = el('includeGlass').checked;
-      const baseIsGlass = wantGlassOnly || isGlassBase(baseRow);
-
-      let candidates = []
-        .concat(SIMPLE_BY_CODE.get('MN')||[])
-        .concat(SIMPLE_BY_CODE.get('MP')||[])
-        .filter(r => applies(r, fam));
-
-      candidates = candidates.filter(r => baseIsGlass ? isGlassBase(r) : !isGlassBase(r));
-
-      const wantGrad  = variant === 'tint-gradient';
-      const wantSolid = variant === 'tint-solid';
-      const hasVariant = r => {
-        const t=N(r.enhancement||r.subtype||'');
-        if (wantGrad)  return /gradient|grad/.test(t);
-        if (wantSolid) return /solid/.test(t) || (/tint/.test(t) && !/gradient/.test(t));
-        return true;
+    /********************
+     * PIPELINE
+     ********************/
+    async function run(){
+      const state = {
+        family: document.getElementById("lensFamily").value,
+        tint: document.getElementById("lensTint").value,
+        ar: document.getElementById("ar").checked,
+        aspheric: document.getElementById("aspheric").checked,
+        oversize: document.getElementById("oversize").checked,
+        glass: document.getElementById("glass").checked,
+        noOnly: document.getElementById("noOnly").checked
       };
-      let pool = candidates.filter(hasVariant);
-      if (!pool.length) pool = candidates;
-
-      const mk = materialKey(baseRow.enhancement || baseRow.subtype || '');
-      const score = (r)=>{
-        const t=N(r.enhancement||r.subtype||''); let s=0;
-        if (mk==='poly'   && /polycarb/.test(t)) s+=3;
-        if (mk==='trivex' && /trivex/.test(t))   s+=3;
-        if (mk==='glass'  && /glass/.test(t))    s+=3;
-        if (mk==='cr39'   && /(cr[\s-]?39|plastic)/.test(t) && !/high/.test(t)) s+=2;
-        if (wantGrad && /gradient/.test(t)) s+=1;
-        if (wantSolid && /solid/.test(t))   s+=1;
-        return s;
-      };
-      return pool.sort((a,b)=>score(b)-score(a))[0] || null;
+      enforceExclusivity(state);
+      const rows = await loadCsv();
+      const patched = applyOverrides(rows, state);
+      const buckets = groupForScoreboard(patched, state);
+      draw(buckets);
     }
 
-    function chooseTintSunFallback(baseRow, variant){
-      const fam = el('lensFamily').value;
-      const wantGlassOnly = el('includeGlass').checked;
-      const wantGrad  = variant === 'tint-gradient';
-      const wantSolid = variant === 'tint-solid';
+    /********************
+     * EVENTS
+     ********************/
+    document.getElementById("lensFamily").addEventListener("change",()=>{ sessionStorage.removeItem(CACHE_KEY); run();});
+    document.getElementById("lensTint").addEventListener("change",run);
+    ["ar","aspheric","oversize","glass","noOnly"].forEach(id=>{
+      document.getElementById(id).addEventListener("change",run);
+    });
+    document.getElementById("refresh").addEventListener("click",()=>{
+      sessionStorage.removeItem(CACHE_KEY); run();
+    });
+    document.getElementById("clear").addEventListener("click",()=>{
+      sessionStorage.clear(); META.textContent="cache cleared"; run();
+    });
 
-      let pool = enforceGlassPolicy(
-        byKey('sun_tech').filter(r=>applies(r,fam)),
-        wantGlassOnly
-      ).filter(r=>{
-        const t = N(r.enhancement||r.subtype||'');
-        if (/(polariz|photochrom|transitions)/i.test(t)) return false;
-        if (!/tint|tinted|sunglass|gradient/.test(t))    return false;
-        if (wantGrad)  return /gradient|grad/i.test(t);
-        if (wantSolid) return /solid/.test(t) || (/tint/i.test(t) && !/gradient/i.test(t));
-        return true;
-      });
-
-      pool = pool.sort((a,b)=>{
-        const aM = sunMatchesBase(a, baseRow) ? 1 : 0;
-        const bM = sunMatchesBase(b, baseRow) ? 1 : 0;
-        return bM - aM;
-      });
-      return pool[0] || null;
-    }
-
-    /* ===== Compute bundles ===== */
-    function computeBundles(){
-      if(!DATA.length){ el('stack').innerHTML=''; return; }
-
-      const fam = el('lensFamily').value;
-      const wantAR = el('includeAR').checked;
-      const wantAsp = el('includeAspheric').checked;
-      const wantOS  = el('includeOversize').checked;
-      const wantGlassOnly = el('includeGlass').checked;
-      const tintSel = el('lensTint').value;
-
-      const customPool = DATA.filter(r => applies(r, 'PAL'))
-                             .filter(r => /custom\s*measure/i.test(N(r.enhancement||r.subtype||'')));
-
-      // Base candidates
-      let base = [];
-      if (fam === 'PAL') {
-        base = byKey('progressive_level').filter(r=>applies(r,fam)).filter(r=>{
-          const name=N(r.enhancement||r.subtype||'');
-          const code=String(r.code||'').toUpperCase();
-          if(!wantAsp && name.includes('aspheric')) return false;
-          if (/photochrom|tint|tinted|sunglass|gradient/.test(name)) return false;
-          if (tintSel==='polarized') return isPolarizedPAL(r); // NP/OP
-          return !/polariz/i.test(name) && !/NP|OP/.test(code);
-        });
-        base = enforceGlassPolicy(base, wantGlassOnly);
-      } else {
-        if (tintSel==='polarized') {
-          base = byKey('sun_tech')
-            .filter(r => applies(r, fam))
-            .filter(r => /polariz/i.test(r.enhancement || r.subtype || ''))
-            .filter(isDCode);
-        } else {
-          const pool = (fam==='SV' ? byKey('base_material') : byKey('occupational'));
-          base = pool.filter(r=>applies(r,fam)).filter(r=>{
-            const name=N(r.enhancement||r.subtype||'');
-            if(!wantAsp && name.includes('aspheric')) return false;
-            if(/photochrom|polariz|tint|tinted|sunglass|gradient/.test(name)) return false;
-            return true;
-          });
-          base = enforceGlassPolicy(base, wantGlassOnly);
-        }
-      }
-
-      // AR ranked by grade then profit
-      function rankAR(ars){
-        const gradeVal = (s)=>{ const m=String(s||'').match(/\b([A-D])\b/i); if(!m) return null; return {A:1,B:2,C:3,D:4}[m[1].toUpperCase()]||null; };
-        return [...ars].sort((a,b)=>{
-          const ga=gradeVal(a.enhancement||a.subtype)||-1, gb=gradeVal(b.enhancement||b.subtype)||-1;
-          if(ga!==gb) return gb-ga; // prefer A
-          const pa=num(a.copay)-num(a.chargeback);
-          const pb=num(b.copay)-num(b.chargeback);
-          return pb-pa;
-        });
-      }
-      const arPool = wantAR ? byKey('ar_level').filter(r=>applies(r,fam)) : [];
-      const arRanked = wantAR ? rankAR(arPool) : [];
-      const arOptions = wantAR && arRanked.length ? arRanked : [null];
-
-      const overs = wantOS ? (byKey('oversize').filter(r=>applies(r,fam))[0] || null) : null;
-
-      function computeAddOnsFor(baseRow){
-        const addOns = [];
-
-        if (tintSel==='transitions'){
-          const tr = chooseTransitionsFor(baseRow);
-          if (tr) addOns.push(tr);
-        }
-
-        if (tintSel==='tint-solid' || tintSel==='tint-gradient'){
-          const tintRow = pickTintRow(baseRow, tintSel) || chooseTintSunFallback(baseRow, tintSel);
-          if (tintRow) addOns.push(tintRow);
-        }
-
-        if (el('includeCM')?.checked && fam==='PAL' && isNOBase(baseRow)){
-          if (customPool.length) addOns.push(customPool[0]);
-        }
-
-        if (overs) addOns.push(overs);
-        return addOns;
-      }
-
-      function buildBundle(m, arRow){
-        const addOns = (tintSel==='polarized' && fam!=='PAL') ? [] : computeAddOnsFor(m);
-        return makeBundle(m, [arRow, ...addOns], fam);
-      }
-
-      const all = [];
-      for(const m of base){ for(const ar of arOptions){ all.push(buildBundle(m, ar)); } }
-      if (!all.length){
-        renderStack([
-          {name:'Best',cls:'best',b:null},
-          {name:'Better',cls:'better',b:null},
-          {name:'Good',cls:'good',b:null},
-          {name:'Cheapest',cls:'good',b:null}
-        ]);
-        return;
-      }
-
-      // Tiers
-      const MaxPrice = Math.max(...all.map(b => b.copay));
-      function mostProfit(arr){
-        let pick=null;
-        for(const b of arr){ if(!pick || b.profit>pick.profit || (b.profit===pick.profit && b.copay<pick.copay)) pick=b; }
-        return pick;
-      }
-      function mostProfitUnderCap(cap, exclude=new Set()){
-        let pick=null, bestProfit=-Infinity;
-        for(const b of all){
-          if (b.copay <= cap){
-            const lbl=b.label;
-            if (exclude.has(lbl)) continue;
-            if (b.profit>bestProfit || (b.profit===bestProfit && b.copay<(pick?.copay??Infinity))){
-              bestProfit=b.profit; pick=b;
-            }
-          }
-        }
-        if (pick) return pick;
-        const looser = cap / CAP_RELAX_FACTOR;
-        for(const b of all){
-          if (b.copay <= looser){
-            const lbl=b.label; if (exclude.has(lbl)) continue;
-            if (!pick || b.profit>pick.profit || (b.profit===pick.profit && b.copay<pick.copay)) pick=b;
-          }
-        }
-        return pick;
-      }
-      function cheapest(exclude=new Set()){
-        let pick=null;
-        for(const b of all){
-          const lbl=b.label; if (exclude.has(lbl)) continue;
-          if (!pick || b.copay < pick.copay || (b.copay===pick.copay && b.profit>(pick.profit))) pick=b;
-        }
-        if (pick) return pick;
-        for(const b of all){
-          if (!pick || b.copay < pick.copay || (b.copay===pick.copay && b.profit>(pick.profit))) pick=b;
-        }
-        return pick;
-      }
-
-      const best = mostProfit(all);
-      const used = new Set(best ? [best.label] : []);
-      const better = mostProfitUnderCap(MaxPrice*BETTER_CAP_OF_MAX, used);
-      if (better) used.add(better.label);
-      let good = mostProfitUnderCap(MaxPrice*GOOD_CAP_OF_MAX, used);
-      if (!good) good = cheapest(used);
-      if (good) used.add(good.label);
-      const cheap = cheapest(used);
-
-      renderStack([
-        {name:'Best',     cls:'best',    b:best},
-        {name:'Better',   cls:'better',  b:better},
-        {name:'Good',     cls:'good',    b:good},
-        {name:'Cheapest', cls:'good',    b:cheap}
-      ]);
-    }
-
-    /* Wire-up */
-    el('forceRefresh').onclick=()=>{ clearCacheStorage(); loadCSV(); };
-    el('clearCache').onclick =()=>{ clearCacheStorage(); el('status').textContent=' cache cleared — click Force Refresh to reload'; };
-    ['lensFamily','lensTint','includeAR','includeAspheric','includeOversize','includeGlass','includeCM']
-      .forEach(id => { const node=el(id); if(node) node.onchange=computeBundles; });
-
-    (function boot(){ loadCSV(); })();
-  }
+    // Start
+    run();
   </script>
 </body>
 </html>
