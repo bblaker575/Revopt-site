@@ -2,12 +2,12 @@
 <html lang="en">
 <head>
   <meta charset="utf-8"/>
-  <title>RevSight AI — VSP Choice Bundles (v9)</title>
+  <title>PayerEdge — VSP Bundles (v9.2)</title>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <style>
     :root{
-      --bg:#0b0f14;--fg:#e7eefc;--muted:#9fb0c9;--card:#101722;--line:#233044;
-      --ok:#0f6a52;--warn:#7c5c19;--err:#b91c1c;--chip:#172234
+      --bg:#0b0f14;--fg:#e7eefc;--muted:#9fb0c9;--card:#0f1621;--line:#233044;
+      --ok:#10b981;--warn:#f59e0b;--err:#ef4444
     }
     *{box-sizing:border-box}
     body{background:var(--bg);color:var(--fg);font:15px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;margin:0}
@@ -15,12 +15,9 @@
     h1{font-size:18px;margin:0}
     .sub{color:var(--muted);font-size:12px}
     .row{display:flex;gap:12px;flex-wrap:wrap;padding:12px 20px}
-    .btn{background:#162130;border:1px solid var(--line);color:var(--fg);padding:8px 12px;border-radius:10px;cursor:pointer}
-    .btn:active{transform:translateY(1px)}
-    .group{background:#0f1621;border:1px solid var(--line);border-radius:12px;padding:10px 12px;display:flex;gap:10px;align-items:center}
-    .chip{background:var(--chip);padding:6px 9px;border-radius:999px;border:1px solid var(--line);font-size:12px}
-    .ctrl{display:flex;align-items:center;gap:8px}
+    .group{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:8px 10px;display:flex;gap:10px;align-items:center}
     select{background:#152033;border:1px solid var(--line);color:var(--fg);padding:6px 10px;border-radius:8px}
+    .btn{background:#162130;border:1px solid var(--line);color:var(--fg);padding:8px 12px;border-radius:10px;cursor:pointer}
     .cards{display:grid;grid-template-columns:repeat(4,minmax(260px,1fr));gap:14px;padding:0 20px 40px}
     .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px}
     .card h2{margin:0 0 2px 0;font-size:32px}
@@ -29,10 +26,9 @@
     th,td{padding:8px;border-top:1px solid #1b2535;text-align:left}
     .right{text-align:right}
     .muted{color:var(--muted)}
-    .ok{color:#10b981}
-    .err{background:#2a0f12;border:1px solid var(--err);color:#fca5a5;padding:8px 10px;border-radius:8px;margin:10px 20px}
-    .pill{display:inline-flex;gap:6px;align-items:center;font-size:12px;background:#122238;border:1px solid var(--line);padding:4px 8px;border-radius:999px}
-    .headergrid{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center}
+    .ok{color:var(--ok)}
+    .err{background:#2a0f12;border:1px solid var(--err);color:#fca5a5;padding:8px 10px;border-radius:8px;margin:10px 20px;display:none}
+    .chip{font-size:12px;color:var(--muted)}
     @media(max-width:1200px){.cards{grid-template-columns:repeat(2,minmax(260px,1fr))}}
     @media(max-width:700px){.cards{grid-template-columns:1fr}}
   </style>
@@ -40,13 +36,11 @@
 <body>
   <header>
     <div>
-      <div class="headergrid">
-        <h1>PayerEdge — VSP Bundles</h1>
-        <span class="pill">plan=<b>VSP_choice</b> • version=<b>v9</b> • source=<span id="src" class="muted">…</span></span>
-      </div>
+      <h1>PayerEdge — VSP Bundles</h1>
       <div class="sub">Scoreboard shows <b>patient copay</b> and <b>service fee</b> (Copay − Holdback). Sun choices are exclusive.</div>
     </div>
-    <div class="ctrl">
+    <div style="display:flex;gap:8px;align-items:center">
+      <span class="chip">plan= <b>VSP_choice</b> • version= <b>v9.2</b> • source= <span id="src" class="muted">…</span></span>
       <button class="btn" id="refresh">Force Refresh</button>
       <button class="btn" id="clear">Clear Cache</button>
     </div>
@@ -70,22 +64,21 @@
         <option value="Polarized">Polarized</option>
       </select>
     </div>
-    <div class="group">
+    <div class="group" style="gap:14px">
       <label><input type="checkbox" id="ar" checked/> Include AR (tiered)</label>
-      <label><input type="checkbox" id="aspheric" /> Aspheric</label>
-      <label><input type="checkbox" id="oversize" /> Oversize</label>
-      <label><input type="checkbox" id="glass" /> Glass</label>
-      <label><input type="checkbox" id="noOnly" /> Custom measurements (N/O only)</label>
+      <label><input type="checkbox" id="aspheric"/> Aspheric</label>
+      <label><input type="checkbox" id="oversize"/> Oversize</label>
+      <label><input type="checkbox" id="glass"/> Glass</label>
+      <label><input type="checkbox" id="noOnly"/> Custom measurements (N/O only)</label>
     </div>
-    <div class="group"><span class="muted">[debug]</span><span id="meta" class="chip">…</span></div>
+    <div class="group"><span class="muted">[debug]</span> <span id="meta" class="chip">…</span></div>
   </div>
 
-  <div id="err" class="err" style="display:none"></div>
+  <div id="err" class="err"></div>
   <div class="cards" id="cards"></div>
 
-  <!-- PapaParse (fixed: no SRI) -->
+  <!-- PapaParse (no SRI so it loads on GH Pages) -->
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
-
   <script>
     /***************
      * CONFIG/VERS *
@@ -93,17 +86,17 @@
     const CSV_PATH = "./data/vsp_choice_master_v8_from_patched.csv";
     document.getElementById("src").textContent = CSV_PATH;
 
-    // Authoritative Digital Aspheric (BA…) pricing from the chart you provided
-    const DIGITAL_ASPHERIC = {
+    // Authoritative Digital Aspheric pricing (from your posted chart)
+    const DASP = {
       SV: {
-        "BA":    { cb:24, sf:21, base:45, add:0,  allowed:true },
+        "BA":    { cb:24, sf:21, base:45, add: 0, allowed:true },
         "BA+BB": { cb:16, sf:12, base:45, add:28, allowed:true },
         "BA+BH": { cb:37, sf:21, base:45, add:58, allowed:true },
         "BA+BJ": { cb:57, sf:29, base:45, add:86, allowed:true },
         "BA+BD": { cb:10, sf: 0, base:45, add:10, allowed:true }
       },
       MF: {
-        "BA":    { cb:34, sf:21, base:55, add:0,  allowed:true },
+        "BA":    { cb:34, sf:21, base:55, add: 0, allowed:true },
         "BA+BB": { cb:16, sf:12, base:55, add:28, allowed:true },
         "BA+BH": { cb:40, sf:28, base:55, add:68, allowed:true },
         "BA+BJ": { cb:null, sf:null, base:null, add:null, allowed:false }, // not offered
@@ -111,62 +104,31 @@
       }
     };
 
-    // Exclusivity note (UI state only; pricing rules handled elsewhere if needed)
-    function enforceExclusivity(state){
-      state.notes = [];
-      const t = state.tint;
-      if (["Solid","Gradient","Photochromic","Polarized"].includes(t)) {
-        state.notes.push("Sun choices exclusive.");
-      }
-      if (t === "Polarized" && state.family === "MF") {
-        state.notes.push("Polarized = material for MF; exclude other materials.");
-      }
-      return state;
-    }
+    // Bundle recipes: render like your original scoreboard,
+    // with a summary row for the pair and a component breakdown table below.
+    const RECIPES = {
+      SV: [
+        { card:"Hi67",  pair:"BA+BH", components:["BA","BH"], title:"Digital Aspheric" },
+        { card:"Mid",   pair:"BA+BB", components:["BA","BB"], title:"Digital Aspheric" },
+        { card:"Poly",  pair:"BA+BD", components:["BA","BD"], title:"Digital Aspheric" },
+        { card:"CR",    pair:null,    components:["AA","QM?"], title:"CR" } // QM optional by AR toggle
+      ],
+      MF: [
+        { card:"Hi67",  pair:"BA+BH", components:["BA","BH"], title:"Digital Aspheric" },
+        { card:"Mid",   pair:"BA+BB", components:["BA","BB"], title:"Digital Aspheric" },
+        { card:"Poly",  pair:"BA+BD", components:["BA","BD"], title:"Digital Aspheric" },
+        { card:"CR",    pair:null,    components:["AA","QM?"], title:"CR" }
+      ]
+    };
 
-    // Cache + DOM refs
-    const CACHE_KEY = "vsp_csv_v9";
     const META = document.getElementById("meta");
     const ERRBOX = document.getElementById("err");
     const CARDS = document.getElementById("cards");
+    const CACHE_KEY = "vsp_csv_v9_2";
 
-    /*****************
-     * LOAD CSV SAFE *
-     *****************/
-    async function loadCsv(){
-      const cached = sessionStorage.getItem(CACHE_KEY);
-      if (cached){
-        const { rows, when } = JSON.parse(cached);
-        META.textContent = `rows=${rows.length} • cache ${(new Date(when)).toLocaleTimeString()}`;
-        return rows;
-      }
-      try{
-        const res = await fetch(CSV_PATH, { cache: "no-store" });
-        if(!res.ok) throw new Error(`HTTP ${res.status}`);
-        const text = await res.text();
-        const parsed = Papa.parse(text, { header:true, skipEmptyLines:true });
-        const rows = parsed.data;
-        sessionStorage.setItem(CACHE_KEY, JSON.stringify({rows, when:Date.now()}));
-        META.textContent = `rows=${rows.length} • fresh`;
-        return rows;
-      }catch(e){
-        ERRBOX.style.display="block";
-        ERRBOX.textContent = `CSV load failed (${e.message}). Using fallback sample so UI keeps working.`;
-        META.textContent = "rows=sample • degraded";
-        return sampleRows();
-      }
-    }
+    const money = n => `$${Number(n||0).toFixed(2).replace(/\.00$/,"")}`;
 
-    function sampleRows(){
-      return [
-        { item:"Digital Aspheric", code:"BA+BH", family:"SV", copay:"", holdback:"37", service_fee:"21" },
-        { item:"Digital Aspheric", code:"BA+BD", family:"SV", copay:"", holdback:"10", service_fee:"0" },
-        { item:"CR", code:"AA", family:"SV", copay:"31", holdback:"10", service_fee:"21" }
-      ];
-    }
-
-    // Normalizer
-    const num = (v)=> v==null||v==="" ? null : Number(String(v).replace(/[^\d.-]/g,""));
+    const num = v => v==null||v==="" ? null : Number(String(v).replace(/[^\d.-]/g,""));
     function norm(row){
       const r = Object.fromEntries(Object.entries(row).map(([k,v])=>[String(k).trim().toLowerCase(), typeof v==="string"?v.trim():v]));
       return {
@@ -179,154 +141,194 @@
       };
     }
 
-    /*********************
-     * PRICING OVERRIDES *
-     *********************/
-    function priceDigitalAspheric(lensFamily, code){
-      const fam = lensFamily==="MF" ? DIGITAL_ASPHERIC.MF : DIGITAL_ASPHERIC.SV;
-      const rec = fam[code];
-      if(!rec || !rec.allowed) return null;
-      return {
-        copay: (rec.base ?? 0) + (rec.add ?? 0),
-        holdback: rec.cb ?? 0,
-        serviceFee: rec.sf ?? 0,
-        _source:"v9:aspheric-map"
-      };
-    }
-
-    function applyOverrides(rows, state){
-      const out = [];
-      for (const raw of rows){
-        const r = norm(raw);
-
-        // Use authoritative BA… map when applicable
-        if (r.code.startsWith("BA")){
-          const priced = priceDigitalAspheric(state.family, r.code);
-          if (priced){
-            out.push({
-              item: "Digital Aspheric",
-              code: r.code,
-              family: state.family,
-              copay: priced.copay,
-              holdback: priced.holdback,
-              serviceFee: priced.serviceFee,
-              source: priced._source
-            });
-            continue;
-          }
-        }
-
-        // Default pass-through
-        out.push({
-          item: r.item || "Item",
-          code: r.code || "",
-          family: r.family || state.family,
-          copay: r.copay ?? 0,
-          holdback: r.holdback ?? 0,
-          serviceFee: r.serviceFee ?? 0,
-          source: "csv"
-        });
+    async function loadCsv(){
+      const cached = sessionStorage.getItem(CACHE_KEY);
+      if (cached){
+        const { rows, when } = JSON.parse(cached);
+        META.textContent = `rows=${rows.length} • cache ${(new Date(when)).toLocaleTimeString()}`;
+        return rows;
       }
-      return out;
+      try{
+        const res = await fetch(CSV_PATH, {cache:"no-store"});
+        if(!res.ok) throw new Error(`HTTP ${res.status}`);
+        const txt = await res.text();
+        const parsed = Papa.parse(txt, {header:true, skipEmptyLines:true});
+        const rows = parsed.data.map(norm);
+        sessionStorage.setItem(CACHE_KEY, JSON.stringify({rows, when:Date.now()}));
+        META.textContent = `rows=${rows.length} • fresh`;
+        return rows;
+      }catch(e){
+        ERRBOX.style.display = "block";
+        ERRBOX.textContent = `CSV load failed (${e.message}). Rendering with BA map only for demo.`;
+        META.textContent = "rows=0 • degraded";
+        return [];
+      }
     }
 
-    /****************
-     * PRESENTATION *
-     ****************/
-    function groupForScoreboard(rows){
-      const buckets = { "Hi67": [], "Mid": [], "Poly": [], "CR": [] };
+    // Build a fast lookup: { family -> { code -> [rows] } }
+    function indexByCode(rows){
+      const idx = { SV:{}, MF:{} };
       for (const r of rows){
-        if (r.code.startsWith("BA+BH") || r.code.startsWith("BJ")) buckets["Hi67"].push(r);
-        else if (r.code.startsWith("BA+BB")) buckets["Mid"].push(r);
-        else if (r.code.startsWith("BA+BD")) buckets["Poly"].push(r);
-        else if (r.code==="AA" || r.item.toUpperCase()==="CR") buckets["CR"].push(r);
+        if(!r.code) continue;
+        const fam = (r.family==="MF") ? "MF" : "SV";
+        if(!idx[fam][r.code]) idx[fam][r.code] = [];
+        idx[fam][r.code].push(r);
       }
-      return buckets;
+      return idx;
     }
 
-    function money(n){ return `$${Number(n||0).toFixed(2).replace(/\.00$/,"")}`; }
-
-    function totals(list){
-      const copay = list.reduce((s,x)=>s+(x.copay||0),0);
-      const hold  = list.reduce((s,x)=>s+(x.holdback||0),0);
-      const fee   = list.reduce((s,x)=>s+(x.serviceFee||0),0);
-      return { copay, hold, fee };
+    // Pull a code from CSV for the selected family
+    function fromCsv(idx, family, code){
+      const list = (idx[family] && idx[family][code]) ? idx[family][code] : [];
+      if (!list.length) return null;
+      // Prefer rows that have all three fields; otherwise best-effort.
+      const best = list.find(r=>r.copay!=null && r.holdback!=null && r.serviceFee!=null) || list[0];
+      return { item: best.item || "", code: code, family, copay: best.copay||0, holdback: best.holdback||0, serviceFee: best.serviceFee||0, source:"csv" };
     }
 
-    function renderCard(title, badge, list){
-      const t = totals(list);
+    // Compute BA component via authoritative map
+    function priceBA(family, key){ // key can be "BA" or "BA+BH"/"BA+BD"/"BA+BB"
+      const famMap = (family==="MF") ? DASP.MF : DASP.SV;
+      if (key==="BA"){
+        const r = famMap["BA"]; return { code:"BA", copay:r.base+r.add, holdback:r.cb, serviceFee:r.sf, item:"Digital Aspheric", source:"map" };
+      }
+      const rec = famMap[key];
+      if (!rec || rec.allowed===false) return null;
+      return { code:key, copay:rec.base+rec.add, holdback:rec.cb, serviceFee:rec.sf, item:"Digital Aspheric", source:"map" };
+    }
+
+    function baComponent(family, code){ // "BA","BB","BH","BD"
+      // derive component as BA + addX where X is BB/BH/BD (we want the single-line component rows)
+      const famMap = (family==="MF") ? DASP.MF : DASP.SV;
+      const base = famMap["BA"];
+      let addRec = null;
+      if (code==="BA") addRec = { cb: base.cb, sf: base.sf, add: 0, base: base.base };
+      if (code==="BB") addRec = { cb:famMap["BA+BB"].cb, sf:famMap["BA+BB"].sf, add:famMap["BA+BB"].add, base: famMap["BA+BB"].base };
+      if (code==="BH") addRec = { cb:famMap["BA+BH"].cb, sf:famMap["BA+BH"].sf, add:famMap["BA+BH"].add, base: famMap["BA+BH"].base };
+      if (code==="BD") addRec = { cb:famMap["BA+BD"].cb, sf:famMap["BA+BD"].sf, add:famMap["BA+BD"].add, base: famMap["BA+BD"].base };
+      if (!addRec) return null;
+      return { item:"Digital Aspheric", code:code, copay:(addRec.base + (code==="BA"?0:addRec.add)), holdback:addRec.cb, serviceFee:addRec.sf, source:"map" };
+    }
+
+    function totals(rows){
+      return rows.reduce((a,r)=>({copay:a.copay+(r.copay||0), hold:a.hold+(r.holdback||0), fee:a.fee+(r.serviceFee||0)}), {copay:0, hold:0, fee:0});
+    }
+
+    function renderBundleCard(title, badge, summaryRow, componentRows){
+      const t = totals([summaryRow]);
+      const subt = totals(componentRows);
+      // Header shows total patient copay & service fee (profit) using the summary pair.
       return `
-      <div class="card">
-        <h2>${money(t.copay)}</h2>
-        <div class="kicker">Patient Copay<br><span class="ok">Service Fee (Practice Profit): ${money(t.fee)}</span></div>
-        <div class="pill"><span>${badge}</span></div>
-        <table>
-          <thead><tr><th>Item</th><th>Code</th><th class="right">Copay</th><th class="right">Holdback</th><th class="right">Service Fee</th></tr></thead>
-          <tbody>
-            ${list.map(x=>`
+        <div class="card">
+          <h2>${money(t.copay)}</h2>
+          <div class="kicker">Patient Copay<br><span class="ok">Service Fee (Practice Profit): ${money(t.fee)}</span></div>
+          <div class="muted" style="margin-bottom:6px">${badge}</div>
+          <table>
+            <thead><tr><th>Item</th><th>Code</th><th class="right">Copay</th><th class="right">Holdback</th><th class="right">Service Fee</th></tr></thead>
+            <tbody>
               <tr>
-                <td>${x.item}</td>
-                <td class="muted">${x.code}</td>
-                <td class="right">${money(x.copay)}</td>
-                <td class="right">${money(x.holdback)}</td>
-                <td class="right">${money(x.serviceFee)}</td>
-              </tr>`).join("")}
-            <tr>
-              <td class="muted">Totals</td><td></td>
-              <td class="right"><b>${money(t.copay)}</b></td>
-              <td class="right"><b>${money(t.hold)}</b></td>
-              <td class="right"><b>${money(t.fee)}</b></td>
-            </tr>
-          </tbody>
-        </table>
-      </div>`;
+                <td>${title}</td><td class="muted">${summaryRow.code}</td>
+                <td class="right">${money(summaryRow.copay)}</td>
+                <td class="right">${money(summaryRow.holdback)}</td>
+                <td class="right">${money(summaryRow.serviceFee)}</td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="muted" style="margin-top:10px">Code breakdown</div>
+          <table>
+            <thead><tr><th>Code</th><th class="right">Copay</th><th class="right">Holdback</th><th class="right">Service Fee</th></tr></thead>
+            <tbody>
+              ${componentRows.map(r=>`
+                <tr>
+                  <td class="muted">${r.code}</td>
+                  <td class="right">${money(r.copay)}</td>
+                  <td class="right">${money(r.holdback)}</td>
+                  <td class="right">${money(r.serviceFee)}</td>
+                </tr>`).join("")}
+              <tr>
+                <td class="muted">Totals</td>
+                <td class="right"><b>${money(subt.copay)}</b></td>
+                <td class="right"><b>${money(subt.hold)}</b></td>
+                <td class="right"><b>${money(subt.fee)}</b></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      `;
     }
 
-    function draw(buckets){
-      CARDS.innerHTML = [
-        renderCard("Hi67","Hi67", buckets["Hi67"]),
-        renderCard("Mid","Mid", buckets["Mid"]),
-        renderCard("Poly","Poly", buckets["Poly"]),
-        renderCard("CR","CR", buckets["CR"]),
-      ].join("");
+    function renderSimpleCard(title, badge, rows){
+      const t = totals(rows);
+      return `
+        <div class="card">
+          <h2>${money(t.copay)}</h2>
+          <div class="kicker">Patient Copay<br><span class="ok">Service Fee (Practice Profit): ${money(t.fee)}</span></div>
+          <div class="muted" style="margin-bottom:6px">${badge}</div>
+          <table>
+            <thead><tr><th>Item</th><th>Code</th><th class="right">Copay</th><th class="right">Holdback</th><th class="right">Service Fee</th></tr></thead>
+            <tbody>
+              ${rows.map(r=>`
+                <tr>
+                  <td>${r.item||title}</td>
+                  <td class="muted">${r.code}</td>
+                  <td class="right">${money(r.copay)}</td>
+                  <td class="right">${money(r.holdback)}</td>
+                  <td class="right">${money(r.serviceFee)}</td>
+                </tr>`).join("")}
+              <tr>
+                <td class="muted">Totals</td><td></td>
+                <td class="right"><b>${money(t.copay)}</b></td>
+                <td class="right"><b>${money(t.hold)}</b></td>
+                <td class="right"><b>${money(t.fee)}</b></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      `;
     }
 
-    /************
-     * PIPELINE *
-     ************/
     async function run(){
       const state = {
         family: document.getElementById("lensFamily").value,
         tint: document.getElementById("lensTint").value,
-        ar: document.getElementById("ar").checked,
-        aspheric: document.getElementById("aspheric").checked,
-        oversize: document.getElementById("oversize").checked,
-        glass: document.getElementById("glass").checked,
-        noOnly: document.getElementById("noOnly").checked
+        includeAR: document.getElementById("ar").checked
       };
-      enforceExclusivity(state);
+
       const rows = await loadCsv();
-      const patched = applyOverrides(rows, state);
-      const buckets = groupForScoreboard(patched);
-      draw(buckets);
+      const idx = indexByCode(rows);
+
+      const recipe = RECIPES[state.family];
+
+      const cardsHtml = [];
+
+      // Hi67 / Mid / Poly — BA-driven bundles with summary + breakdown (no duplicates)
+      for (const rcp of recipe.slice(0,3)){
+        const summary = priceBA(state.family, rcp.pair);   // BA+BH etc
+        const parts = rcp.components.map(c=>baComponent(state.family, c)).filter(Boolean);
+        cardsHtml.push(renderBundleCard(rcp.title, rcp.card, summary, parts));
+      }
+
+      // CR card — use CSV codes (AA and optional QM if AR checked), filtered by family
+      const crCfg = recipe.find(x=>x.card==="CR");
+      const crRows = [];
+      const aa = fromCsv(idx, state.family, "AA"); if (aa) { aa.item = crCfg.title; crRows.push(aa); }
+      if (state.includeAR){
+        const qm = fromCsv(idx, state.family, "QM");
+        if (qm){ qm.item = "A/R"; crRows.push(qm); }
+      }
+      cardsHtml.push(renderSimpleCard(crCfg.title, "CR", crRows));
+
+      CARDS.innerHTML = cardsHtml.join("");
     }
 
-    /**********
-     * EVENTS *
-     **********/
-    document.getElementById("lensFamily").addEventListener("change",()=>{ sessionStorage.removeItem(CACHE_KEY); run();});
-    document.getElementById("lensTint").addEventListener("change",run);
-    ["ar","aspheric","oversize","glass","noOnly"].forEach(id=>{
-      document.getElementById(id).addEventListener("change",run);
-    });
-    document.getElementById("refresh").addEventListener("click",()=>{
-      sessionStorage.removeItem(CACHE_KEY); run();
-    });
-    document.getElementById("clear").addEventListener("click",()=>{
-      sessionStorage.clear(); META.textContent="cache cleared"; run();
-    });
+    // events
+    document.getElementById("lensFamily").addEventListener("change", ()=>{ sessionStorage.removeItem(CACHE_KEY); run(); });
+    document.getElementById("lensTint").addEventListener("change", run);
+    document.getElementById("ar").addEventListener("change", run);
+    ["aspheric","oversize","glass","noOnly"].forEach(id=>document.getElementById(id).addEventListener("change", run));
+    document.getElementById("refresh").addEventListener("click", ()=>{ sessionStorage.removeItem(CACHE_KEY); run(); });
+    document.getElementById("clear").addEventListener("click", ()=>{ sessionStorage.clear(); document.getElementById("meta").textContent="cache cleared"; run(); });
 
-    // Kickoff
     run();
   </script>
 </body>
