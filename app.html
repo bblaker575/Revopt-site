@@ -1,46 +1,43 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8"/>
-  <title>PayerEdge — VSP Bundles (v10)</title>
-  <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <style>
-    :root{
-      --bg:#0b0f14;--fg:#e7eefc;--muted:#9fb0c9;--card:#0f1621;--line:#233044;
-      --ok:#10b981;--warn:#f59e0b;--err:#ef4444
-    }
-    *{box-sizing:border-box}
-    body{background:var(--bg);color:var(--fg);font:15px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;margin:0}
-    header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 20px;border-bottom:1px solid #1b2535}
-    h1{font-size:18px;margin:0}
-    .sub{color:var(--muted);font-size:12px}
-    .row{display:flex;gap:12px;flex-wrap:wrap;padding:12px 20px}
-    .group{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:8px 10px;display:flex;gap:10px;align-items:center}
-    select{background:#152033;border:1px solid var(--line);color:var(--fg);padding:6px 10px;border-radius:8px}
-    .btn{background:#162130;border:1px solid var(--line);color:var(--fg);padding:8px 12px;border-radius:10px;cursor:pointer}
-    .cards{display:grid;grid-template-columns:repeat(4,minmax(260px,1fr));gap:14px;padding:0 20px 40px}
-    .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px}
-    .card h2{margin:0 0 2px 0;font-size:32px}
-    .kicker{color:var(--muted);font-size:12px;margin-bottom:12px}
-    table{width:100%;border-collapse:collapse;font-size:13px}
-    th,td{padding:8px;border-top:1px solid #1b2535;text-align:left}
-    .right{text-align:right}
-    .muted{color:var(--muted)}
-    .ok{color:var(--ok)}
-    .err{background:#2a0f12;border:1px solid var(--err);color:#fca5a5;padding:8px 10px;border-radius:8px;margin:10px 20px;display:none}
-    .chip{font-size:12px;color:var(--muted)}
-    @media(max-width:1200px){.cards{grid-template-columns:repeat(2,minmax(260px,1fr))}}
-    @media(max-width:700px){.cards{grid-template-columns:1fr}}
-  </style>
+<meta charset="utf-8"/>
+<title>PayerEdge — VSP Bundles (v10.3)</title>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<style>
+  :root{--bg:#0b0f14;--fg:#e7eefc;--muted:#9fb0c9;--card:#101722;--line:#233044;--ok:#10b981;--warn:#f59e0b;--err:#ef4444}
+  *{box-sizing:border-box}
+  body{background:var(--bg);color:var(--fg);font:15px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;margin:0}
+  header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 20px;border-bottom:1px solid #1b2535}
+  h1{font-size:18px;margin:0}
+  .meta{color:var(--muted);font-size:12px}
+  .row{display:flex;gap:12px;flex-wrap:wrap;padding:12px 20px}
+  .group{background:#0f1621;border:1px solid var(--line);border-radius:12px;padding:8px 10px;display:flex;gap:10px;align-items:center}
+  select{background:#152033;border:1px solid var(--line);color:var(--fg);padding:6px 10px;border-radius:8px}
+  .btn{background:#162130;border:1px solid var(--line);color:var(--fg);padding:8px 12px;border-radius:10px;cursor:pointer}
+  .cards{display:grid;grid-template-columns:repeat(4,minmax(260px,1fr));gap:14px;padding:0 20px 40px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px}
+  .card h2{margin:0 0 2px 0;font-size:32px}
+  .kicker{color:var(--muted);font-size:12px;margin-bottom:12px}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th,td{padding:8px;border-top:1px solid #1b2535;text-align:left}
+  .right{text-align:right}
+  .muted{color:var(--muted)}
+  .ok{color:var(--ok)}
+  .banner{margin:12px 20px;background:#1a1320;border:1px dashed #6b4fa3;padding:10px 12px;border-radius:10px;display:none}
+  .small{font-size:12px}
+  @media(max-width:1200px){.cards{grid-template-columns:repeat(2,minmax(260px,1fr))}}
+  @media(max-width:700px){.cards{grid-template-columns:1fr}}
+</style>
 </head>
 <body>
   <header>
     <div>
       <h1>PayerEdge — VSP Bundles</h1>
-      <div class="sub">Scoreboard shows <b>patient copay</b> and <b>service fee</b> (Copay − Holdback). Sun choices are exclusive.</div>
+      <div class="meta">Scoreboard shows <b>patient copay</b> and <b>service fee</b> (Copay − Holdback). Sun choices are exclusive.</div>
     </div>
     <div style="display:flex;gap:8px;align-items:center">
-      <span class="chip">plan=<b>VSP_choice</b> • version=<b>v10</b> • source=<span id="src" class="muted">…</span></span>
+      <span class="meta">plan=<b>VSP_choice</b> • version=<b>v10.3</b> • source=<span id="src" class="muted">…</span></span>
       <button class="btn" id="refresh">Force Refresh</button>
       <button class="btn" id="clear">Clear Cache</button>
     </div>
@@ -49,19 +46,21 @@
   <div class="row">
     <div class="group">
       <span class="muted">Lens family</span>
+      <!-- Values deliberately verbose to mimic your UI;
+           we normalize to SV/MF in code to avoid the bug -->
       <select id="lensFamily">
-        <option value="SV">Single Vision</option>
-        <option value="MF">Multifocal</option>
+        <option>Single Vision</option>
+        <option>Multifocal</option>
       </select>
     </div>
     <div class="group">
       <span class="muted">Lens tint</span>
       <select id="lensTint">
-        <option value="Clear">Clear</option>
-        <option value="Solid">Solid Tint</option>
-        <option value="Gradient">Gradient Tint</option>
-        <option value="Photochromic">Photochromic (Transitions)</option>
-        <option value="Polarized">Polarized</option>
+        <option>Clear</option>
+        <option>Solid</option>
+        <option>Gradient</option>
+        <option>Photochromic</option>
+        <option>Polarized</option>
       </select>
     </div>
     <div class="group" style="gap:14px">
@@ -71,72 +70,69 @@
       <label><input type="checkbox" id="glass"/> Glass</label>
       <label><input type="checkbox" id="noOnly"/> Custom measurements (N/O only)</label>
     </div>
-    <div class="group"><span class="muted">[debug]</span> <span id="meta" class="chip">…</span></div>
+    <div class="group"><span class="muted">[debug]</span> <span id="meta" class="meta">…</span></div>
   </div>
 
-  <div id="err" class="err"></div>
+  <div id="net" class="banner"></div>
   <div class="cards" id="cards"></div>
 
-  <!-- PapaParse -->
+  <!-- PapaParse (no SRI) -->
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
   <script>
-    /**********************
-     * CONFIG / CONSTANTS *
-     **********************/
+    /***************
+     * CONFIG/VERS *
+     ***************/
     const CSV_PATH = "./data/vsp_choice_master_v8_from_patched.csv";
     document.getElementById("src").textContent = CSV_PATH;
+    const CACHE_KEY = "vsp_v10_3_cache";
 
-    // Authoritative Digital Aspheric (BA…) pricing from your chart
-    const DASP = {
-      SV: {
-        "BA":    { cb:24, sf:21, base:45, add: 0, allowed:true },
-        "BA+BB": { cb:16, sf:12, base:45, add:28, allowed:true },
-        "BA+BH": { cb:37, sf:21, base:45, add:58, allowed:true },
-        "BA+BJ": { cb:57, sf:29, base:45, add:86, allowed:true },
-        "BA+BD": { cb:10, sf: 0, base:45, add:10, allowed:true }
+    // Authoritative Digital Aspheric pricing from your table
+    const MAP = {
+      SV:{
+        "BA":    {cb:24,sf:21,base:45,add:0,allow:true},
+        "BA+BB": {cb:16,sf:12,base:45,add:28,allow:true},
+        "BA+BH": {cb:37,sf:21,base:45,add:68,allow:true},
+        "BA+BJ": {cb:57,sf:29,base:45,add:86,allow:true},
+        "BA+BD": {cb:10,sf: 0,base:45,add:10,allow:true}
       },
-      MF: {
-        "BA":    { cb:34, sf:21, base:55, add: 0, allowed:true },
-        "BA+BB": { cb:16, sf:12, base:55, add:28, allowed:true },
-        "BA+BH": { cb:40, sf:28, base:55, add:68, allowed:true },
-        "BA+BJ": { cb:null, sf:null, base:null, add:null, allowed:false }, // not offered
-        "BA+BD": { cb:10, sf: 0, base:55, add:10, allowed:true }
+      MF:{
+        "BA":    {cb:34,sf:21,base:55,add:0,allow:true},
+        "BA+BB": {cb:16,sf:12,base:55,add:28,allow:true},
+        "BA+BH": {cb:40,sf:28,base:55,add:68,allow:true},
+        "BA+BJ": {cb:null,sf:null,base:null,add:null,allow:false},
+        "BA+BD": {cb:10,sf: 0,base:55,add:10,allow:true}
       }
     };
 
-    // Recipes reflect your 4-card scoreboard
-    const RECIPES = {
-      SV: [
-        { card:"Hi67",  pair:"BA+BH", components:["BA","BH"], title:"Digital Aspheric" },
-        { card:"Mid",   pair:"BA+BB", components:["BA","BB"], title:"Digital Aspheric" },
-        { card:"Poly",  pair:"BA+BD", components:["BA","BD"], title:"Digital Aspheric" },
-        { card:"CR",    pair:null,    components:["AA","QM?"], title:"CR" }
-      ],
-      MF: [
-        { card:"Hi67",  pair:"BA+BH", components:["BA","BH"], title:"Digital Aspheric" },
-        { card:"Mid",   pair:"BA+BB", components:["BA","BB"], title:"Digital Aspheric" },
-        { card:"Poly",  pair:"BA+BD", components:["BA","BD"], title:"Digital Aspheric" },
-        { card:"CR",    pair:null,    components:["AA","QM?"], title:"CR" }
-      ]
-    };
+    // Scoreboard recipe (4 cards)
+    const RECIPE = fam => ([
+      {key:"Hi67",  pair:"BA+BH", title:"Hi67"},
+      {key:"Mid",   pair:"BA+BB", title:"Mid"},
+      {key:"Poly",  pair:"BA+BD", title:"Poly"},
+      {key:"CR",    pair:null,    title:"CR"}
+    ]);
 
-    const META = document.getElementById("meta");
-    const ERRBOX = document.getElementById("err");
-    const CARDS = document.getElementById("cards");
-    const CACHE_KEY = "vsp_csv_v10";
+    const $cards = document.getElementById("cards");
+    const $meta  = document.getElementById("meta");
+    const $net   = document.getElementById("net");
 
-    /********************
-     * HELPERS / UTILS  *
-     ********************/
     const money = n => `$${Number(n||0).toFixed(2).replace(/\.00$/,"")}`;
-    const sum = (arr, k) => arr.reduce((s,x)=>s+(x[k]||0),0);
-    const totals = rows => ({copay:sum(rows,"copay"), hold:sum(rows,"holdback"), fee:sum(rows,"serviceFee")});
-    const num = v => v==null||v==="" ? null : Number(String(v).replace(/[^\d.-]/g,""));
+    const num   = v => v==null||v==="" ? null : Number(String(v).replace(/[^\d.-]/g,""));
 
+    function famKey(raw){
+      const s = String(raw||"").toLowerCase();
+      if (s.startsWith("single")) return "SV";
+      if (s.startsWith("multi"))  return "MF";
+      return (["sv","mf"].includes(s)) ? s.toUpperCase() : "SV";
+    }
+
+    /*****************
+     * CSV LOADING   *
+     *****************/
     function norm(row){
       const r = Object.fromEntries(Object.entries(row).map(([k,v])=>[String(k).trim().toLowerCase(), typeof v==="string"?v.trim():v]));
       return {
-        item: r.item || r.lens || r.category || "",
+        item: r.item || r.category || r.lens || "",
         code: (r.code || r.codes || "").toUpperCase(),
         family: (r.family || r.lens_family || r.type || "").toUpperCase().includes("MF") ? "MF" : "SV",
         copay: num(r.copay || r.patient_copay),
@@ -145,129 +141,130 @@
       };
     }
 
-    function indexByCode(rows){
-      const idx = { SV:{}, MF:{} };
+    function indexRows(rows){
+      const idx = {SV:{}, MF:{}};
       for (const r of rows){
-        if(!r.code) continue;
-        const fam = (r.family==="MF") ? "MF" : "SV";
-        if(!idx[fam][r.code]) idx[fam][r.code] = [];
-        idx[fam][r.code].push(r);
+        const f = (r.family==="MF") ? "MF" : "SV";
+        if (!idx[f][r.code]) idx[f][r.code] = [];
+        idx[f][r.code].push(r);
       }
       return idx;
     }
 
-    function uniqueByCode(list){
-      const seen = new Set();
-      return list.filter(r => (seen.has(r.code) ? false : (seen.add(r.code), true)));
-    }
-
-    /********************
-     * LOAD CSV (robust)
-     ********************/
     async function loadCsv(){
-      const cached = sessionStorage.getItem(CACHE_KEY);
-      if (cached){
-        const { rows, when } = JSON.parse(cached);
-        META.textContent = `rows=${rows.length} • cache ${(new Date(when)).toLocaleTimeString()}`;
+      // cache first
+      const cache = sessionStorage.getItem(CACHE_KEY);
+      if (cache){
+        const {rows, when} = JSON.parse(cache);
+        $meta.textContent = `rows=${rows.length} • cache ${(new Date(when)).toLocaleTimeString()}`;
         return rows;
       }
       try{
         const res = await fetch(CSV_PATH, {cache:"no-store"});
         if(!res.ok) throw new Error(`HTTP ${res.status}`);
-        const txt = await res.text();
-        const parsed = Papa.parse(txt, {header:true, skipEmptyLines:true});
+        const text = await res.text();
+        const parsed = Papa.parse(text, {header:true, skipEmptyLines:true});
         const rows = parsed.data.map(norm);
         sessionStorage.setItem(CACHE_KEY, JSON.stringify({rows, when:Date.now()}));
-        META.textContent = `rows=${rows.length} • fresh`;
+        $meta.textContent = `rows=${rows.length} • fresh`;
         return rows;
       }catch(e){
-        ERRBOX.style.display = "block";
-        ERRBOX.textContent = `CSV load failed (${e.message}). App will render BA map only for demo.`;
-        META.textContent = "rows=0 • degraded";
+        $net.style.display="block";
+        $net.textContent = "Network failed. Using cached data if available.";
+        const cache2 = sessionStorage.getItem(CACHE_KEY);
+        if (cache2){
+          const {rows} = JSON.parse(cache2);
+          $meta.textContent = `rows=${rows.length} • cache (offline)`;
+          return rows;
+        }
+        $meta.textContent = "rows=0 • offline";
         return [];
       }
     }
 
-    /*********************
-     * PRICING FUNCTIONS *
-     *********************/
-    function baPairRow(family, pairKey){
-      const fam = family==="MF" ? DASP.MF : DASP.SV;
-      const rec = fam[pairKey];
-      if (!rec || rec.allowed===false) return null;
-      return { item:"Digital Aspheric", code: pairKey, copay: rec.base+rec.add, holdback: rec.cb, serviceFee: rec.sf, source:"map" };
+    /*****************
+     * PRICING LOGIC *
+     *****************/
+    // Pair line from authoritative map (no BA double-count)
+    function mapPair(fam, pairKey){
+      const rec = MAP[fam][pairKey];
+      if (!rec || rec.allow===false) return null;
+      return {
+        item: pairKey.split("+")[0]==="BA" ? "Digital Aspheric" : "Lens",
+        code: pairKey,
+        copay: (rec.base||0) + (rec.add||0),
+        holdback: rec.cb||0,
+        serviceFee: rec.sf||0,
+        source: "map"
+      };
     }
 
-    function baComponentRow(family, comp){ // comp ∈ {BA, BB, BH, BD}
-      const fam = family==="MF" ? DASP.MF : DASP.SV;
-      if (comp==="BA"){
-        const r = fam["BA"]; return { item:"Digital Aspheric", code:"BA", copay:r.base+r.add, holdback:r.cb, serviceFee:r.sf, source:"map" };
-      }
-      const key = "BA+"+comp;
-      const rec = fam[key];
-      if (!rec || rec.allowed===false) return null;
-      return { item:"Digital Aspheric", code:comp, copay:rec.base+rec.add, holdback:rec.cb, serviceFee:rec.sf, source:"map" };
+    // Informational breakdown (BA and add code) — NOT included in totals
+    function mapInfoRows(fam, pairKey){
+      const rec = MAP[fam][pairKey];
+      if (!rec || rec.allow===false) return [];
+      const [ba, add] = pairKey.split("+"); // "BA","+BH"
+      const addKey = pairKey; // use same rec for add display
+      const base = MAP[fam]["BA"];
+      const addRec = MAP[fam][addKey];
+      return [
+        {code:"BA",   copay:(base.base||0)+(base.add||0), holdback:base.cb||0,   serviceFee:base.sf||0},
+        {code:add.slice(1), copay:(addRec.base||0)+(addRec.add||0), holdback:addRec.cb||0, serviceFee:addRec.sf||0}
+      ];
     }
 
-    function fromCsv(idx, family, code){
-      const list = (idx[family] && idx[family][code]) ? idx[family][code] : [];
+    function fromCsv(idx, fam, code){
+      const list = idx[fam][code] || [];
       if (!list.length) return null;
       const best = list.find(r=>r.copay!=null && r.holdback!=null && r.serviceFee!=null) || list[0];
-      return { item: best.item || "", code, copay: best.copay||0, holdback: best.holdback||0, serviceFee: best.serviceFee||0, source:"csv" };
+      return { item: best.item||"", code, copay: best.copay||0, holdback: best.holdback||0, serviceFee: best.serviceFee||0, source:"csv" };
     }
 
-    /****************
-     * RENDER CARDS *
-     ****************/
-    function renderBundleCard(title, badge, summaryRow, componentRows){
-      const t = totals([summaryRow]);
-      const subt = totals(componentRows);
+    const moneyFmt = n => `$${Number(n||0).toFixed(2).replace(/\.00$/,"")}`;
+    const sum = (arr,k) => arr.reduce((s,x)=>s+(x[k]||0),0);
+
+    function renderPairCard(title, badge, pairRow, infoRows){
+      const t = { copay: pairRow.copay, hold: pairRow.holdback, fee: pairRow.serviceFee };
       return `
         <div class="card">
-          <h2>${money(t.copay)}</h2>
-          <div class="kicker">Patient Copay<br><span class="ok">Service Fee (Practice Profit): ${money(t.fee)}</span></div>
-          <div class="muted" style="margin-bottom:6px">${badge}</div>
+          <h2>${moneyFmt(t.copay)}</h2>
+          <div class="kicker">Patient Copay<br><span class="ok">Service Fee (Practice Profit): ${moneyFmt(t.fee)}</span></div>
+          <div class="meta" style="margin-bottom:6px">${badge}</div>
           <table>
             <thead><tr><th>Item</th><th>Code</th><th class="right">Copay</th><th class="right">Holdback</th><th class="right">Service Fee</th></tr></thead>
             <tbody>
               <tr>
-                <td>${title}</td><td class="muted">${summaryRow.code}</td>
-                <td class="right">${money(summaryRow.copay)}</td>
-                <td class="right">${money(summaryRow.holdback)}</td>
-                <td class="right">${money(summaryRow.serviceFee)}</td>
+                <td>${pairRow.item}</td>
+                <td class="muted">${pairRow.code}</td>
+                <td class="right">${moneyFmt(pairRow.copay)}</td>
+                <td class="right">${moneyFmt(pairRow.holdback)}</td>
+                <td class="right">${moneyFmt(pairRow.serviceFee)}</td>
               </tr>
             </tbody>
           </table>
-          <div class="muted" style="margin-top:10px">Code breakdown</div>
+          <div class="meta small" style="margin-top:10px">Code breakdown (informational — not added to totals)</div>
           <table>
             <thead><tr><th>Code</th><th class="right">Copay</th><th class="right">Holdback</th><th class="right">Service Fee</th></tr></thead>
             <tbody>
-              ${componentRows.map(r=>`
+              ${infoRows.map(r=>`
                 <tr>
                   <td class="muted">${r.code}</td>
-                  <td class="right">${money(r.copay)}</td>
-                  <td class="right">${money(r.holdback)}</td>
-                  <td class="right">${money(r.serviceFee)}</td>
+                  <td class="right">${moneyFmt(r.copay)}</td>
+                  <td class="right">${moneyFmt(r.holdback)}</td>
+                  <td class="right">${moneyFmt(r.serviceFee)}</td>
                 </tr>`).join("")}
-              <tr>
-                <td class="muted">Totals</td>
-                <td class="right"><b>${money(subt.copay)}</b></td>
-                <td class="right"><b>${money(subt.hold)}</b></td>
-                <td class="right"><b>${money(subt.fee)}</b></td>
-              </tr>
             </tbody>
           </table>
         </div>`;
     }
 
     function renderSimpleCard(title, badge, rows){
-      rows = uniqueByCode(rows);
-      const t = totals(rows);
+      const copay = sum(rows,"copay"), hold=sum(rows,"holdback"), fee=sum(rows,"serviceFee");
       return `
         <div class="card">
-          <h2>${money(t.copay)}</h2>
-          <div class="kicker">Patient Copay<br><span class="ok">Service Fee (Practice Profit): ${money(t.fee)}</span></div>
-          <div class="muted" style="margin-bottom:6px">${badge}</div>
+          <h2>${moneyFmt(copay)}</h2>
+          <div class="kicker">Patient Copay<br><span class="ok">Service Fee (Practice Profit): ${moneyFmt(fee)}</span></div>
+          <div class="meta" style="margin-bottom:6px">${badge}</div>
           <table>
             <thead><tr><th>Item</th><th>Code</th><th class="right">Copay</th><th class="right">Holdback</th><th class="right">Service Fee</th></tr></thead>
             <tbody>
@@ -275,15 +272,15 @@
                 <tr>
                   <td>${r.item||title}</td>
                   <td class="muted">${r.code}</td>
-                  <td class="right">${money(r.copay)}</td>
-                  <td class="right">${money(r.holdback)}</td>
-                  <td class="right">${money(r.serviceFee)}</td>
+                  <td class="right">${moneyFmt(r.copay)}</td>
+                  <td class="right">${moneyFmt(r.holdback)}</td>
+                  <td class="right">${moneyFmt(r.serviceFee)}</td>
                 </tr>`).join("")}
               <tr>
                 <td class="muted">Totals</td><td></td>
-                <td class="right"><b>${money(t.copay)}</b></td>
-                <td class="right"><b>${money(t.hold)}</b></td>
-                <td class="right"><b>${money(t.fee)}</b></td>
+                <td class="right"><b>${moneyFmt(copay)}</b></td>
+                <td class="right"><b>${moneyFmt(hold)}</b></td>
+                <td class="right"><b>${moneyFmt(fee)}</b></td>
               </tr>
             </tbody>
           </table>
@@ -294,53 +291,41 @@
      * PIPELINE *
      ************/
     async function run(){
-      const state = {
-        family: document.getElementById("lensFamily").value,
-        tint: document.getElementById("lensTint").value,
-        includeAR: document.getElementById("ar").checked
-      };
-
-      // Sun exclusivity (note only; hook for future material rules)
-      const sun = ["Solid","Gradient","Photochromic","Polarized"];
-      if (sun.includes(state.tint)) {
-        // enforce mutual exclusion in future material selection
-      }
+      const famSel = document.getElementById("lensFamily").value;
+      const fam = famKey(famSel);               // <<< FIX #1: normalize to SV/MF
+      const includeAR = document.getElementById("ar").checked;
 
       const rows = await loadCsv();
-      const idx = indexByCode(rows);
-      const recipe = RECIPES[state.family];
-      const cards = [];
+      const idx = indexRows(rows);
+      const plan = RECIPE(fam);
+      const out = [];
 
-      // Three BA bundles (summary pair + breakdown). No duplicates.
-      for (const rcp of recipe.slice(0,3)){
-        const sumRow = baPairRow(state.family, rcp.pair);
-        const parts = rcp.components.map(c=>baComponentRow(state.family, c)).filter(Boolean);
-        cards.push(renderBundleCard(rcp.title, rcp.card, sumRow, parts));
+      // Three BA bundles
+      for (const r of plan.slice(0,3)){
+        const pair = mapPair(fam, r.pair);                      // <<< FIX #2: pair values from map only
+        const info = mapInfoRows(fam, r.pair);                  // informational; not added to totals
+        out.push(renderPairCard(r.title, r.key, pair, info));
       }
 
-      // CR (CSV-driven) — AA always, QM only if AR is checked; strictly by family
-      const crCfg = recipe.find(x=>x.card==="CR");
+      // CR: AA always; QM only if Include AR
       const crRows = [];
-      const aa = fromCsv(idx, state.family, "AA"); if (aa) { aa.item = crCfg.title; crRows.push(aa); }
-      if (state.includeAR){
-        const qm = fromCsv(idx, state.family, "QM"); if (qm) { qm.item = "A/R"; crRows.push(qm); }
+      const aa = fromCsv(idx, fam, "AA"); if (aa) { aa.item="CR"; crRows.push(aa); }
+      if (includeAR){
+        const qm = fromCsv(idx, fam, "QM"); if (qm) { qm.item="A/R"; crRows.push(qm); }
       }
-      cards.push(renderSimpleCard(crCfg.title, "CR", crRows));
+      out.push(renderSimpleCard("CR","CR", crRows));
 
-      CARDS.innerHTML = cards.join("");
+      $cards.innerHTML = out.join("");
     }
 
-    /**********
-     * EVENTS *
-     **********/
+    // events
     document.getElementById("lensFamily").addEventListener("change", ()=>{ sessionStorage.removeItem(CACHE_KEY); run(); });
     document.getElementById("lensTint").addEventListener("change", run);
     document.getElementById("ar").addEventListener("change", run);
     ["aspheric","oversize","glass","noOnly"].forEach(id=>document.getElementById(id).addEventListener("change", run));
     document.getElementById("refresh").addEventListener("click", ()=>{ sessionStorage.removeItem(CACHE_KEY); run(); });
-    document.getElementById("clear").addEventListener("click", ()=>{ sessionStorage.clear(); document.getElementById("meta").textContent="cache cleared"; run(); });
+    document.getElementById("clear").addEventListener("click", ()=>{ sessionStorage.clear(); $meta.textContent="cache cleared"; run(); });
 
-    // boot
     run();
   </script>
 </body>
