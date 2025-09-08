@@ -2,10 +2,10 @@
 <html lang="en">
 <head>
 <meta charset="utf-8"/>
-<title>PayerEdge — VSP Bundles (v10.3)</title>
+<title>PayerEdge — VSP Bundles (v10.4)</title>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <style>
-  :root{--bg:#0b0f14;--fg:#e7eefc;--muted:#9fb0c9;--card:#101722;--line:#233044;--ok:#10b981;--warn:#f59e0b;--err:#ef4444}
+  :root{--bg:#0b0f14;--fg:#e7eefc;--muted:#9fb0c9;--card:#101722;--line:#233044;--ok:#10b981}
   *{box-sizing:border-box}
   body{background:var(--bg);color:var(--fg);font:15px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;margin:0}
   header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 20px;border-bottom:1px solid #1b2535}
@@ -37,7 +37,7 @@
       <div class="meta">Scoreboard shows <b>patient copay</b> and <b>service fee</b> (Copay − Holdback). Sun choices are exclusive.</div>
     </div>
     <div style="display:flex;gap:8px;align-items:center">
-      <span class="meta">plan=<b>VSP_choice</b> • version=<b>v10.3</b> • source=<span id="src" class="muted">…</span></span>
+      <span class="meta">plan=<b>VSP_choice</b> • version=<b>v10.4</b> • source=<span id="src" class="muted">…</span></span>
       <button class="btn" id="refresh">Force Refresh</button>
       <button class="btn" id="clear">Clear Cache</button>
     </div>
@@ -46,8 +46,6 @@
   <div class="row">
     <div class="group">
       <span class="muted">Lens family</span>
-      <!-- Values deliberately verbose to mimic your UI;
-           we normalize to SV/MF in code to avoid the bug -->
       <select id="lensFamily">
         <option>Single Vision</option>
         <option>Multifocal</option>
@@ -84,19 +82,19 @@
      ***************/
     const CSV_PATH = "./data/vsp_choice_master_v8_from_patched.csv";
     document.getElementById("src").textContent = CSV_PATH;
-    const CACHE_KEY = "vsp_v10_3_cache";
+    const CACHE_KEY = "vsp_v10_4_cache";
 
     // Authoritative Digital Aspheric pricing from your table
     const MAP = {
       SV:{
-        "BA":    {cb:24,sf:21,base:45,add:0,allow:true},
+        "BA":    {cb:24,sf:21,base:45,add:0, allow:true},
         "BA+BB": {cb:16,sf:12,base:45,add:28,allow:true},
-        "BA+BH": {cb:37,sf:21,base:45,add:68,allow:true},
+        "BA+BH": {cb:37,sf:21,base:45,add:58,allow:true},  // ✅ 45+58 = 103
         "BA+BJ": {cb:57,sf:29,base:45,add:86,allow:true},
         "BA+BD": {cb:10,sf: 0,base:45,add:10,allow:true}
       },
       MF:{
-        "BA":    {cb:34,sf:21,base:55,add:0,allow:true},
+        "BA":    {cb:34,sf:21,base:55,add:0, allow:true},
         "BA+BB": {cb:16,sf:12,base:55,add:28,allow:true},
         "BA+BH": {cb:40,sf:28,base:55,add:68,allow:true},
         "BA+BJ": {cb:null,sf:null,base:null,add:null,allow:false},
@@ -115,7 +113,6 @@
     const $cards = document.getElementById("cards");
     const $meta  = document.getElementById("meta");
     const $net   = document.getElementById("net");
-
     const money = n => `$${Number(n||0).toFixed(2).replace(/\.00$/,"")}`;
     const num   = v => v==null||v==="" ? null : Number(String(v).replace(/[^\d.-]/g,""));
 
@@ -140,7 +137,6 @@
         serviceFee: num(r.service_fee || r.servicefee || r.fee)
       };
     }
-
     function indexRows(rows){
       const idx = {SV:{}, MF:{}};
       for (const r of rows){
@@ -150,9 +146,7 @@
       }
       return idx;
     }
-
     async function loadCsv(){
-      // cache first
       const cache = sessionStorage.getItem(CACHE_KEY);
       if (cache){
         const {rows, when} = JSON.parse(cache);
@@ -171,9 +165,9 @@
       }catch(e){
         $net.style.display="block";
         $net.textContent = "Network failed. Using cached data if available.";
-        const cache2 = sessionStorage.getItem(CACHE_KEY);
-        if (cache2){
-          const {rows} = JSON.parse(cache2);
+        const c2 = sessionStorage.getItem(CACHE_KEY);
+        if (c2){
+          const {rows} = JSON.parse(c2);
           $meta.textContent = `rows=${rows.length} • cache (offline)`;
           return rows;
         }
@@ -190,29 +184,26 @@
       const rec = MAP[fam][pairKey];
       if (!rec || rec.allow===false) return null;
       return {
-        item: pairKey.split("+")[0]==="BA" ? "Digital Aspheric" : "Lens",
+        item: "Digital Aspheric",
         code: pairKey,
-        copay: (rec.base||0) + (rec.add||0),
+        copay: (rec.base||0)+(rec.add||0),
         holdback: rec.cb||0,
         serviceFee: rec.sf||0,
         source: "map"
       };
     }
-
     // Informational breakdown (BA and add code) — NOT included in totals
     function mapInfoRows(fam, pairKey){
       const rec = MAP[fam][pairKey];
       if (!rec || rec.allow===false) return [];
-      const [ba, add] = pairKey.split("+"); // "BA","+BH"
-      const addKey = pairKey; // use same rec for add display
       const base = MAP[fam]["BA"];
-      const addRec = MAP[fam][addKey];
+      const addonCode = pairKey.split("+")[1]; // "BH" | "BB" | "BD"
+      const addRec = rec;
       return [
-        {code:"BA",   copay:(base.base||0)+(base.add||0), holdback:base.cb||0,   serviceFee:base.sf||0},
-        {code:add.slice(1), copay:(addRec.base||0)+(addRec.add||0), holdback:addRec.cb||0, serviceFee:addRec.sf||0}
+        { code:"BA",       copay:(base.base||0)+(base.add||0), holdback:base.cb||0,   serviceFee:base.sf||0 },
+        { code:addonCode,  copay:(addRec.base||0)+(addRec.add||0), holdback:addRec.cb||0, serviceFee:addRec.sf||0 }
       ];
     }
-
     function fromCsv(idx, fam, code){
       const list = idx[fam][code] || [];
       if (!list.length) return null;
@@ -224,11 +215,10 @@
     const sum = (arr,k) => arr.reduce((s,x)=>s+(x[k]||0),0);
 
     function renderPairCard(title, badge, pairRow, infoRows){
-      const t = { copay: pairRow.copay, hold: pairRow.holdback, fee: pairRow.serviceFee };
       return `
         <div class="card">
-          <h2>${moneyFmt(t.copay)}</h2>
-          <div class="kicker">Patient Copay<br><span class="ok">Service Fee (Practice Profit): ${moneyFmt(t.fee)}</span></div>
+          <h2>${moneyFmt(pairRow.copay)}</h2>
+          <div class="kicker">Patient Copay<br><span class="ok">Service Fee (Practice Profit): ${moneyFmt(pairRow.serviceFee)}</span></div>
           <div class="meta" style="margin-bottom:6px">${badge}</div>
           <table>
             <thead><tr><th>Item</th><th>Code</th><th class="right">Copay</th><th class="right">Holdback</th><th class="right">Service Fee</th></tr></thead>
@@ -257,7 +247,6 @@
           </table>
         </div>`;
     }
-
     function renderSimpleCard(title, badge, rows){
       const copay = sum(rows,"copay"), hold=sum(rows,"holdback"), fee=sum(rows,"serviceFee");
       return `
@@ -292,7 +281,7 @@
      ************/
     async function run(){
       const famSel = document.getElementById("lensFamily").value;
-      const fam = famKey(famSel);               // <<< FIX #1: normalize to SV/MF
+      const fam = famKey(famSel);                 // strict SV/MF normalization
       const includeAR = document.getElementById("ar").checked;
 
       const rows = await loadCsv();
@@ -300,14 +289,14 @@
       const plan = RECIPE(fam);
       const out = [];
 
-      // Three BA bundles
+      // Three BA bundles (pair totals from map only)
       for (const r of plan.slice(0,3)){
-        const pair = mapPair(fam, r.pair);                      // <<< FIX #2: pair values from map only
-        const info = mapInfoRows(fam, r.pair);                  // informational; not added to totals
+        const pair = mapPair(fam, r.pair);
+        const info = mapInfoRows(fam, r.pair);
         out.push(renderPairCard(r.title, r.key, pair, info));
       }
 
-      // CR: AA always; QM only if Include AR
+      // CR: AA always; QM only if Include AR (family-specific)
       const crRows = [];
       const aa = fromCsv(idx, fam, "AA"); if (aa) { aa.item="CR"; crRows.push(aa); }
       if (includeAR){
@@ -324,7 +313,7 @@
     document.getElementById("ar").addEventListener("change", run);
     ["aspheric","oversize","glass","noOnly"].forEach(id=>document.getElementById(id).addEventListener("change", run));
     document.getElementById("refresh").addEventListener("click", ()=>{ sessionStorage.removeItem(CACHE_KEY); run(); });
-    document.getElementById("clear").addEventListener("click", ()=>{ sessionStorage.clear(); $meta.textContent="cache cleared"; run(); });
+    document.getElementById("clear").addEventListener("click", ()=>{ sessionStorage.clear(); document.getElementById("meta").textContent="cache cleared"; run(); });
 
     run();
   </script>
