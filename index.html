@@ -54,7 +54,7 @@
     .btn:hover{ background:#162844; border-color:#2e4260 }
     .switch{display:inline-flex; align-items:center; gap:8px}
     .switch select, .switch input[type="checkbox"]{ accent-color:var(--accent) }
-    select{ background:#0e1a30; color:var(--fg); border:1px solid var(--line); border-radius:10px; padding:6px 8px; outline:none }
+    select{ background:#0e1a30; color:#eaf1ff; border:1px solid var(--line); border-radius:10px; padding:6px 8px; outline:none }
     select:focus{ box-shadow:0 0 0 3px rgba(114,168,255,.25) }
     #status{ margin-left:auto; padding:6px 10px; border-radius:999px; border:1px dashed var(--line); background:#0b1422; color:#c7d6ef }
 
@@ -156,7 +156,7 @@
 
     /* ================== Config & utils ================== */
 
-    // Strict v9 first, then fallbacks. First one that loads wins.
+    // Prefer strict v9; fall back if unavailable.
     const CSV_CANDIDATES = [
       './data/vsp_choice_master_v9_strict.csv',
       './data/vsp_choice_master_v8_1_from_patched.csv',
@@ -170,14 +170,9 @@
       './vsp_choice_master_v7_full_fixed.csv'
     ];
 
-    const BETTER_CAP_OF_MAX = 0.75; // ≤75% of max copay
-    const GOOD_CAP_OF_MAX   = 0.50; // ≤50% of max copay
-    const CAP_RELAX_FACTOR  = 0.90; // fallback relaxer
-
-    // Optional safety net if some A-base is missing from CSV (leave empty unless needed)
-    const BASE_OVERRIDES = {
-      // Example: NA: { copay: 175, chargeback: 95 }
-    };
+    const BETTER_CAP_OF_MAX = 0.75;
+    const GOOD_CAP_OF_MAX   = 0.50;
+    const CAP_RELAX_FACTOR  = 0.90;
 
     const el = (id)=>document.getElementById(id);
     const sum = (a)=>a.reduce((x,y)=>x+y,0);
@@ -222,7 +217,7 @@
     const clearCacheStorage=()=>{ localStorage.removeItem(CACHE_KEY); localStorage.removeItem(META_KEY); };
 
     let DATA=[];
-    let SIMPLE_BY_CODE = new Map(); // code -> array of single-code rows (not composites)
+    let SIMPLE_BY_CODE = new Map();
 
     function buildSimpleIndex(){
       SIMPLE_BY_CODE = new Map();
@@ -239,7 +234,6 @@
     function pickSimpleByExactCode(code){
       const list = SIMPLE_BY_CODE.get(code) || [];
       if (!list.length) return null;
-      // very light scoring: prefer non-high plastic as default tie-breaker
       const score = s => (s.includes('plastic') && !s.includes('high')) ? 2 : 0;
       return list
         .map(r => ({ r, s: (r.enhancement || r.subtype || '').toLowerCase() }))
@@ -269,7 +263,7 @@
       }
 
       if (loaded){
-        const meta = { plan:'VSP_choice', version:new Date().toISOString().slice(0,10)+'.ui18.1-alamo', source:'network:'+loaded.url, sha:quickHash(loaded.text) };
+        const meta = { plan:'VSP_choice', version:new Date().toISOString().slice(0,10)+'.ui18.2-alamo', source:'network:'+loaded.url, sha:quickHash(loaded.text) };
         setCache(loaded.text, meta);
         DATA = parseCSV(loaded.text);
         buildSimpleIndex();
@@ -319,40 +313,57 @@
       el('version').textContent = `plan=${meta.plan||'VSP_choice'} • rows=${count||0} • version=${meta.version||'—'} • source=${meta.source||'—'} • sha=${meta.sha||'—'}`;
     }
 
-    const byKey=(k)=>DATA.filter(r=>(r.active||'yes').toLowerCase()==='yes' && (r.exclusive_key||'').toLowerCase()===k);
+    /* ---------- Robust key & flag handling (v9 strict friendly) ---------- */
+
+    const ACTIVE_TRUE = new Set(['yes','true','1','y','active','',' ']);
+    const isActiveRow = r => ACTIVE_TRUE.has(String(r.active??'yes').trim().toLowerCase());
+
+    function rowsByKeyNames(names){
+      const set = new Set((names||[]).map(n=>String(n||'').toLowerCase()));
+      return DATA.filter(r => isActiveRow(r) && set.has(String(r.exclusive_key||'').toLowerCase()));
+    }
+
+    // Key aliases tolerated from CSVs we’ve seen
+    const KEY = {
+      base:       () => rowsByKeyNames(['base_material','base','material','lens_material','sv_base']),
+      occ:        () => rowsByKeyNames(['occupational','occ','lined','bifocal','trifocal']),
+      pal:        () => rowsByKeyNames(['progressive_level','progressive','pal','mf_level']),
+      ar:         () => rowsByKeyNames(['ar_level','ar','anti_reflective','antireflective','coating_ar']),
+      sun:        () => rowsByKeyNames(['sun_tech','sun','tint','photochromic','polarized','sunwear']),
+      oversize:   () => rowsByKeyNames(['oversize','os'])
+    };
+
     function applies(row, fam){
       const a=(row.applies_to||'ALL').toUpperCase();
       if(a.includes('ALL')) return true;
-      if(fam==='SV')     return a.includes('SV');
-      if(fam==='LINED')  return a.includes('OCC');
-      if(fam==='PAL')    return a.includes('MF');
+      const inSet = (arr)=>arr.some(t=>a.includes(t));
+      if(fam==='SV')    return inSet(['SV','SINGLE','SINGLE VISION']);
+      if(fam==='LINED') return inSet(['OCC','LINED','BIFOCAL','TRIFOCAL']);
+      if(fam==='PAL')   return inSet(['MF','PAL','PROGRESSIVE','MULTIFOCAL']);
       return true;
     }
 
-    /* ===== Per-line math (composites use per-part splits when present) ===== */
+    /* ===== Per-line math (composites prefer per-part splits from CSV v9) ===== */
     function line(row){
       const desc = row.enhancement || row.subtype || '—';
       const codeStr = String(row.code||'').trim().toUpperCase();
       const partsCodes = splitCodes(codeStr);
 
-      // Single-code line
       if (partsCodes.length === 1){
         const cop = num(row.copay), cb = num(row.chargeback);
         return { name:desc, code:codeStr, copay:cop, chargeback:cb, profit:cop-cb, parts:[] };
       }
 
-      // Composite: prefer explicit splits from CSV v9 strict
       const copParts = parseNumberList(row.copay);
       const hbParts  = parseNumberList(row.chargeback_split);
       const parts = [];
       const n = partsCodes.length;
 
-      // Build copay per-part
+      // Copay per part
       let cp = [];
       if (copParts.length === n){
         cp = copParts;
       }else{
-        // fallback: derive base from exact single code if possible, then distribute remaining
         const baseCode = partsCodes[0];
         const baseRow  = pickSimpleByExactCode(baseCode);
         let baseCop  = baseRow ? num(baseRow.copay) : num(row.copay) / n;
@@ -361,13 +372,12 @@
         cp = [baseCop, ...Array.from({length:n-1}, ()=>each)];
       }
 
-      // Build holdback per-part
+      // Holdback per part
       let hb = [];
       if (hbParts.length === n){
         hb = hbParts;
       }else{
-        // fallback: try singles
-        hb = partsCodes.map((c,i)=>{
+        hb = partsCodes.map((c)=>{
           const r = pickSimpleByExactCode(c);
           return r ? num(r.chargeback) : 0;
         });
@@ -521,14 +531,14 @@
       const tintSel = el('lensTint').value;
       if (tintSel==='clear' || tintSel==='polarized') return null;
       const fam = el('lensFamily').value;
-      const sunAll = byKey('sun_tech').filter(r=>applies(r,fam)).filter(r=>{
+      const sunAll = KEY.sun().filter(r=>applies(r,fam)).filter(r=>{
         const n=N(r.enhancement);
         if(!el('includeGlass').checked && n.includes('glass')) return false;
         return true;
       });
 
       if (tintSel==='transitions') {
-        const want = preferPhotoCodeForBase(baseRow); // PM for glass, else PR
+        const want = preferPhotoCodeForBase(baseRow);
         let pool = sunAll.filter(r => /photochrom/.test(N(r.enhancement)));
         let choice = pool.find(r => new RegExp('^' + want, 'i').test((r.code || '').trim())) || pool.find(r=>isPPhoto(r));
         return choice || null;
@@ -536,7 +546,6 @@
       if (tintSel==='tinted') {
         let pool = sunAll.filter(r=>{
           const n=N(r.enhancement);
-          // solid/gradient/tint without polarized/photochromic
           return sunMatchesBase(r, baseRow) && !/photochrom|polariz/.test(n) && /(tint|tinted|solid|gradient|sunglass)/.test(n);
         });
         return pool[0] || null;
@@ -560,7 +569,7 @@
       const wantGlass = el('includeGlass').checked;
       const tintSel = el('lensTint').value;
 
-      const sunAll = byKey('sun_tech').filter(r=>applies(r,fam)).filter(r=>{
+      const sunAll = KEY.sun().filter(r=>applies(r,fam)).filter(r=>{
         const n=N(r.enhancement);
         if(!wantGlass && n.includes('glass')) return false;
         return true;
@@ -572,7 +581,7 @@
       // Base candidates
       let base = [];
       if (fam === 'PAL') {
-        base = byKey('progressive_level').filter(r=>applies(r,fam)).filter(r=>{
+        base = KEY.pal().filter(r=>applies(r,fam)).filter(r=>{
           const name=N(r.enhancement);
           if(!wantAsp && name.includes('aspheric')) return false;
           if(!wantGlass && name.includes('glass'))  return false;
@@ -582,10 +591,10 @@
         });
       } else {
         if (tintSel==='polarized') {
-          // SV/Lined polarized → D-codes only
-          base = sunAll.filter(r => /polariz/.test(N(r.enhancement)) && isDCode(r));
+          base = sunAll.filter(r => /polariz/.test(N(r.enhancement)) && isDCode(r)); // SV/Lined → D-codes
         } else {
-          const pool = (fam==='SV' ? byKey('base_material') : byKey('occupational'));
+          // SV: base materials; LINED: occupational (fallback to base materials if CSV lacks OCC bucket)
+          const pool = fam==='SV' ? KEY.base() : KEY.occ().concat(KEY.base());
           base = pool.filter(r=>applies(r,fam)).filter(r=>{
             const name=N(r.enhancement);
             if(!wantAsp && name.includes('aspheric')) return false;
@@ -596,22 +605,22 @@
         }
       }
 
-      // AR ranked by grade then profit
+      // AR options
       function rankAR(ars){
         const gradeVal = (s)=>{ const m=String(s||'').match(/\b([A-D])\b/i); if(!m) return null; return {A:1,B:2,C:3,D:4}[m[1].toUpperCase()]||null; };
         return [...ars].sort((a,b)=>{
           const ga=gradeVal(a.enhancement)||-1, gb=gradeVal(b.enhancement)||-1;
-          if(ga!==gb) return gb-ga; // prefer A
+          if(ga!==gb) return gb-ga;
           const pa=num(a.copay)-num(a.chargeback);
           const pb=num(b.copay)-num(b.chargeback);
           return pb-pa;
         });
       }
-      const arPool = wantAR ? byKey('ar_level').filter(r=>applies(r,fam)) : [];
+      const arPool = wantAR ? KEY.ar().filter(r=>applies(r,fam)) : [];
       const arRanked = wantAR ? rankAR(arPool) : [];
       const arOptions = wantAR && arRanked.length ? arRanked : [null];
 
-      const overs = wantOS ? (byKey('oversize').filter(r=>applies(r,fam))[0] || null) : null;
+      const overs = wantOS ? (KEY.oversize().filter(r=>applies(r,fam))[0] || null) : null;
 
       function buildBundle(m, arRow){
         const maybeCM = (el('includeCM')?.checked && fam==='PAL' && isNOBase(m)) ? (customPool[0]||null) : null;
@@ -630,7 +639,6 @@
         return;
       }
 
-      // Left→Right tiers
       const MaxPrice = Math.max(...all.map(b => b.copay));
       function mostProfit(arr){
         let pick=null;
