@@ -3,150 +3,97 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>PayerEdge — VSP Bundles</title>
-
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
-
+  <title>RevSight AI — VSP Choice Bundles</title>
   <style>
-    :root{
-      --bg:#090e16; --bg-elev:#0c1320; --fg:#eaf1ff; --muted:#9fb0c9; --line:#263448;
-      --accent:#72a8ff; --accent-2:#7be0c3;
-      --tier-best:#ffd166; --tier-better:#a9c2ff; --tier-good:#7be0c3;
-      --shadow-lg:0 18px 40px rgba(0,0,0,.35); --shadow-md:0 10px 26px rgba(0,0,0,.28);
-      --radius:18px; --radius-sm:12px;
-      --fz-12:12px; --fz-13:13px; --fz-15:15px; --fz-18:18px; --fz-20:20px; --fz-36:36px;
-    }
+    :root{--bg:#0b0f14;--fg:#e7eefc;--muted:#9fb0c9;--card:#101722;--line:#233044;--ok:#0f6a52;--mid:#7c5c19;--low:#35506e}
     *{box-sizing:border-box}
-    html,body{height:100%}
-    body{
-      margin:0;
-      background:
-        radial-gradient(1200px 600px at 20% -10%, rgba(90,168,255,.12), transparent 60%),
-        radial-gradient(900px 500px at 110% 10%, rgba(123,224,195,.10), transparent 60%),
-        var(--bg);
-      color:var(--fg);
-      font:var(--fz-15)/1.45 Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-      -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
-      font-variant-numeric: tabular-nums;
-    }
-
-    header{
-      position:sticky; top:0; z-index:20; display:flex; justify-content:space-between; align-items:center; gap:14px;
-      padding:16px 20px; background:linear-gradient(180deg, rgba(9,14,22,.95), rgba(9,14,22,.78));
-      border-bottom:1px solid var(--line); backdrop-filter: blur(10px);
-    }
-    h1{margin:0; font-weight:800; font-size:var(--fz-20); letter-spacing:.2px}
-    .sub{color:var(--muted); font-size:var(--fz-12)}
-    .version{color:var(--muted)}
-    main{padding:18px}
-
-    .bar{
-      display:flex; align-items:center; flex-wrap:wrap; gap:10px 14px;
-      background:linear-gradient(180deg, var(--bg-elev), #0b1220);
-      border:1px solid var(--line); border-radius:var(--radius); padding:12px 12px;
-      box-shadow: var(--shadow-md);
-    }
-    .group{display:flex; gap:10px; align-items:center; padding:6px 10px; border-radius:999px; background:#0b1424}
-    .btn{ background:#121f35; border:1px solid var(--line); color:var(--fg); padding:8px 12px; border-radius:var(--radius-sm); cursor:pointer; font-weight:600; transition:.15s }
-    .btn:hover{ background:#162844; border-color:#2e4260 }
-    .switch{display:inline-flex; align-items:center; gap:8px}
-    .switch select, .switch input[type="checkbox"]{ accent-color:var(--accent) }
-    select{ background:#0e1a30; color:var(--fg); border:1px solid var(--line); border-radius:10px; padding:6px 8px; outline:none }
-    select:focus{ box-shadow:0 0 0 3px rgba(114,168,255,.25) }
-    #status{ margin-left:auto; padding:6px 10px; border-radius:999px; border:1px dashed var(--line); background:#0b1422; color:#c7d6ef }
-
-    .stack{ display:grid; gap:18px; grid-template-columns:repeat(auto-fit, minmax(320px,1fr)); align-items:stretch; margin-top:16px }
-    .tier{ background:linear-gradient(180deg, #0f1726, #0c1422); border:1px solid var(--line); border-radius:var(--radius); box-shadow: var(--shadow-lg); padding:16px; transition:.25s }
-    .tierHead{display:grid; grid-template-columns:1fr auto; align-items:center; gap:10px; margin-bottom:12px}
-    .stars{font-weight:800; display:flex; align-items:center; gap:8px}
-    .stars .tag{font-size:var(--fz-12); color:var(--muted); padding:2px 8px; border:1px solid var(--line); border-radius:999px; background:#0c1424}
-    .stars.best{color:var(--tier-best)} .stars.better{color:var(--tier-better)} .stars.good{color:var(--tier-good)}
-
-    .figures{ text-align:right; display:grid; gap:2px }
-    .hero{ font-size:var(--fz-36); font-weight:800; line-height:1.0; letter-spacing:.2px; color:#cfe6ff; text-shadow: 0 6px 18px rgba(114,168,255,.18) }
-    .caption{ color:var(--muted); font-size:var(--fz-12) }
-    .svc{ font-weight:800; color:var(--accent-2) }
-
-    table{width:100%; border-collapse:collapse; margin-top:12px}
-    th,td{border-bottom:1px dashed #203043; padding:9px 6px; text-align:left; font-size:var(--fz-13)}
-    th{color:var(--muted); font-weight:700}
-    .code{font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size:12px; color:#cfe1ff}
-    .money{font-weight:800}
+    body{background:var(--bg);color:var(--fg);font:15px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;margin:0}
+    header{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--line)}
+    h1{font-size:18px;margin:0}
+    .sub{color:var(--muted);font-size:12px}
+    main{padding:16px}
+    .bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:0 0 14px}
+    .btn{background:#132034;border:1px solid var(--line);color:var(--fg);padding:8px 10px;border-radius:10px;cursor:pointer}
+    .btn:hover{background:#16263c}
+    .switch{display:inline-flex;align-items:center;gap:8px}
+    .switch input,select{accent-color:#4f9cff}
+    .stack{display:grid;gap:14px;grid-template-columns:1fr}
+    .tier{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px}
+    .tierHead{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+    .pill{font-size:11px;border:1px solid var(--line);border-radius:999px;padding:2px 8px}
+    .good{border-color:var(--low)} .better{border-color:var(--mid)} .best{border-color:var(--ok)}
+    .totals{display:flex;gap:18px;flex-wrap:wrap}
+    .money{font-weight:700}
+    table{width:100%;border-collapse:collapse;margin-top:8px}
+    th,td{border-bottom:1px dashed #213043;padding:8px 6px;text-align:left;font-size:13px}
+    th{color:var(--muted);font-weight:600}
     .nowrap{white-space:nowrap}
-
-    .break{ margin:6px 0 10px; background:#0b1424; border:1px solid var(--line); border-radius:10px; }
-    .break table{ width:100%; border-collapse:collapse; }
-    .break th,.break td{ border:0; padding:6px 8px; text-align:left; font-size:12px; }
-    .break .codepill{ display:inline-block; padding:2px 8px; border:1px solid var(--line); border-radius:999px; font-family:ui-monospace,Menlo,Consolas,monospace; font-size:12px; color:#cfe1ff; background:#0e1a30; }
-    .break .colhed{ color:var(--muted); font-weight:600; }
-
-    :focus-visible{ outline:2px solid var(--accent); outline-offset:2px; border-radius:8px }
-    @media print{ header,.bar{display:none} body{background:#fff; color:#000} .tier{break-inside:avoid; border:1px solid #000; box-shadow:none} table, th, td{border-color:#000} }
+    .code{font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size:12px; color:#bcd1f0}
   </style>
 </head>
 <body>
   <header>
     <div>
-      <h1>PayerEdge — VSP Bundles</h1>
-      <div class="sub">Scoreboard shows <b>patient copay</b> and <b>service fee</b> (Copay − Holdback). Sun choices are exclusive.</div>
+      <h1>RevSight AI — VSP Choice Bundles</h1>
+      <div class="sub">
+        SV-first. Ranked by <b>practice profit (copay − chargeback)</b>. AR default <b>ON</b> with step-down (Best→Better→Good).
+        Sun is <b>mutually exclusive</b>: Clear / Tinted / Polarized / Transitions®. Offline cache enabled.
+      </div>
     </div>
-    <div class="version sub" id="version">loading…</div>
+    <div class="sub" id="version">loading…</div>
   </header>
 
   <main>
-    <div class="bar" role="toolbar" aria-label="Bundle controls">
-      <div class="group">
-        <button class="btn" id="forceRefresh" title="Reload CSV and recompute">Force Refresh</button>
-        <button class="btn" id="clearCache" title="Clear local CSV cache">Clear Cache</button>
-      </div>
-      <div class="group">
-        <label class="switch">Lens family
-          <select id="lensFamily" aria-label="Lens family">
-            <option value="SV" selected>Single Vision</option>
-            <option value="LINED">Lined Bi/Tri</option>
-            <option value="PAL">Progressive</option>
-          </select>
-        </label>
-        <label class="switch">Lens tint
-          <select id="lensTint" aria-label="Lens tint">
-            <option value="clear" selected>Clear</option>
-            <option value="tinted">Tinted</option>
-            <option value="polarized">Polarized</option>
-            <option value="transitions">Transitions®</option>
-          </select>
-        </label>
-      </div>
-      <div class="group">
-        <label class="switch"><input type="checkbox" id="includeAR" checked> Include AR (tiered)</label>
-        <label class="switch"><input type="checkbox" id="includeAspheric"> Aspheric</label>
-        <label class="switch"><input type="checkbox" id="includeOversize"> Oversize</label>
-        <label class="switch"><input type="checkbox" id="includeGlass"> Glass</label>
-        <label class="switch"><input type="checkbox" id="includeCM"> Custom measurements (N/O only)</label>
-      </div>
-      <span id="status" aria-live="polite"></span>
+    <div class="bar">
+      <button class="btn" id="forceRefresh">Force Refresh</button>
+      <button class="btn" id="clearCache">Clear Local Cache</button>
+
+      <!-- Lens Family -->
+      <label class="switch">Lens family
+        <select id="lensFamily">
+          <option value="SV" selected>Single Vision</option>
+          <option value="LINED">Lined Bi/Tri</option>
+          <option value="PAL">Progressive</option>
+        </select>
+      </label>
+
+      <!-- Lens Tint (immediately after lens family) -->
+      <label class="switch">Lens tint
+        <select id="lensTint">
+          <option value="clear" selected>Clear</option>
+          <option value="tinted">Tinted</option>
+          <option value="polarized">Polarized</option>
+          <option value="transitions">Transitions®</option>
+        </select>
+      </label>
+
+      <label class="switch"><input type="checkbox" id="includeAR" checked> Include AR (tiered)</label>
+      <label class="switch"><input type="checkbox" id="includeAspheric"> Aspheric</label>
+      <label class="switch"><input type="checkbox" id="includeOversize"> Oversize</label>
+      <label class="switch"><input type="checkbox" id="includeGlass"> Glass</label>
+
+      <span class="sub" id="status"></span>
     </div>
 
     <div id="stack" class="stack"></div>
   </main>
 
   <script>
-  (function(){
-    /* ================== Config ================== */
-    const CSV_PATH = './data/vsp_choice_master_v9_1_strict.csv'; // strict schema (see bottom)
-    const CACHE_KEY='vsp-v9-1-text';
-    const META_KEY='vsp-v9-1-meta';
-    const BA_HOLDBACK_DEFAULT = { SV:24, MF:34 }; // used only if BA row missing
+    // ---------------- Config ----------------
+    const DEFAULT_CSV = 'data/vsp_choice_master_v7_full_fixed.csv';
+    const REQUIRE_D_CODES_FOR_SV_AND_LINED_POLARIZED = true; // polarized is material for SV/LINED
 
-    const BETTER_CAP_OF_MAX = 0.75; // ≤75% of max copay
-    const GOOD_CAP_OF_MAX   = 0.50; // ≤50% of max copay
-    const CAP_RELAX_FACTOR  = 0.90; // fallback relaxer
-
-    /* ================== Utils ================== */
-    const $ = id => document.getElementById(id);
-    const money = n => '$'+Number(n||0).toFixed(2);
-    const num = v => { const x=parseFloat(String(v??'').replace(/[^0-9.-]/g,'')); return isFinite(x)?x:0; };
+    // ---------------- Utils -----------------
+    const el = (id)=>document.getElementById(id);
+    const sum = (a)=>a.reduce((x,y)=>x+y,0);
+    const money = (v)=>`$${v.toFixed(2)}`;
+    const num = (v)=>{ const x=parseFloat(String(v??'').replace(/[^0-9.-]/g,'')); return isFinite(x)?x:0; };
+    const quickHash=(s)=>{ let h=2166136261>>>0; for(let i=0;i<s.length;i++){ h^=s.charCodeAt(i); h=Math.imul(h,16777619)>>>0; } return ('00000000'+h.toString(16)).slice(-8); };
+    const N = s => String(s||'').toLowerCase();
+    const isDCode  = r => /^d/i.test((r.code||'').trim());
+    const isPPhoto = r => /^p(m|r)/i.test((r.code||'').trim()); // PM/PR
+    const isGlassBase = row => /glass/i.test(N(row?.enhancement || row?.subtype || ''));
+    const preferPhotoCodeForBase = row => (isGlassBase(row) ? 'PM' : 'PR'); // everything not glass => PR
 
     function parseCSV(text){
       const rows=[]; let row=[], field='', q=false;
@@ -164,406 +111,306 @@
       });
     }
 
-    function setCache(text,meta){ localStorage.setItem(CACHE_KEY,text); localStorage.setItem(META_KEY,JSON.stringify(meta)); }
-    function getCache(){ return { text: localStorage.getItem(CACHE_KEY), meta: JSON.parse(localStorage.getItem(META_KEY)||'{}') }; }
-    function clearCache(){ localStorage.removeItem(CACHE_KEY); localStorage.removeItem(META_KEY); }
+    // Local cache
+    const CACHE_KEY='rev-vsp-choice-csv-v1';
+    const META_KEY='rev-vsp-choice-meta-v1';
+    const setCache=(t,m)=>{ localStorage.setItem(CACHE_KEY,t); localStorage.setItem(META_KEY,JSON.stringify(m)); };
+    const getCache=()=>({ text: localStorage.getItem(CACHE_KEY), meta: JSON.parse(localStorage.getItem(META_KEY)||'{}') });
+    const clearCache=()=>{ localStorage.removeItem(CACHE_KEY); localStorage.removeItem(META_KEY); };
 
-    function famSegFromUI(){
-      const fam = $('lensFamily').value; // SV | LINED | PAL
-      if (fam==='SV')     return {family:'SV', segment:'SV'};
-      if (fam==='PAL')    return {family:'MF', segment:'Prog'};
-      if (fam==='LINED')  return {family:'MF', segment:'Bifocal'};
-      return {family:'SV', segment:'SV'};
-    }
-
-    function normRow(r){
-      const n=(k)=>num(r[k]);
-      return {
-        plan: (r.plan||'').trim(),
-        kind: (r.kind||'').toLowerCase(),           // pair | base | addon
-        code: (r.code||'').toUpperCase(),
-        item: r.item||'',
-        family: (r.family||'BOTH').toUpperCase(),    // SV | MF | BOTH
-        material_level: r.material_level||'—',       // Hi67 | Mid | Poly | CR
-        sun: r.sun||'—',
-        exclusive_group: r.exclusive_group||'',
-        requires_flags: String(r.requires_flags||'').toLowerCase().split(/\s*,\s*/).filter(Boolean),
-        forbids_flags: String(r.forbids_flags||'').toLowerCase().split(/\s*,\s*/).filter(Boolean),
-        applies_to: (r.applies_to||'all').toLowerCase(),
-        pair_with: (r.pair_with||'').toUpperCase(),
-        copay_sv: n('copay_sv'),
-        holdback_sv: n('holdback_sv'),
-        copay_mf: n('copay_mf'),
-        holdback_mf: n('holdback_mf'),
-        notes: r.notes||'',
-        segment: (r.segment||'Any'),
-        pair_components: (r.pair_components||'').toUpperCase()
-      };
-    }
-
-    function familyVals(row, fam){
-      return (fam==='SV')
-        ? {copay: row.copay_sv||0, hold: row.holdback_sv||0}
-        : {copay: row.copay_mf||0, hold: row.holdback_mf||0};
-    }
-
-    /* ================== Load CSV ================== */
-    let ALL = []; // normalized rows for this plan
+    // ---------------- Data ------------------
+    let DATA=[];
 
     async function loadCSV(){
-      const status=$('status'); status.textContent=' loading…';
-
+      const status=el('status'); status.textContent=' loading…';
       try{
-        const res = await fetch(CSV_PATH, {cache:'no-store'});
+        const res = await fetch(DEFAULT_CSV,{cache:'no-store'});
         if(!res.ok) throw new Error('HTTP '+res.status);
         const text = await res.text();
-        const raw = parseCSV(text);
-        const rows = raw.map(normRow).filter(r=>!r.plan || r.plan==='VSP_choice');
-        ALL = rows;
-        setCache(text, {plan:'VSP_choice', source:'network', version:'v15'});
-        $('version').textContent = `plan=VSP_choice • rows=${rows.length} • version=v15 • source=network`;
-        status.textContent = ` [ok] ${CSV_PATH} • ${rows.length} rows`;
-      }catch(e){
+        const meta = { plan:'VSP_choice', version:new Date().toISOString().slice(0,10)+'.gbb', source:'network:'+DEFAULT_CSV, sha:quickHash(text) };
+        setCache(text, meta);
+        DATA = parseCSV(text);
+        renderMeta(DATA.length, meta);
+        status.textContent = ` [ok] loaded ${DATA.length} rows`;
+        computeBundles();
+      }catch(err){
         const {text, meta} = getCache();
-        if (text){
-          const raw = parseCSV(text);
-          const rows = raw.map(normRow).filter(r=>!r.plan || r.plan==='VSP_choice');
-          ALL = rows;
-          $('version').textContent = `plan=VSP_choice • rows=${rows.length} • version=${meta?.version||'cache'} • source=cache`;
-          status.textContent = ` network failed — using cached data (${rows.length} rows)`;
-        } else {
-          $('version').textContent = 'load error — no cache';
-          status.textContent = ' load failed';
-          ALL = [];
+        if(text){
+          DATA = parseCSV(text);
+          renderMeta(DATA.length, {...meta, source:'cache'});
+          el('status').textContent = ` Network failed (${err.message}). Using cached data (${DATA.length} rows).`;
+          computeBundles();
+        }else{
+          el('status').textContent = ' Load failed: '+err.message+' (no cache available)';
         }
       }
-
-      compute();
     }
 
-    /* ================== Selections & Filters ================== */
-    function flags(){
-      return {
-        arOn: $('includeAR').checked,
-        aspheric: $('includeAspheric').checked,
-        oversize: $('includeOversize').checked,
-        glass: $('includeGlass').checked,
-        no_only: $('includeCM').checked
-      };
+    function renderMeta(count, meta){
+      el('version').textContent = `plan=${meta.plan||'VSP_choice'} • rows=${count||0} • version=${meta.version||'—'} • source=${meta.source||'—'} • sha=${meta.sha||'—'}`;
     }
 
-    function filterByFamSeg(rows, fam, seg){
-      return rows.filter(r=>{
-        const famOk = (r.family==='BOTH' || r.family===fam);
-        const segVal = r.segment || 'Any';
-        const segOk = (segVal==='Any' || segVal===seg || (seg==='SV' && segVal==='SV'));
-        return famOk && segOk;
-      });
-    }
+    // ---------------- Business Logic ------------------
+    const byKey=(k)=>DATA.filter(r=>(r.active||'yes').toLowerCase()==='yes' && (r.exclusive_key||'').toLowerCase()===k);
 
-    function flagsAllow(row, f){
-      for (const req of (row.requires_flags||[])){ if (!f[req]) return false; }
-      for (const ban of (row.forbids_flags||[])){ if (f[ban]) return false; }
+    function applies(row, fam){
+      const a=(row.applies_to||'ALL').toUpperCase();
+      if(a.includes('ALL')) return true;
+      if(fam==='SV')     return a.includes('SV');
+      if(fam==='LINED')  return a.includes('OCC');   // bifocal/occupational
+      if(fam==='PAL')    return a.includes('MF');    // progressive/multifocal
       return true;
     }
 
-    function isSignalAddon(r){
-      if ((r.exclusive_group||'').trim()) return true; // e.g., sun
-      const req = r.requires_flags||[];
-      return req.includes('oversize') || req.includes('no_only') || req.includes('glass');
-    }
+    const profitOf = (row)=> num(row.copay) - num(row.chargeback);
+    const pickBest = (arr)=> (arr && arr.length ? [...arr].sort((a,b)=>profitOf(b)-profitOf(a))[0] : null);
 
-    function exclusivePick(rows){
-      const win = new Map(); const pass=[];
-      for (const r of rows){
-        const g = r.exclusive_group||'';
-        if (!g){ pass.push(r); continue; }
-        const prev = win.get(g);
-        if (!prev){ win.set(g,r); continue; }
-        const cA=(r.copay_sv||0)+(r.copay_mf||0);
-        const cB=(prev.copay_sv||0)+(prev.copay_mf||0);
-        if (cA>cB) win.set(g,r);
-      }
-      return [...pass, ...win.values()];
-    }
-
-    function pickAR(rowsForFam, fam, f){
-      if (!f.arOn) return null;
-      const tiers = ['QM','QT','QV'].map(code=>{
-        const r = rowsForFam.find(x => x.kind==='addon' && (x.requires_flags||[]).includes('ar') && x.code===code);
-        if (!r) return null;
-        const {copay, hold} = familyVals(r, fam);
-        return {code, copay, hold, fee:(copay-hold), row:r};
-      }).filter(Boolean);
-      if (!tiers.length) return null;
-      // Most profitable, tie-break lower copay
-      tiers.sort((a,b)=> (b.fee - a.fee) || (a.copay - b.copay));
-      return tiers[0].row;
-    }
-
-    function getBAHoldback(rowsForFam, fam){
-      const ba = rowsForFam.find(r=> r.code==='BA');
-      if (ba){
-        const {hold} = familyVals(ba, fam);
-        if (hold!=null) return hold;
-      }
-      return BA_HOLDBACK_DEFAULT[fam]||0;
-    }
-
-    /* ================== Bundle Build ================== */
-    function rowsForLevel(rows, level){
-      return {
-        pair: rows.find(r=> r.kind==='pair' && r.material_level===level && r.sun!=='Polarized'),
-        cr  : rows.find(r=> r.kind==='base' && r.code==='AA')
+    function rankAR(ars){
+      const gradeVal = (s)=>{
+        const m = String(s||'').match(/\b([A-D])\b/i);
+        if(!m) return null;
+        const g = m[1].toUpperCase();
+        return {A:1,B:2,C:3,D:4}[g]||null;
       };
-    }
-
-    function componentBreakdown(pairRow, rowsForFam, fam){
-      const raw = String(pairRow?.pair_components||'').trim();
-      if (!raw) return [];
-      const out=[];
-      raw.split(',').map(s=>s.trim().toUpperCase()).filter(Boolean).forEach(code=>{
-        const r = rowsForFam.find(x=>x.code===code);
-        if (!r) return;
-        const {copay, hold} = familyVals(r, fam);
-        out.push({code, copay, hold, fee:copay-hold});
+      return [...ars].sort((a,b)=>{
+        const ga = gradeVal(a.enhancement)||-1, gb = gradeVal(b.enhancement)||-1;
+        if(ga!==gb) return gb-ga;   // D..A
+        return profitOf(b)-profitOf(a);
       });
-      return out;
     }
 
-    function makeLine(row, fam){
-      const {copay, hold} = familyVals(row, fam);
-      return { name: row.item||row.code, code: row.code, copay, hold, fee: copay - hold, parts: [] };
+    function materialKey(label) {
+      const s = N(label);
+      if(/polycarb/.test(s)) return 'poly';
+      if(/trivex/.test(s)) return 'trivex';
+      if(/1\.74|1\.75/.test(s)) return 'hi174';
+      if(/1\.70|1\.71|above/.test(s)) return 'hi70';
+      if(/1\.66|1\.67/.test(s)) return 'hi167';
+      if(/cr[- ]?39|plastic(?!.*high)/.test(s)) return 'cr39';
+      return 'other';
     }
-
-    function makeBundle({pair, cr, addOns, arRow, fam, level, baHold, rowsForFam}){
-      const useCR = (level==='CR');
-      const main = useCR ? cr : pair;
-      if (!main) return null;
-
-      const lines = [];
-      // main line
-      const mainLine = makeLine(main, fam);
-
-      // embed component breakdown for composite pairs
-      const comps = !useCR ? componentBreakdown(main, rowsForFam, fam) : [];
-      if (comps.length){
-        mainLine.parts = comps.map(c=>({ code:c.code, copay:c.copay, hold:c.hold, fee:c.fee }));
+    function sunMatchesBase(sunRow, baseRow) {
+      const mk = materialKey(baseRow.enhancement || baseRow.subtype || '');
+      const t = N(sunRow.enhancement);
+      switch (mk) {
+        case 'poly':   return /polycarb/.test(t);
+        case 'trivex': return /trivex/.test(t);
+        case 'hi174':  return /(1\.74|1\.75)/.test(t);
+        case 'hi70':   return /(1\.70|1\.71|above)/.test(t);
+        case 'hi167':  return /(1\.66|1\.67)/.test(t);
+        case 'cr39':   return /(cr[- ]?39|plastic(?!.*high))/.test(t);
+        default:       return true;
       }
-      lines.push(mainLine);
-
-      // add-ons (exclusive already resolved)
-      for (const a of addOns){ lines.push(makeLine(a, fam)); }
-      if (arRow) lines.push(makeLine(arRow, fam));
-
-      // BA base holdback silently for bundles (not CR)
-      let silentHold = 0;
-      if (!useCR) silentHold = baHold||0;
-
-      // totals
-      const cop = lines.reduce((s,x)=>s+x.copay,0);
-      const hold = lines.reduce((s,x)=>s+x.hold,0) + silentHold;
-      const fee  = cop - hold;
-
-      return { label: main.item||main.code, lines, copay: cop, holdback: hold, profit: fee };
     }
 
-    /* ================== Compute & Render ================== */
+    function line(row){
+      const cop = num(row.copay), cb=num(row.chargeback), pr=cop-cb;
+      return { name: row.enhancement||row.subtype||'—', code: row.code||'', copay:cop, chargeback:cb, profit:pr };
+    }
+
+    function makeBundle(base, addOns){
+      const items=[base, ...addOns.filter(Boolean)];
+      const lines = items.map(line);
+      const cop = sum(lines.map(x=>x.copay));
+      const cb  = sum(lines.map(x=>x.chargeback));
+      const pr  = cop - cb;
+      const ratio = cop>0 ? (pr/cop) : 0; // internal tie-breaker only
+      const label = base.enhancement || base.subtype || base.code || 'Base';
+      return { label, lines, copay:cop, chargeback:cb, profit:pr, ratio };
+    }
+
+    function computeBundles(){
+      if(!DATA.length){ el('stack').innerHTML=''; return; }
+
+      const fam = el('lensFamily').value;
+      const wantAR = el('includeAR').checked;
+      const wantAsp = el('includeAspheric').checked;
+      const wantOS  = el('includeOversize').checked;
+      const wantGlass = el('includeGlass').checked;
+      const tintSel = el('lensTint').value; // clear|tinted|polarized|transitions
+
+      // ---- Pools built early (sunAll used for SV/LINED polarized material) ----
+      const sunAll = byKey('sun_tech').filter(r=>applies(r,fam)).filter(r=>{
+        if(!wantGlass && N(r.enhancement).includes('glass')) return false;
+        return true;
+      });
+
+      // -------- Base candidates by family --------
+      let base = [];
+      if (fam === 'PAL') {
+        base = byKey('progressive_level').filter(r=>applies(r,fam)).filter(r=>{
+          const name=N(r.enhancement);
+          if(!wantAsp && name.includes('aspheric')) return false;
+          if(!wantGlass && name.includes('glass'))  return false;
+          if (tintSel==='polarized') return /polariz/.test(name); // polarized is material
+          return !/(photochrom|polariz|tint|tinted|sunglass|gradient)/.test(name);
+        });
+      } else {
+        if (tintSel==='polarized') {
+          // SV & LINED: D-coded polarized is the *material* (replace A-code base)
+          base = sunAll.filter(r => /polariz/.test(N(r.enhancement)) && isDCode(r));
+        } else {
+          const pool = (fam==='SV' ? byKey('base_material') : byKey('occupational'));
+          base = pool.filter(r=>applies(r,fam)).filter(r=>{
+            const name=N(r.enhancement);
+            if(!wantAsp && name.includes('aspheric')) return false;
+            if(!wantGlass && name.includes('glass'))  return false;
+            if(/photochrom|polariz|tint|tinted|sunglass|gradient/.test(name)) return false;
+            return true;
+          });
+        }
+      }
+
+      // -------- Add-on pools --------
+      const arPool = wantAR ? byKey('ar_level').filter(r=>applies(r,fam)) : [];
+      const arRanked = wantAR ? rankAR(arPool) : [];
+
+      // Mutually exclusive sun add-on (per base). Polarized returns null (handled as material).
+      function chooseSunFor(baseRow) {
+        if (tintSel==='clear' || tintSel==='polarized') return null;
+
+        if (tintSel==='transitions') {
+          // Prefer P-code by substrate: PM (glass) vs PR (plastic).
+          // Do NOT require material matching—PR/PM are generic add-ons.
+          const want = preferPhotoCodeForBase(baseRow); // 'PM' for glass, else 'PR'
+          let pool = sunAll.filter(r => /photochrom/.test(N(r.enhancement)));
+
+          // 1) exact substrate (PR/PM) first
+          let choice = pickBest(pool.filter(r => new RegExp('^' + want, 'i').test((r.code || '').trim())));
+          if (choice) return choice;
+
+          // 2) any P-code next
+          choice = pickBest(pool.filter(isPPhoto));
+          if (choice) return choice;
+
+          // 3) fallback: any photochromic
+          return pickBest(pool);
+        }
+
+        if (tintSel==='tinted') {
+          let pool = sunAll.filter(r=>{
+            const n=N(r.enhancement);
+            return sunMatchesBase(r, baseRow) && !/photochrom|polariz/.test(n) && /tint|tinted|solid|gradient|sunglass/.test(n);
+          });
+          return pickBest(pool);
+        }
+
+        return null;
+      }
+
+      // Oversize add-on (independent)
+      const overs = wantOS ? pickBest(byKey('oversize').filter(r=>applies(r,fam)).filter(r=>{
+        const n=N(r.enhancement);
+        if(!wantGlass && n.includes('glass')) return false;
+        return true;
+      })) : null;
+
+      function arForTier(idx){
+        if(!wantAR || !arRanked.length) return null;
+        if(idx < arRanked.length) return arRanked[idx];
+        return arRanked[arRanked.length-1];
+      }
+
+      function selectMaxProfit(candidates, arRow, excludeLabels=new Set()){
+        let best=null;
+        for(const m of candidates){
+          const lbl=(m.enhancement||m.subtype||m.code||'Base');
+          if(excludeLabels.has(lbl)) continue;
+          const b = makeBundle(m, [arRow, chooseSunFor(m), overs]);
+          if(!best || b.profit>best.profit || (b.profit===best.profit && b.ratio>best.ratio)) best=b;
+        }
+        return best;
+      }
+      function selectMinCopay(candidates, arRow, excludeLabels=new Set()){
+        let best=null;
+        for(const m of candidates){
+          const lbl=(m.enhancement||m.subtype||m.code||'Base');
+          if(excludeLabels.has(lbl)) continue;
+          const b = makeBundle(m, [arRow, chooseSunFor(m), overs]);
+          if(!best || b.copay<best.copay || (b.copay===best.copay && b.profit>best.profit)) best=b;
+        }
+        return best;
+      }
+
+      const bestAR = arForTier(0), midAR = arForTier(1), lowAR = arForTier(2);
+
+      const best = selectMaxProfit(base, bestAR);
+      const used = new Set(best ? [best.label] : []);
+      const mid  = selectMaxProfit(base, midAR, used) || selectMaxProfit(base, bestAR, used);
+      if(mid) used.add(mid.label);
+      const good = selectMinCopay(base, lowAR, used) || selectMinCopay(base, midAR||bestAR, used);
+
+      renderStack([{name:'Good', cls:'good', b:good},
+                   {name:'Better', cls:'better', b:mid},
+                   {name:'Best', cls:'best', b:best}]);
+    }
+
+    // ---------------- Render ------------------
     function tdMoney(v){ return `<td class="money">${money(v)}</td>`; }
-
-    function renderTierCard(titleCls, bundle){
+    function renderTier({name, cls, b}){
       const div=document.createElement('div'); div.className='tier';
-      const nameMap = {best:'Best', better:'Better', good:'Good', cheap:'Cheapest'};
-      const starMap = {best:'★★★', better:'★★', good:'★', cheap:'◎'};
-      const name = nameMap[titleCls], stars=starMap[titleCls];
-
-      if(!bundle){
-        div.innerHTML=`<div class="tierHead"><div class="stars ${titleCls}"><span class="tag">${name}</span></div><div class="figures"><div class="hero">—</div><div class="caption">Patient Copay</div></div></div><div class="sub">No viable bundle</div>`;
-        return div;
-      }
+      if(!b){ div.innerHTML=`<div class="tierHead"><div><span class="pill ${cls}">${name}</span></div><div class="sub">no viable bundle</div></div>`; return div; }
 
       const head = `
         <div class="tierHead">
-          <div class="stars ${titleCls}">
-            <div aria-label="${name}" title="${name}" style="font-size:18px">${stars}</div>
-            <span class="tag">${bundle.label}</span>
+          <div>
+            <span class="pill ${cls}">${name}</span>
+            <span class="pill" style="margin-left:8px">${b.label}</span>
           </div>
-          <div class="figures">
-            <div class="hero" aria-label="Patient Copay">${money(bundle.copay)}</div>
-            <div class="caption">Patient Copay</div>
-            <div class="caption">Service Fee (Practice Profit): <span class="svc">${money(bundle.profit)}</span></div>
+          <div class="totals">
+            <div>Copay: <span class="money">${money(b.copay)}</span></div>
+            <div>Service Fee: <span class="money">${money(b.chargeback)}</span></div>
+            <div>Profit: <span class="money">${money(b.profit)}</span></div>
           </div>
         </div>`;
 
-      const rowsHtml = bundle.lines.map(li=>{
-        const main = `
-          <tr>
-            <td>${li.name}</td>
-            <td class="code">${li.code||'—'}</td>
-            ${tdMoney(li.copay)}
-            ${tdMoney(li.hold)}
-            ${tdMoney(li.fee)}
-          </tr>`;
-
-        const parts = (li.parts && li.parts.length)
-          ? `
-            <tr>
-              <td colspan="5">
-                <div class="break">
-                  <table>
-                    <thead>
-                      <tr>
-                        <th class="colhed" style="width:120px">Code</th>
-                        <th class="colhed">Copay</th>
-                        <th class="colhed">Holdback</th>
-                        <th class="colhed">Service Fee</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      ${li.parts.map(p=>`
-                        <tr>
-                          <td><span class="codepill">${p.code}</span></td>
-                          ${tdMoney(p.copay)}
-                          ${tdMoney(p.hold)}
-                          ${tdMoney(p.fee)}
-                        </tr>`).join('')}
-                    </tbody>
-                  </table>
-                </div>
-              </td>
-            </tr>` : '';
-
-        return main + parts;
-      }).join('');
+      const lines = b.lines.map(li=>`
+        <tr>
+          <td>${li.name}</td>
+          <td class="code">${li.code||'—'}</td>
+          ${tdMoney(li.copay)}
+          ${tdMoney(li.chargeback)}
+          ${tdMoney(li.profit)}
+        </tr>`).join('');
 
       div.innerHTML = head + `
         <table>
           <thead>
             <tr>
               <th>Item</th>
-              <th>Code</th>
+              <th class="nowrap">Code</th>
               <th class="nowrap">Copay</th>
-              <th class="nowrap">Holdback</th>
               <th class="nowrap">Service Fee</th>
+              <th class="nowrap">Profit</th>
             </tr>
           </thead>
-          <tbody>${rowsHtml}</tbody>
+          <tbody>${lines}</tbody>
           <tfoot>
             <tr>
               <th colspan="2" style="text-align:right">Totals</th>
-              ${tdMoney(bundle.copay)}${tdMoney(bundle.holdback)}${tdMoney(bundle.profit)}
+              ${tdMoney(b.copay)}${tdMoney(b.chargeback)}${tdMoney(b.profit)}
             </tr>
           </tfoot>
         </table>`;
       return div;
     }
 
-    function renderAll(bundles){
-      const stack=$('stack'); stack.innerHTML='';
-      stack.appendChild(renderTierCard('best',   bundles.best));
-      stack.appendChild(renderTierCard('better', bundles.better));
-      stack.appendChild(renderTierCard('good',   bundles.good));
-      stack.appendChild(renderTierCard('cheap',  bundles.cheapest));
+    function renderStack(rows){
+      const stack = el('stack');
+      stack.innerHTML='';
+      for(const row of rows){
+        stack.appendChild(renderTier(row));
+      }
     }
 
-    function compute(){
-      if (!ALL.length){ $('stack').innerHTML=''; return; }
+    // ---------------- Wire-up ----------------
+    el('forceRefresh').onclick=()=>{ clearCache(); loadCSV(); };
+    el('clearCache').onclick =()=>{ clearCache(); el('status').textContent=' cache cleared — click Force Refresh to reload'; };
+    ['lensFamily','lensTint','includeAR','includeAspheric','includeOversize','includeGlass']
+      .forEach(id=> el(id).onchange=computeBundles );
 
-      const {family:fam, segment:seg} = famSegFromUI();
-      const tintSel = $('lensTint').value; // clear | tinted | polarized | transitions
-      const f = flags();
-
-      // rows for family/segment
-      const rowsFS = filterByFamSeg(ALL, fam, seg);
-
-      // materials per level
-      function buildForLevel(level){
-        const {pair, cr} = rowsForLevel(rowsFS, level);
-        const useCR = (level==='CR');
-
-        // add-ons (oversize/glass/N-O/etc.), exclusive sun
-        const signalAll = rowsFS.filter(r=> r.kind==='addon' && isSignalAddon(r) && flagsAllow(r, f));
-        const sunOnly = signalAll.filter(r => (r.exclusive_group||'')==='sun');
-        const notSun  = signalAll.filter(r => (r.exclusive_group||'')!=='sun');
-
-        // choose sun by requested tint
-        function chooseSun(){
-          if (tintSel==='clear') return null;
-          if (tintSel==='polarized'){
-            // prefer 'Polarized' code in sun group for this family/seg
-            return sunOnly.find(r=>/polariz/i.test(r.sun)||/polariz/i.test(r.item)) || null;
-          }
-          if (tintSel==='transitions'){
-            // pick a photochromic option
-            return sunOnly.find(r=>/photochrom/i.test(r.sun)||/photochrom/i.test(r.item)) || null;
-          }
-          if (tintSel==='tinted'){
-            // any non photochromic/polarized tint
-            return sunOnly.find(r=>/tint|solid|gradient|sunglass/i.test(r.item)) || null;
-          }
-          return null;
-        }
-        const sunPick = chooseSun();
-
-        // AR (auto most profitable when toggle ON)
-        const arRow = pickAR(rowsFS, fam, f);
-
-        // BA base holdback for bundles
-        const baHold = getBAHoldback(rowsFS, fam);
-
-        const extras = [];
-        if (sunPick) extras.push(sunPick);
-        for(const a of notSun) extras.push(a);
-
-        const pack = {pair, cr, addOns:extras, arRow, fam, level, baHold, rowsForFam:rowsFS};
-        return makeBundle(pack);
-      }
-
-      // Build *all* bundles (Hi67 / Mid / Poly / CR)
-      const bHi   = buildForLevel('Hi67');
-      const bMid  = buildForLevel('Mid');
-      const bPoly = buildForLevel('Poly');
-      const bCR   = buildForLevel('CR');
-
-      // Gather candidates, then rank into Best / Better / Good / Cheapest
-      const all = [bHi,bMid,bPoly,bCR].filter(Boolean);
-      if (!all.length){ renderAll({}); return; }
-
-      const maxCopay = Math.max(...all.map(b=>b.copay));
-      const chooseMostProfit = (arr)=> arr.slice().sort((a,b)=> (b.profit - a.profit) || (a.copay - b.copay))[0];
-      function underCap(cap, exclude=new Set()){
-        const pick = all
-          .filter(b=>b.copay<=cap && !exclude.has(b.label))
-          .sort((a,b)=> (b.profit - a.profit) || (a.copay - b.copay))[0];
-        if (pick) return pick;
-        const loose = cap / CAP_RELAX_FACTOR;
-        return all
-          .filter(b=>b.copay<=loose && !exclude.has(b.label))
-          .sort((a,b)=> (b.profit - a.profit) || (a.copay - b.copay))[0] || null;
-      }
-      function cheapest(exclude=new Set()){
-        return all.filter(b=>!exclude.has(b.label))
-                  .sort((a,b)=> (a.copay - b.copay) || (b.profit - a.profit))[0] || null;
-      }
-
-      const best = chooseMostProfit(all);
-      const used = new Set(best ? [best.label] : []);
-      const better = underCap(maxCopay*BETTER_CAP_OF_MAX, used); if (better) used.add(better.label);
-      let good = underCap(maxCopay*GOOD_CAP_OF_MAX, used); if (!good) good = cheapest(used); if (good) used.add(good.label);
-      const cheap = cheapest(used);
-
-      renderAll({best, better, good, cheapest:cheap});
-    }
-
-    /* ================== Wire-up ================== */
-    $('forceRefresh').onclick = ()=>{ clearCache(); loadCSV(); };
-    $('clearCache').onclick = ()=>{ clearCache(); $('status').textContent=' cache cleared — click Force Refresh'; };
-
-    ['lensFamily','lensTint','includeAR','includeAspheric','includeOversize','includeGlass','includeCM']
-      .forEach(id => { const node=$(id); if(node) node.onchange=compute; });
-
-    loadCSV();
-  })();
+    // Boot
+    (async()=>{ await loadCSV(); })();
   </script>
 </body>
 </html>
