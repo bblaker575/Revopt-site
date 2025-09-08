@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8"/>
-  <title>PayerEdge — VSP Bundles (v12)</title>
+  <title>PayerEdge — VSP Bundles (v12.1)</title>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <style>
     :root{--bg:#0b0f14;--fg:#e7eefc;--muted:#9fb0c9;--card:#101722;--line:#233044;--ok:#10b981}
@@ -37,7 +37,7 @@
       <div class="meta">Scoreboard shows <b>patient copay</b> and <b>service fee</b> (Copay − Holdback). Sun choices are exclusive.</div>
     </div>
     <div style="display:flex;gap:8px;align-items:center">
-      <span class="meta">plan=<b id="planName">VSP_choice</b> • version=<b>v12</b> • source=<span id="src" class="muted">…</span></span>
+      <span class="meta">plan=<b id="planName">VSP_choice</b> • version=<b>v12.1</b> • source=<span id="src" class="muted">…</span></span>
       <button class="btn" id="refresh">Force Refresh</button>
       <button class="btn" id="clear">Clear Cache</button>
     </div>
@@ -194,18 +194,17 @@
     }
 
     function pickExclusive(rows){
-      // Keep one row per exclusive_group; prefer higher copay (stable, deterministic)
+      // Keep one row per exclusive_group; prefer higher copay (stable)
       const winners = new Map();
       const passthrough = [];
       for (const r of rows){
         const g = r.exclusive_group||"";
         if (!g){ passthrough.push(r); continue; }
-        const key = g;
-        const prev = winners.get(key);
-        if (!prev){ winners.set(key, r); continue; }
+        const prev = winners.get(g);
+        if (!prev){ winners.set(g, r); continue; }
         const cA = (r.copay_sv||0)+(r.copay_mf||0);
         const cB = (prev.copay_sv||0)+(prev.copay_mf||0);
-        if (cA > cB) winners.set(key, r);
+        if (cA > cB) winners.set(g, r);
       }
       return [...passthrough, ...winners.values()];
     }
@@ -213,7 +212,7 @@
     function bundleRows(rows, fam, level, tint, flags){
       const rowsForFam = rows.filter(r=> r.family==="BOTH" || r.family===fam);
 
-      // 1) Pair row for material level (e.g., BA+BD)
+      // 1) Main bundle row for the material level (e.g., BA+BD)
       const pair = rowsForFam.find(r=> r.kind==="pair" && r.material_level===level && r.sun!=="Polarized");
 
       // 2) CR base (AA)
@@ -225,7 +224,7 @@
         r.sun==="Any" || r.sun==="—" || r.sun===tint
       ));
 
-      // enforce exclusivity (e.g., only one sun choice)
+      // Exclusivity (e.g., only one sun choice)
       const addOnsExclusive = pickExclusive(addOns);
 
       return {pair, cr, addOns:addOnsExclusive};
@@ -237,6 +236,9 @@
       return {copay, hold, fee};
     }
 
+    /* ************ CRITICAL FIX ************
+       Render only: mainRow (pair/AA) + the chosen add-ons.
+       No other rows are included in totals or table. */
     function renderCard(title, mainRow, fam, breakdownExtra=[]){
       if (!mainRow){
         return `<div class="card"><div class="meta">Missing data for ${title}.</div></div>`;
@@ -251,6 +253,18 @@
         return s;
       }, {copay: main.copay, hold: main.hold, fee: main.fee});
 
+      const rowsHtml = [
+        {r: mainRow, l: main},
+        ...extras.map(x=>({r:x.row, l:x.lines}))
+      ].map(({r,l})=>`
+        <tr>
+          <td>${r.item}</td>
+          <td class="muted">${r.code}</td>
+          <td class="right">${money(l.copay)}</td>
+          <td class="right">${money(l.hold)}</td>
+          <td class="right">${money(l.fee)}</td>
+        </tr>`).join("");
+
       return `
         <div class="card">
           <h2>${money(grand.copay)}</h2>
@@ -259,14 +273,7 @@
           <table>
             <thead><tr><th>Item</th><th>Code</th><th class="right">Copay</th><th class="right">Holdback</th><th class="right">Service Fee</th></tr></thead>
             <tbody>
-              ${[ {r:mainRow, l:main}, ...extras.map(x=>({r:x.row,l:x.lines})) ].map(({r,l})=>`
-                <tr>
-                  <td>${r.item}</td>
-                  <td class="muted">${r.code}</td>
-                  <td class="right">${money(l.copay)}</td>
-                  <td class="right">${money(l.hold)}</td>
-                  <td class="right">${money(l.fee)}</td>
-                </tr>`).join("")}
+              ${rowsHtml}
               <tr>
                 <td class="muted">Totals</td><td></td>
                 <td class="right"><b>${money(grand.copay)}</b></td>
