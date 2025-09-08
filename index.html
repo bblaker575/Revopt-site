@@ -50,7 +50,7 @@
       box-shadow: var(--shadow-md);
     }
     .group{display:flex; gap:10px; align-items:center; padding:6px 10px; border-radius:999px; background:#0b1424}
-    .btn{ background:#121f35; border:1px solid var(--line); color:var(--fg); padding:8px 12px; border-radius:var(--radius-sm); cursor:pointer; font-weight:600; transition:.15s }
+    .btn{ background:#121f35; border:1px solid var(--line); color:#eaf1ff; padding:8px 12px; border-radius:var(--radius-sm); cursor:pointer; font-weight:600; transition:.15s }
     .btn:hover{ background:#162844; border-color:#2e4260 }
     .switch{display:inline-flex; align-items:center; gap:8px}
     .switch select, .switch input[type="checkbox"]{ accent-color:var(--accent) }
@@ -191,28 +191,69 @@
       return m ? m.map(x=>parseFloat(x)) : [];
     }
 
-    // ---- CSV field aliases (no guessing; we read the common variants) ----
+    // ---- Auto-discovered aliases (filled at runtime) ----
+    let COPAY_KEYS   = ['copay'];
+    let CB_KEYS      = ['chargeback','holdback','cb','hb'];
+    let CBSPLIT_KEYS = ['chargeback_split','holdback_split','cb_split','hb_split'];
+    let EXCLUSIVE_KEYS = ['exclusive_key'];
+    let APPLIES_KEYS   = ['applies_to'];
+    let ENHANCE_KEYS   = ['enhancement','subtype','description','desc','lens_enhancement'];
+    let CODE_KEYS      = ['code','codes'];
+
     const field = (row, names, d='')=>{
-      for (const k of names) { if (k in row && String(row[k]).trim()!=='') return row[k]; }
+      for (const k of names) if (k in row && String(row[k]).trim()!=='') return row[k];
       return d;
     };
-    const COPAY_KEYS   = ['copay','patient_copay','patient'];
-    const CB_KEYS      = ['chargeback','holdback','cb'];
-    const CBSPLIT_KEYS = ['chargeback_split','holdback_split','cb_split'];
 
-    const isDCode  = r => /^d/i.test((r.code||'').trim());
-    const isPPhoto = r => /^p(m|r)/i.test((r.code||'').trim());
-    const isGlassBase = row => /glass/i.test(N(row?.enhancement || row?.subtype || ''));
-    const preferPhotoCodeForBase = row => (isGlassBase(row) ? 'PM' : 'PR');
+    function normKey(k){
+      return String(k||'').toLowerCase().replace(/[^a-z0-9]+/g,'');
+    }
+    function discoverAliases(sampleRow){
+      const keys = Object.keys(sampleRow||{});
+      const addIf = (arr, k)=>{ if (!arr.includes(k)) arr.unshift(k); };
+      for (const k of keys){
+        const n = normKey(k);
 
-    // AR rows: exclusive_key says so, text says so, or code is AA/AB/AC/AD/AE/AF/AH…
+        // copay
+        if (/(^|_)copay$/.test(n) || /patientcopay|ptcopay|copayamount|copaypatient/.test(n)) addIf(COPAY_KEYS, k);
+
+        // chargeback / holdback
+        if (/chargeback|chargebacktotal|chargebackamount|chargebackpatient|chargebackplan/.test(n)) addIf(CB_KEYS,k);
+        if (/holdback/.test(n)) addIf(CB_KEYS,k);
+        if (/^(cb|hb)$/.test(n)) addIf(CB_KEYS,k);
+
+        // split fields
+        if ((/split/.test(n)) && (/(charge|hold|cb|hb)/.test(n))) addIf(CBSPLIT_KEYS,k);
+
+        // exclusive key / bucket
+        if (/exclusivekey|exclusive|bucket|group|category|tier|level/.test(n)) addIf(EXCLUSIVE_KEYS,k);
+
+        // applies/family
+        if (/appliesto|applies|applyto|family|lensfamily/.test(n)) addIf(APPLIES_KEYS,k);
+
+        // enhancement/description
+        if (/enhancement|lensenhancement|description|desc|subtype/.test(n)) addIf(ENHANCE_KEYS,k);
+
+        // code
+        if (/^code(s)?$/.test(n)) addIf(CODE_KEYS,k);
+      }
+    }
+
+    const isDCode  = r => /^d/i.test(String(field(r,CODE_KEYS,'')).trim());
+    const isPPhoto = r => /^p(m|r)/i.test(String(field(r,CODE_KEYS,'')).trim());
+    const preferPhotoCodeForBase = row => {
+      const txt = N((field(row,ENHANCE_KEYS,'')||''));
+      return /glass/.test(txt) ? 'PM' : 'PR';
+    };
+
+    // AR detection: by exclusive key, text, or AR-like code tags.
     const isARRow = (r)=>{
-      const ex = String(r.exclusive_key||'').toLowerCase();
-      if (ex==='ar' || ex==='ar_level' || ex==='anti_reflective') return true;
-      const txt = N((r.enhancement||'')+' '+(r.subtype||''));
-      if (/anti[-\s]?reflect/.test(txt)) return true;
-      const c = String(r.code||'').trim().toUpperCase();
-      if (/^A[A-Z]$/.test(c)) return true; // captures AA, AB, AC, AD, AE, AF, AH…
+      const ex = normKey(field(r,EXCLUSIVE_KEYS,''));
+      if (['ar','arlevel','antireflective','antireflect','antiglare','noglare'].includes(ex)) return true;
+      const txt = N((field(r,ENHANCE_KEYS,'')||''));
+      if (/(anti[\s-]?reflect|anti[\s-]?glare|no[\s-]?glare|\bar\b)/i.test(txt)) return true;
+      // If exclusive key is empty but code looks like AR letters (depends on plans),
+      // we leave this to text/exclusive to avoid false positives for BA (aspheric).
       return false;
     };
 
@@ -227,9 +268,11 @@
       }
       if(fieldV!==''||row.length){ row.push(fieldV); rows.push(row); }
       const headers = rows.shift().map(h=>h.replace(/^\"|\"$/g,'').trim());
-      return rows.filter(r=>r.length>=headers.length).map(r=>{
+      const out = rows.filter(r=>r.length>=headers.length).map(r=>{
         const o={}; headers.forEach((h,i)=>o[h]=(r[i]||'').replace(/^\"|\"$/g,'').trim()); return o;
       });
+      if (out.length) discoverAliases(out[0]); // <<< auto-discover here
+      return out;
     }
 
     const CACHE_KEY='rev-vsp-choice-csv-v1';
@@ -244,7 +287,8 @@
     function buildSimpleIndex(){
       SIMPLE_BY_CODE = new Map();
       for (const r of ACTIVE_ROWS){
-        const parts = splitCodes(r.code);
+        const codeStr = String(field(r,CODE_KEYS,'')||'').trim().toUpperCase();
+        const parts = splitCodes(codeStr);
         if (parts.length === 1){
           const code = parts[0];
           if (!SIMPLE_BY_CODE.has(code)) SIMPLE_BY_CODE.set(code, []);
@@ -257,7 +301,7 @@
       if (!list.length) return null;
       const score = s => (s.includes('plastic') && !s.includes('high')) ? 2 : 0;
       return list
-        .map(r => ({ r, s: (r.enhancement || r.subtype || '').toLowerCase() }))
+        .map(r => ({ r, s: N(field(r,ENHANCE_KEYS,'')) }))
         .sort((a,b) => score(b.s) - score(a.s))[0].r;
     }
 
@@ -294,7 +338,7 @@
       }
 
       if (loaded){
-        const meta = { plan:'VSP_choice', version:new Date().toISOString().slice(0,10)+'.ui18.4-alamo', source:'network:'+loaded.url, sha:quickHash(loaded.text) };
+        const meta = { plan:'VSP_choice', version:new Date().toISOString().slice(0,10)+'.ui18.5-alamo', source:'network:'+loaded.url, sha:quickHash(loaded.text) };
         setCache(loaded.text, meta);
         activateAndIndex(loaded.text, meta);
         status.textContent = ` [ok] ${loaded.url} • ${ACTIVE_ROWS.length} rows`;
@@ -314,12 +358,7 @@
       diag.style.cssText = 'margin-top:12px; padding:10px; border:1px solid #843; background:#1a0f16; color:#f8cdd5; border-radius:10px; font-size:13px';
       const urls = CSV_CANDIDATES.map(u => `<li><code>${u}</code></li>`).join('');
       const errs = tried.map(t => `<li><code>${t.url}</code> → ${t.ok ? 'OK' : t.err}</li>`).join('');
-      let hint = '';
-      if (location.protocol === 'file:') {
-        hint = `<div style="margin-top:6px">You opened this file via <code>file://</code>. Start a tiny local server instead:
-                <br/><code>python -m http.server 8080</code> → open <code>http://localhost:8080/index.html</code></div>`;
-      }
-      diag.innerHTML = `<b>Load failed — no cache available.</b><div style="margin-top:6px">I tried:</div><ul>${urls}</ul><div style="margin-top:6px">Results:</div><ul>${errs}</ul>${hint}`;
+      diag.innerHTML = `<b>Load failed — no cache available.</b><div style="margin-top:6px">I tried:</div><ul>${urls}</ul><div style="margin-top:6px">Results:</div><ul>${errs}</ul>`;
       el('status').textContent = ' load failed (see diagnostics below)';
       document.querySelector('main').appendChild(diag);
     }
@@ -338,23 +377,23 @@
       os:   new Set(['oversize','os'])
     };
     function bucketGuess(r){
-      const s = N((r.enhancement||'')+' '+(r.subtype||'')+' '+(r.code||''));
-      if (/over\s*size|oversize|oversized|\bos\b/.test(s)) return 'os';
-      if (/anti[-\s]?reflect|[^a-z]ar[^a-z]/.test(s)) return 'ar';
-      if (/polariz|photochrom|transition|tint|tinted|gradient|sunglass/.test(s)) return 'sun';
-      if (/progressive|multi\s*focal|\bpal\b|\bmf\b/.test(s)) return 'pal';
-      if (/occupational|lined|bifocal|trifocal|\bocc\b/.test(s)) return 'occ';
+      const txt = N((field(r,ENHANCE_KEYS,'')||'')+' '+(field(r,CODE_KEYS,'')||''));
+      if (/over\s*size|oversize|oversized|\bos\b/.test(txt)) return 'os';
+      if (/anti[-\s]?reflect|anti[-\s]?glare|no[-\s]?glare|\bar\b/.test(txt)) return 'ar';
+      if (/polariz|photochrom|transition|tint|tinted|gradient|sunglass/.test(txt)) return 'sun';
+      if (/progressive|multi\s*focal|\bpal\b|\bmf\b/.test(txt)) return 'pal';
+      if (/occupational|lined|bifocal|trifocal|\bocc\b/.test(txt)) return 'occ';
       return 'base';
     }
     function rowsByCanon(canon){
       return ACTIVE_ROWS.filter(r=>{
-        const ex = String(r.exclusive_key||'').toLowerCase();
+        const ex = normKey(field(r,EXCLUSIVE_KEYS,''));
         if (NAMES[canon].has(ex)) return true;
         return bucketGuess(r) === canon;
       });
     }
     function applies(row, fam){
-      const a=(row.applies_to||'ALL').toUpperCase();
+      const a=(String(field(row,APPLIES_KEYS,'ALL'))||'ALL').toUpperCase();
       if(a.includes('ALL')) return true;
       const inSet = (arr)=>arr.some(t=>a.includes(t));
       if(fam==='SV')    return inSet(['SV','SINGLE','SINGLE VISION']);
@@ -365,8 +404,8 @@
 
     /* ===== Per-line math ===== */
     function line(row){
-      const desc = row.enhancement || row.subtype || '—';
-      const codeStr = String(row.code||'').trim().toUpperCase();
+      const desc = field(row,ENHANCE_KEYS,'—');
+      const codeStr = String(field(row,CODE_KEYS,'')||'').trim().toUpperCase();
       const partsCodes = splitCodes(codeStr);
 
       // single code
@@ -428,7 +467,7 @@
       const cb  = sum(lines.map(x=>x.chargeback));
       const pr  = cop - cb;
       const ratio = cop>0 ? (pr/cop) : 0;
-      const label = base.enhancement || base.subtype || base.code || 'Base';
+      const label = field(base,ENHANCE_KEYS,'') || field(base,CODE_KEYS,'Base');
       return { label, lines, copay:cop, chargeback:cb, profit:pr, ratio };
     }
 
@@ -541,8 +580,8 @@
       return 'other';
     }
     function sunMatchesBase(sunRow, baseRow) {
-      const mk = materialKey(baseRow.enhancement || baseRow.subtype || '');
-      const t = N(sunRow.enhancement);
+      const mk = materialKey(field(baseRow,ENHANCE_KEYS,''));
+      const t = N(field(sunRow,ENHANCE_KEYS,''));
       switch (mk) {
         case 'poly':   return t.includes('polycarb');
         case 'trivex': return t.includes('trivex');
@@ -558,20 +597,20 @@
       if (tintSel==='clear' || tintSel==='polarized') return null;
       const fam = el('lensFamily').value;
       const sunAll = rowsByCanon('sun').filter(r=>applies(r,fam)).filter(r=>{
-        const n=N(r.enhancement);
+        const n=N(field(r,ENHANCE_KEYS,''));
         if(!el('includeGlass').checked && n.includes('glass')) return false;
         return true;
       });
 
       if (tintSel==='transitions') {
         const want = preferPhotoCodeForBase(baseRow);
-        let pool = sunAll.filter(r => /photochrom|transition/.test(N(r.enhancement)));
-        let choice = pool.find(r => new RegExp('^' + want, 'i').test((r.code || '').trim())) || pool.find(r=>isPPhoto(r));
+        let pool = sunAll.filter(r => /photochrom|transition/.test(N(field(r,ENHANCE_KEYS,''))));
+        let choice = pool.find(r => new RegExp('^' + want, 'i').test(String(field(r,CODE_KEYS,'')).trim())) || pool.find(r=>isPPhoto(r));
         return choice || null;
       }
       if (tintSel==='tinted') {
         let pool = sunAll.filter(r=>{
-          const n=N(r.enhancement);
+          const n=N(field(r,ENHANCE_KEYS,''));
           return sunMatchesBase(r, baseRow) && !/photochrom|polariz/.test(n) && /(tint|tinted|solid|gradient|sunglass)/.test(n);
         });
         return pool[0] || null;
@@ -581,7 +620,7 @@
 
     /* ===== Compute bundles ===== */
     function isNOBase(row){
-      const first = (splitCodes(row.code)[0] || '').toUpperCase();
+      const first = (splitCodes(String(field(row,CODE_KEYS,'')).trim().toUpperCase())[0] || '');
       return first === 'NA' || first === 'OA';
     }
 
@@ -608,19 +647,19 @@
       const tintSel = el('lensTint').value;
 
       const sunAll = rowsByCanon('sun').filter(r=>applies(r,fam)).filter(r=>{
-        const n=N(r.enhancement);
+        const n=N(field(r,ENHANCE_KEYS,''));
         if(!wantGlass && n.includes('glass')) return false;
         return true;
       });
 
-      const isCustomMeasure = (row) => /custom\s*measure/i.test(N(row?.enhancement || row?.subtype || ''));
+      const isCustomMeasure = (row) => /custom\s*measure/i.test(N(field(row,ENHANCE_KEYS,'')));
       const customPool = ACTIVE_ROWS.filter(r => applies(r, 'PAL')).filter(isCustomMeasure);
 
       // Base candidates
       let base = [];
       if (fam === 'PAL') {
         base = rowsByCanon('pal').filter(r=>applies(r,fam)).filter(r=>{
-          const name=N(r.enhancement);
+          const name=N(field(r,ENHANCE_KEYS,''));
           if(!wantAsp && name.includes('aspheric')) return false;
           if(!wantGlass && name.includes('glass'))  return false;
           if(isCustomMeasure(r)) return false;
@@ -629,13 +668,13 @@
         });
       } else {
         if (tintSel==='polarized') {
-          base = sunAll.filter(r => /polariz/.test(N(r.enhancement)) && isDCode(r));
+          base = sunAll.filter(r => /polariz/.test(N(field(r,ENHANCE_KEYS,''))) && isDCode(r));
         } else {
           const pool = fam==='SV' ? rowsByCanon('base') : rowsByCanon('occ').concat(rowsByCanon('base'));
           base = pool.filter(r=>applies(r,fam))
-                     .filter(r=>!isARRow(r)) // <-- keep AR out of base no matter what
+                     .filter(r=>!isARRow(r)) // never let AR be a base
                      .filter(r=>{
-                        const name=N(r.enhancement);
+                        const name=N(field(r,ENHANCE_KEYS,''));
                         if(!wantAsp && name.includes('aspheric')) return false;
                         if(!wantGlass && name.includes('glass'))  return false;
                         return !/(photochrom|polariz|tint|tinted|sunglass|gradient)/.test(name);
@@ -647,7 +686,7 @@
       function rankAR(ars){
         const gradeVal = (s)=>{ const m=String(s||'').match(/\b([A-D])\b/i); if(!m) return null; return {A:1,B:2,C:3,D:4}[m[1].toUpperCase()]||null; };
         return [...ars].sort((a,b)=>{
-          const ga=gradeVal(a.enhancement||a.subtype)||-1, gb=gradeVal(b.enhancement||b.subtype)||-1;
+          const ga=gradeVal(field(a,ENHANCE_KEYS,''))||-1, gb=gradeVal(field(b,ENHANCE_KEYS,''))||-1;
           if(ga!==gb) return gb-ga;
           const pa=num(field(a, COPAY_KEYS, 0)) - num(field(a, CB_KEYS, 0));
           const pb=num(field(b, COPAY_KEYS, 0)) - num(field(b, CB_KEYS, 0));
@@ -668,14 +707,14 @@
       const all = [];
       for(const m of base){ for(const ar of arOptions){ all.push(buildBundle(m, ar)); } }
 
-      // Diagnostics if we built nothing
+      // Diagnostics
       const diagBox = el('diag');
       if (!all.length){
         const c = diagCounts(fam);
         diagBox.style.display = 'block';
         diagBox.innerHTML = `<b>Diagnostics:</b> No viable bundle for <code>${fam}</code>.
         <div>Bucket counts — base:${c.base} • occ:${c.occ} • pal:${c.pal} • ar:${c.ar} • sun:${c.sun} • oversize:${c.os}</div>
-        <div>Tip: ensure headers include <code>copay</code> &amp; <code>chargeback</code> (or aliases), and AR rows have <code>exclusive_key=ar_level</code>.</div>`;
+        <div>Detected headers — copay: <code>${COPAY_KEYS.join(', ')||'—'}</code> • holdback: <code>${CB_KEYS.join(', ')||'—'}</code> • split: <code>${CBSPLIT_KEYS.join(', ')||'—'}</code></div>`;
         renderStack([
           {name:'Best',cls:'best',b:null},
           {name:'Better',cls:'better',b:null},
