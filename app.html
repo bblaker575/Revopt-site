@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8"/>
-  <title>PayerEdge — VSP Bundles (v9.2)</title>
+  <title>PayerEdge — VSP Bundles (v10)</title>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <style>
     :root{
@@ -40,7 +40,7 @@
       <div class="sub">Scoreboard shows <b>patient copay</b> and <b>service fee</b> (Copay − Holdback). Sun choices are exclusive.</div>
     </div>
     <div style="display:flex;gap:8px;align-items:center">
-      <span class="chip">plan= <b>VSP_choice</b> • version= <b>v9.2</b> • source= <span id="src" class="muted">…</span></span>
+      <span class="chip">plan=<b>VSP_choice</b> • version=<b>v10</b> • source=<span id="src" class="muted">…</span></span>
       <button class="btn" id="refresh">Force Refresh</button>
       <button class="btn" id="clear">Clear Cache</button>
     </div>
@@ -77,16 +77,16 @@
   <div id="err" class="err"></div>
   <div class="cards" id="cards"></div>
 
-  <!-- PapaParse (no SRI so it loads on GH Pages) -->
+  <!-- PapaParse -->
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
   <script>
-    /***************
-     * CONFIG/VERS *
-     ***************/
+    /**********************
+     * CONFIG / CONSTANTS *
+     **********************/
     const CSV_PATH = "./data/vsp_choice_master_v8_from_patched.csv";
     document.getElementById("src").textContent = CSV_PATH;
 
-    // Authoritative Digital Aspheric pricing (from your posted chart)
+    // Authoritative Digital Aspheric (BA…) pricing from your chart
     const DASP = {
       SV: {
         "BA":    { cb:24, sf:21, base:45, add: 0, allowed:true },
@@ -104,14 +104,13 @@
       }
     };
 
-    // Bundle recipes: render like your original scoreboard,
-    // with a summary row for the pair and a component breakdown table below.
+    // Recipes reflect your 4-card scoreboard
     const RECIPES = {
       SV: [
         { card:"Hi67",  pair:"BA+BH", components:["BA","BH"], title:"Digital Aspheric" },
         { card:"Mid",   pair:"BA+BB", components:["BA","BB"], title:"Digital Aspheric" },
         { card:"Poly",  pair:"BA+BD", components:["BA","BD"], title:"Digital Aspheric" },
-        { card:"CR",    pair:null,    components:["AA","QM?"], title:"CR" } // QM optional by AR toggle
+        { card:"CR",    pair:null,    components:["AA","QM?"], title:"CR" }
       ],
       MF: [
         { card:"Hi67",  pair:"BA+BH", components:["BA","BH"], title:"Digital Aspheric" },
@@ -124,11 +123,16 @@
     const META = document.getElementById("meta");
     const ERRBOX = document.getElementById("err");
     const CARDS = document.getElementById("cards");
-    const CACHE_KEY = "vsp_csv_v9_2";
+    const CACHE_KEY = "vsp_csv_v10";
 
+    /********************
+     * HELPERS / UTILS  *
+     ********************/
     const money = n => `$${Number(n||0).toFixed(2).replace(/\.00$/,"")}`;
-
+    const sum = (arr, k) => arr.reduce((s,x)=>s+(x[k]||0),0);
+    const totals = rows => ({copay:sum(rows,"copay"), hold:sum(rows,"holdback"), fee:sum(rows,"serviceFee")});
     const num = v => v==null||v==="" ? null : Number(String(v).replace(/[^\d.-]/g,""));
+
     function norm(row){
       const r = Object.fromEntries(Object.entries(row).map(([k,v])=>[String(k).trim().toLowerCase(), typeof v==="string"?v.trim():v]));
       return {
@@ -141,6 +145,25 @@
       };
     }
 
+    function indexByCode(rows){
+      const idx = { SV:{}, MF:{} };
+      for (const r of rows){
+        if(!r.code) continue;
+        const fam = (r.family==="MF") ? "MF" : "SV";
+        if(!idx[fam][r.code]) idx[fam][r.code] = [];
+        idx[fam][r.code].push(r);
+      }
+      return idx;
+    }
+
+    function uniqueByCode(list){
+      const seen = new Set();
+      return list.filter(r => (seen.has(r.code) ? false : (seen.add(r.code), true)));
+    }
+
+    /********************
+     * LOAD CSV (robust)
+     ********************/
     async function loadCsv(){
       const cached = sessionStorage.getItem(CACHE_KEY);
       if (cached){
@@ -159,65 +182,46 @@
         return rows;
       }catch(e){
         ERRBOX.style.display = "block";
-        ERRBOX.textContent = `CSV load failed (${e.message}). Rendering with BA map only for demo.`;
+        ERRBOX.textContent = `CSV load failed (${e.message}). App will render BA map only for demo.`;
         META.textContent = "rows=0 • degraded";
         return [];
       }
     }
 
-    // Build a fast lookup: { family -> { code -> [rows] } }
-    function indexByCode(rows){
-      const idx = { SV:{}, MF:{} };
-      for (const r of rows){
-        if(!r.code) continue;
-        const fam = (r.family==="MF") ? "MF" : "SV";
-        if(!idx[fam][r.code]) idx[fam][r.code] = [];
-        idx[fam][r.code].push(r);
-      }
-      return idx;
+    /*********************
+     * PRICING FUNCTIONS *
+     *********************/
+    function baPairRow(family, pairKey){
+      const fam = family==="MF" ? DASP.MF : DASP.SV;
+      const rec = fam[pairKey];
+      if (!rec || rec.allowed===false) return null;
+      return { item:"Digital Aspheric", code: pairKey, copay: rec.base+rec.add, holdback: rec.cb, serviceFee: rec.sf, source:"map" };
     }
 
-    // Pull a code from CSV for the selected family
+    function baComponentRow(family, comp){ // comp ∈ {BA, BB, BH, BD}
+      const fam = family==="MF" ? DASP.MF : DASP.SV;
+      if (comp==="BA"){
+        const r = fam["BA"]; return { item:"Digital Aspheric", code:"BA", copay:r.base+r.add, holdback:r.cb, serviceFee:r.sf, source:"map" };
+      }
+      const key = "BA+"+comp;
+      const rec = fam[key];
+      if (!rec || rec.allowed===false) return null;
+      return { item:"Digital Aspheric", code:comp, copay:rec.base+rec.add, holdback:rec.cb, serviceFee:rec.sf, source:"map" };
+    }
+
     function fromCsv(idx, family, code){
       const list = (idx[family] && idx[family][code]) ? idx[family][code] : [];
       if (!list.length) return null;
-      // Prefer rows that have all three fields; otherwise best-effort.
       const best = list.find(r=>r.copay!=null && r.holdback!=null && r.serviceFee!=null) || list[0];
-      return { item: best.item || "", code: code, family, copay: best.copay||0, holdback: best.holdback||0, serviceFee: best.serviceFee||0, source:"csv" };
+      return { item: best.item || "", code, copay: best.copay||0, holdback: best.holdback||0, serviceFee: best.serviceFee||0, source:"csv" };
     }
 
-    // Compute BA component via authoritative map
-    function priceBA(family, key){ // key can be "BA" or "BA+BH"/"BA+BD"/"BA+BB"
-      const famMap = (family==="MF") ? DASP.MF : DASP.SV;
-      if (key==="BA"){
-        const r = famMap["BA"]; return { code:"BA", copay:r.base+r.add, holdback:r.cb, serviceFee:r.sf, item:"Digital Aspheric", source:"map" };
-      }
-      const rec = famMap[key];
-      if (!rec || rec.allowed===false) return null;
-      return { code:key, copay:rec.base+rec.add, holdback:rec.cb, serviceFee:rec.sf, item:"Digital Aspheric", source:"map" };
-    }
-
-    function baComponent(family, code){ // "BA","BB","BH","BD"
-      // derive component as BA + addX where X is BB/BH/BD (we want the single-line component rows)
-      const famMap = (family==="MF") ? DASP.MF : DASP.SV;
-      const base = famMap["BA"];
-      let addRec = null;
-      if (code==="BA") addRec = { cb: base.cb, sf: base.sf, add: 0, base: base.base };
-      if (code==="BB") addRec = { cb:famMap["BA+BB"].cb, sf:famMap["BA+BB"].sf, add:famMap["BA+BB"].add, base: famMap["BA+BB"].base };
-      if (code==="BH") addRec = { cb:famMap["BA+BH"].cb, sf:famMap["BA+BH"].sf, add:famMap["BA+BH"].add, base: famMap["BA+BH"].base };
-      if (code==="BD") addRec = { cb:famMap["BA+BD"].cb, sf:famMap["BA+BD"].sf, add:famMap["BA+BD"].add, base: famMap["BA+BD"].base };
-      if (!addRec) return null;
-      return { item:"Digital Aspheric", code:code, copay:(addRec.base + (code==="BA"?0:addRec.add)), holdback:addRec.cb, serviceFee:addRec.sf, source:"map" };
-    }
-
-    function totals(rows){
-      return rows.reduce((a,r)=>({copay:a.copay+(r.copay||0), hold:a.hold+(r.holdback||0), fee:a.fee+(r.serviceFee||0)}), {copay:0, hold:0, fee:0});
-    }
-
+    /****************
+     * RENDER CARDS *
+     ****************/
     function renderBundleCard(title, badge, summaryRow, componentRows){
       const t = totals([summaryRow]);
       const subt = totals(componentRows);
-      // Header shows total patient copay & service fee (profit) using the summary pair.
       return `
         <div class="card">
           <h2>${money(t.copay)}</h2>
@@ -253,11 +257,11 @@
               </tr>
             </tbody>
           </table>
-        </div>
-      `;
+        </div>`;
     }
 
     function renderSimpleCard(title, badge, rows){
+      rows = uniqueByCode(rows);
       const t = totals(rows);
       return `
         <div class="card">
@@ -283,10 +287,12 @@
               </tr>
             </tbody>
           </table>
-        </div>
-      `;
+        </div>`;
     }
 
+    /************
+     * PIPELINE *
+     ************/
     async function run(){
       const state = {
         family: document.getElementById("lensFamily").value,
@@ -294,34 +300,39 @@
         includeAR: document.getElementById("ar").checked
       };
 
-      const rows = await loadCsv();
-      const idx = indexByCode(rows);
-
-      const recipe = RECIPES[state.family];
-
-      const cardsHtml = [];
-
-      // Hi67 / Mid / Poly — BA-driven bundles with summary + breakdown (no duplicates)
-      for (const rcp of recipe.slice(0,3)){
-        const summary = priceBA(state.family, rcp.pair);   // BA+BH etc
-        const parts = rcp.components.map(c=>baComponent(state.family, c)).filter(Boolean);
-        cardsHtml.push(renderBundleCard(rcp.title, rcp.card, summary, parts));
+      // Sun exclusivity (note only; hook for future material rules)
+      const sun = ["Solid","Gradient","Photochromic","Polarized"];
+      if (sun.includes(state.tint)) {
+        // enforce mutual exclusion in future material selection
       }
 
-      // CR card — use CSV codes (AA and optional QM if AR checked), filtered by family
+      const rows = await loadCsv();
+      const idx = indexByCode(rows);
+      const recipe = RECIPES[state.family];
+      const cards = [];
+
+      // Three BA bundles (summary pair + breakdown). No duplicates.
+      for (const rcp of recipe.slice(0,3)){
+        const sumRow = baPairRow(state.family, rcp.pair);
+        const parts = rcp.components.map(c=>baComponentRow(state.family, c)).filter(Boolean);
+        cards.push(renderBundleCard(rcp.title, rcp.card, sumRow, parts));
+      }
+
+      // CR (CSV-driven) — AA always, QM only if AR is checked; strictly by family
       const crCfg = recipe.find(x=>x.card==="CR");
       const crRows = [];
       const aa = fromCsv(idx, state.family, "AA"); if (aa) { aa.item = crCfg.title; crRows.push(aa); }
       if (state.includeAR){
-        const qm = fromCsv(idx, state.family, "QM");
-        if (qm){ qm.item = "A/R"; crRows.push(qm); }
+        const qm = fromCsv(idx, state.family, "QM"); if (qm) { qm.item = "A/R"; crRows.push(qm); }
       }
-      cardsHtml.push(renderSimpleCard(crCfg.title, "CR", crRows));
+      cards.push(renderSimpleCard(crCfg.title, "CR", crRows));
 
-      CARDS.innerHTML = cardsHtml.join("");
+      CARDS.innerHTML = cards.join("");
     }
 
-    // events
+    /**********
+     * EVENTS *
+     **********/
     document.getElementById("lensFamily").addEventListener("change", ()=>{ sessionStorage.removeItem(CACHE_KEY); run(); });
     document.getElementById("lensTint").addEventListener("change", run);
     document.getElementById("ar").addEventListener("change", run);
@@ -329,6 +340,7 @@
     document.getElementById("refresh").addEventListener("click", ()=>{ sessionStorage.removeItem(CACHE_KEY); run(); });
     document.getElementById("clear").addEventListener("click", ()=>{ sessionStorage.clear(); document.getElementById("meta").textContent="cache cleared"; run(); });
 
+    // boot
     run();
   </script>
 </body>
