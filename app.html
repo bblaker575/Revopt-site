@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>PayerEdge — VSP Bundles (App v17.4)</title>
+  <title>PayerEdge — VSP Bundles (App v17.4.1)</title>
 
   <!-- Typography -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -134,7 +134,7 @@
 
   <!-- Error overlay -->
   <script>
-    if (!window.__PAYEREDGE_V174__) {
+    if (!window.__PAYEREDGE_V1741__) {
       (function(){
         function showErrorOverlay(err, where){
           const wrap = document.createElement('div');
@@ -150,10 +150,10 @@
   </script>
 
   <script>
-  if (window.__PAYEREDGE_V174__) {
+  if (window.__PAYEREDGE_V1741__) {
     console.warn('PayerEdge APP script already loaded; skipping second init.');
   } else {
-    window.__PAYEREDGE_V174__ = true;
+    window.__PAYEREDGE_V1741__ = true;
 
     /* ================== Config & utils ================== */
 
@@ -177,8 +177,7 @@
     const isDCode  = r => /^d/i.test((r.code||'').trim());
 
     /* ===== Code/material understanding ===== */
-    // Glass base by A-code
-    const GLASS_BASE_CODES = new Set(['AF','DE','FE']); // extend if your CSV has more
+    const GLASS_BASE_CODES = new Set(['AF','DE','FE']); // add more if needed
     const baseCodeOf = row => {
       const raw = String(row?.code || '').trim().toUpperCase();
       const parts = raw.split(/[\s+&/,\-]+/).filter(Boolean);
@@ -268,7 +267,7 @@
       }
 
       if (loaded){
-        const meta = { plan:'VSP_choice', version:new Date().toISOString().slice(0,10)+'.ui17.4', source:'network:'+loaded.url, sha:quickHash(loaded.text) };
+        const meta = { plan:'VSP_choice', version:new Date().toISOString().slice(0,10)+'.ui17.4.1', source:'network:'+loaded.url, sha:quickHash(loaded.text) };
         setCache(loaded.text, meta);
         DATA = parseCSV(loaded.text);
         buildSimpleIndex();
@@ -338,6 +337,7 @@
       const compositeTotalCopay = num(row.copay);
       const compositeAddOnCB    = num(row.chargeback);
       const ctx                 = (row.enhancement || row.subtype || '').toLowerCase();
+      const parts = [];
 
       // Material-aware single-row picker for a given code
       function pickSimpleMatched(code){
@@ -372,8 +372,6 @@
         return cands.slice().sort((a,b)=>score(b)-score(a))[0] || cands[0];
       }
 
-      const parts = [];
-
       // Base (A-code)
       const baseCode  = partsCodes[0];
       const baseRow   = pickBaseByExactCode(baseCode) || pickSimpleMatched(baseCode);
@@ -387,7 +385,7 @@
       // Add-ons
       const addonCount = partsCodes.length - 1;
 
-      // optional explicit splits from CSV
+      // explicit per-part copays from composite, if present
       let addonCopays = [];
       if (compositeCopayNums.length >= partsCodes.length){
         addonCopays = compositeCopayNums.slice(1).map(num);
@@ -396,6 +394,12 @@
         const each = addonCount ? (remaining / addonCount) : 0;
         addonCopays = Array.from({length:addonCount}, ()=>each);
       }
+
+      // IMPORTANT: if composite provides chargeback, it applies to add-on(s) → prefer it
+      const compositeHasCB = isFinite(compositeAddOnCB) && compositeAddOnCB > 0;
+      const cbPerAddon = compositeHasCB
+        ? (addonCount <= 1 ? compositeAddOnCB : compositeAddOnCB / addonCount)
+        : null;
 
       for (let i=1;i<partsCodes.length;i++){
         const code   = partsCodes[i];
@@ -407,10 +411,15 @@
           cop = simple ? num(simple.copay) : addonCopays[i-1];
         }
 
-        // holdback preference: matched single-row → apportioned composite holdback
-        let cb = simple ? num(simple.chargeback) : 0;
-        if (!simple){
-          cb = (addonCount <= 1) ? compositeAddOnCB : (compositeAddOnCB / addonCount);
+        // holdback preference: composite CB (if present) → matched single-row → split of composite CB (already handled)
+        let cb;
+        if (compositeHasCB){
+          cb = cbPerAddon;
+        } else {
+          cb = simple ? num(simple.chargeback) : 0;
+          if (!simple){
+            cb = (addonCount <= 1) ? compositeAddOnCB : (compositeAddOnCB / addonCount);
+          }
         }
 
         parts.push({ code, copay:cop, chargeback:cb, profit:cop-cb });
