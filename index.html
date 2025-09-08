@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8"/>
-  <title>PayerEdge — VSP Bundles (v12.6)</title>
+  <title>PayerEdge — VSP Bundles (v12.8)</title>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <style>
     :root{--bg:#0b0f14;--fg:#e7eefc;--muted:#9fb0c9;--card:#101722;--line:#233044;--ok:#10b981}
@@ -28,6 +28,7 @@
     .small{font-size:12px}
     @media(max-width:1200px){.cards{grid-template-columns:repeat(2,minmax(260px,1fr))}}
     @media(max-width:700px){.cards{grid-template-columns:1fr}}
+    .pill{display:inline-block;padding:2px 8px;border:1px solid var(--line);border-radius:999px;font-size:11px;color:var(--muted)}
   </style>
 </head>
 <body>
@@ -37,7 +38,7 @@
       <div class="meta">Scoreboard shows <b>patient copay</b> and <b>service fee</b> (Copay − Holdback). Sun choices are exclusive.</div>
     </div>
     <div style="display:flex;gap:8px;align-items:center">
-      <span class="meta">plan=<b id="planName">VSP_choice</b> • version=<b>v12.6</b> • source=<span id="src" class="muted">…</span></span>
+      <span class="meta">plan=<b id="planName">VSP_choice</b> • version=<b>v12.8</b> • source=<span id="src" class="muted">…</span></span>
       <button class="btn" id="refresh">Force Refresh</button>
       <button class="btn" id="clear">Clear Cache</button>
     </div>
@@ -46,10 +47,7 @@
   <div class="row">
     <div class="group">
       <span class="muted">Lens family</span>
-      <select id="lensFamily">
-        <option>Single Vision</option>
-        <option>Multifocal</option>
-      </select>
+      <select id="lensFamily"><!-- options filled after CSV loads --></select>
     </div>
 
     <div class="group">
@@ -64,30 +62,10 @@
     </div>
 
     <div class="group" style="gap:12px">
-      <label><input type="checkbox" id="ar" checked/> Include AR</label>
-      <span class="muted">Strategy</span>
-      <select id="arStrategy">
-        <option value="profit">Max Profit (default)</option>
-        <option value="disc25">≥25% Copay Discount</option>
-        <option value="disc50">≥50% Copay Discount</option>
-        <option value="cheapest">Cheapest for Patient</option>
-      </select>
-      <span class="muted">Tier</span>
-      <select id="arTier">
-        <option value="QM">Tier A (QM)</option>
-        <option value="QT">Tier C (QT)</option>
-        <option value="QV">Tier D (QV)</option>
-      </select>
+      <label><input type="checkbox" id="ar" checked/> Include AR (tiered)</label>
     </div>
 
-    <div class="group" style="gap:14px">
-      <label><input type="checkbox" id="aspheric"/> Aspheric</label>
-      <label><input type="checkbox" id="oversize"/> Oversize</label>
-      <label><input type="checkbox" id="glass"/> Glass</label>
-      <label><input type="checkbox" id="noOnly"/> Custom measurements (N/O only)</label>
-    </div>
-
-    <div class="group"><span class="muted">[debug]</span> <span id="meta" class="meta">…</span></div>
+    <div class="group" id="debugBox"><span class="muted">[debug]</span> <span id="meta" class="meta">…</span></div>
   </div>
 
   <div id="net" class="banner"></div>
@@ -98,12 +76,11 @@
     /*************** CONFIG ***************/
     const CSV_PATH = "./data/vsp_choice_master_v9_strict.csv";
     const PLAN = "VSP_choice";
-    const CACHE_KEY = "payeredge_v12_cache";
-
-    // Fallback BA base holdback (only used if CSV lacks BA row)
+    const CACHE_KEY = "payeredge_v128_cache";
+    // BA holdback defaults if BA row is absent
     const BA_HOLDBACK_DEFAULT = { SV: 24, MF: 34 };
 
-    const CARDS = [
+    const MATERIAL_CARDS = [
       {key:"Hi67", level:"Hi67", title:"Hi67"},
       {key:"Mid",  level:"Mid",  title:"Mid"},
       {key:"Poly", level:"Poly", title:"Poly"},
@@ -113,19 +90,10 @@
     const $cards = document.getElementById("cards");
     const $meta  = document.getElementById("meta");
     const $net   = document.getElementById("net");
-    const $arCbx = document.getElementById("ar");
-    const $arSel = document.getElementById("arTier");
-    const $arStr = document.getElementById("arStrategy");
+    const $fam   = document.getElementById("lensFamily");
     document.getElementById("src").textContent = CSV_PATH;
 
     const money = n => `$${Number(n||0).toFixed(2).replace(/\.00$/,'')}`;
-
-    function famKey(raw){
-      const s = String(raw||"").toLowerCase();
-      if (s.startsWith("single")) return "SV";
-      if (s.startsWith("multi"))  return "MF";
-      return (s==="sv"||s==="mf") ? s.toUpperCase() : "SV";
-    }
 
     /*************** CSV LOAD ***************/
     function normRow(r){
@@ -141,10 +109,14 @@
       };
       return {
         plan: o.plan || "",
-        kind: (o.kind||"").toLowerCase(),
+        kind: (o.kind||"").toLowerCase(),          // pair | base | addon
         code: (o.code||"").toUpperCase(),
         item: o.item || "",
-        family: (o.family||"BOTH").toUpperCase(),
+        family: (o.family||"BOTH").toUpperCase(),  // SV | MF | BOTH
+        // optional extensions:
+        segment: (o.segment||"Any"),               // SV | Prog | Bifocal | Any
+        pair_components: (o.pair_components||""),
+        // filters:
         material_level: (o.material_level||"—"),
         sun: (o.sun||"—"),
         exclusive_group: o.exclusive_group || "",
@@ -152,6 +124,7 @@
         forbids_flags: (o.forbids_flags||"").toLowerCase().split(/\s*,\s*/).filter(Boolean),
         applies_to: (o.applies_to||"all").toLowerCase(),
         pair_with: (o.pair_with||"").toUpperCase(),
+        // numbers
         copay_sv: n("copay_sv"),
         holdback_sv: n("holdback_sv"),
         copay_mf: n("copay_mf"),
@@ -192,9 +165,27 @@
       }
     }
 
-    /*************** RULES ***************/
-    function byPlan(rows, plan){
-      return rows.filter(r=> !r.plan || r.plan===plan);
+    /*************** HELPERS ***************/
+    function famSegOptionsFromRows(rows){
+      // If CSV provides segment, expose SV / Progressive / Lined Bifocal; else SV / Multifocal
+      const hasSeg = rows.some(r => ["Prog","Bifocal"].includes(r.segment));
+      if (hasSeg){
+        return [
+          {label:"Single Vision", family:"SV", segment:"SV"},
+          {label:"Progressive",   family:"MF", segment:"Prog"},
+          {label:"Lined Bifocal", family:"MF", segment:"Bifocal"},
+        ];
+      }else{
+        return [
+          {label:"Single Vision", family:"SV", segment:"SV"},
+          {label:"Multifocal",    family:"MF", segment:"Any"},
+        ];
+      }
+    }
+
+    function selectedFamSeg(){
+      const opt = $fam.options[$fam.selectedIndex];
+      return {family: opt.dataset.family, segment: opt.dataset.segment};
     }
 
     function familyRowVal(row, fam){
@@ -204,13 +195,11 @@
 
     function flagsFromUI(){
       return {
-        aspheric: document.getElementById("aspheric").checked,
-        oversize: document.getElementById("oversize").checked,
-        glass: document.getElementById("glass").checked,
-        no_only: document.getElementById("noOnly").checked,
         arOn: document.getElementById("ar").checked,
-        arTier: document.getElementById("arTier").value,
-        arStrategy: document.getElementById("arStrategy").value
+        oversize: document.getElementById("oversize")?.checked || false,
+        glass: document.getElementById("glass")?.checked || false,
+        aspheric: document.getElementById("aspheric")?.checked || false,
+        no_only: document.getElementById("noOnly")?.checked || false,
       };
     }
 
@@ -221,7 +210,7 @@
     }
 
     function isPositiveSignalAddon(r){
-      if ((r.exclusive_group||"").trim()) return true; // e.g. sun
+      if ((r.exclusive_group||"").trim()) return true; // e.g., sun
       const req = r.requires_flags||[];
       return req.includes("oversize") || req.includes("no_only") || req.includes("glass");
       // AR handled separately
@@ -243,59 +232,28 @@
     }
 
     function getArTiers(rowsForFam, fam){
-      const tiers = ["QM","QT","QV"].map(code=>{
+      const codes = ["QM","QT","QV"];
+      const tiers = [];
+      for (const code of codes){
         const r = rowsForFam.find(x => x.kind==="addon" && (x.requires_flags||[]).includes("ar") && x.code===code);
-        if (!r) return null;
+        if (!r) continue;
         const {copay, hold} = familyRowVal(r, fam);
-        const fee = (copay||0) - (hold||0);
-        return {code, copay:copay||0, hold:hold||0, fee, row:r};
-      }).filter(Boolean);
+        tiers.push({code, copay:copay||0, hold:hold||0, fee:(copay||0)-(hold||0), row:r});
+      }
       return tiers;
     }
 
-    function chooseArTierByStrategy(tiers, strategy){
+    function chooseMostProfitableTier(tiers){
       if (!tiers.length) return null;
-      const maxCopay = Math.max(...tiers.map(t=>t.copay));
-
-      if (strategy==="profit"){
-        // Highest service fee; tie-break lower copay
-        return tiers.slice().sort((a,b)=> (b.fee - a.fee) || (a.copay - b.copay))[0];
-      }
-
-      if (strategy==="disc25" || strategy==="disc50"){
-        const cutoff = strategy==="disc25" ? 0.75*maxCopay : 0.50*maxCopay;
-        const eligible = tiers.filter(t=> t.copay <= cutoff);
-        if (eligible.length){
-          return eligible.slice().sort((a,b)=> (b.fee - a.fee) || (a.copay - b.copay))[0];
-        }
-        // Fallback: cheapest
-        return tiers.slice().sort((a,b)=> (a.copay - b.copay) || (b.fee - a.fee))[0];
-      }
-
-      if (strategy==="cheapest"){
-        // Lowest copay; tie-break higher fee
-        return tiers.slice().sort((a,b)=> (a.copay - b.copay) || (b.fee - a.fee))[0];
-      }
-
-      // Default
+      // Highest fee, tie-break lower copay
       return tiers.slice().sort((a,b)=> (b.fee - a.fee) || (a.copay - b.copay))[0];
     }
 
     function pickAR(rowsForFam, fam, flags){
       if (!flags.arOn) return null;
-
-      // Compute tiers for family, then pick by strategy
       const tiers = getArTiers(rowsForFam, fam);
-      if (!tiers.length) return null;
-
-      const choice = chooseArTierByStrategy(tiers, flags.arStrategy);
-      // Reflect chosen tier in the visible dropdown (so users see what was picked)
-      if (choice) document.getElementById("arTier").value = choice.code;
-
-      // If user manually changes Tier, honor it (overrides strategy)
-      const manualTier = flags.arTier;
-      const manual = tiers.find(t=> t.code===manualTier);
-      return (manual || choice)?.row || null;
+      const choice = chooseMostProfitableTier(tiers);
+      return choice ? choice.row : null;
     }
 
     function getBaBaseHoldback(rowsForFam, fam){
@@ -307,45 +265,42 @@
       return BA_HOLDBACK_DEFAULT[fam] || 0;
     }
 
-    function makeBaHoldbackRow(holdSV, holdMF){
-      return {
-        item: "BA (base) — holdback only",
-        code: "BA(HB)",
-        kind: "addon",
-        family: "BOTH",
-        material_level: "—",
-        sun: "—",
-        exclusive_group: "",
-        requires_flags: [],
-        forbids_flags: [],
-        applies_to: "bundle_only",
-        pair_with: "BA",
-        copay_sv: 0, holdback_sv: holdSV,
-        copay_mf: 0, holdback_mf: holdMF
-      };
+    function byPlan(rows, plan){ return rows.filter(r=> !r.plan || r.plan===plan); }
+
+    function componentBreakdown(pairRow, rowsForFamSeg, fam){
+      const raw = (pairRow.pair_components||"").trim();
+      if (!raw) return [];
+      const codes = raw.split(",").map(s=>s.trim()).filter(Boolean);
+      return codes.map(code => {
+        const r = rowsForFamSeg.find(x => x.code===code);
+        if (!r) return null;
+        const {copay, hold} = familyRowVal(r, fam);
+        return {code, copay:copay||0, hold:hold||0, fee:(copay||0)-(hold||0)};
+      }).filter(Boolean);
     }
 
-    function bundleRows(rows, fam, level, tint, flags){
-      const rowsForFam = rows.filter(r=> r.family==="BOTH" || r.family===fam);
+    /*************** PIPELINE ***************/
+    function bundleRows(rows, fam, seg, level, tint, flags){
+      const rowsForFamSeg = rows.filter(r=>{
+        const famOk = (r.family==="BOTH" || r.family===fam);
+        const segVal = r.segment || "Any";
+        const segOk = (segVal==="Any" || segVal===seg || (seg==="SV" && segVal==="SV"));
+        return famOk && segOk;
+      });
 
-      const pair = rowsForFam.find(r=> r.kind==="pair" && r.material_level===level && r.sun!=="Polarized");
-      const cr   = rowsForFam.find(r=> r.kind==="base" && r.code==="AA");
+      const pair = rowsForFamSeg.find(r=> r.kind==="pair" && r.material_level===level && r.sun!=="Polarized");
+      const cr   = rowsForFamSeg.find(r=> r.kind==="base" && r.code==="AA");
 
-      const addOnsAll = rowsForFam.filter(r=> r.kind==="addon" && isPositiveSignalAddon(r));
-      const addOns = addOnsAll.filter(r=> flagsAllow(r, flags) && (
-        r.sun==="Any" || r.sun==="—" || r.sun===tint
-      ));
+      const addOnsAll = rowsForFamSeg.filter(r=> r.kind==="addon" && isPositiveSignalAddon(r));
+      const addOns = addOnsAll.filter(r=> flagsAllow(r, flags) && (r.sun==="Any" || r.sun==="—" || r.sun===tint));
       const addOnsExclusive = pickExclusive(addOns);
 
-      const arRow = pickAR(rowsForFam, fam, flags);
+      const arRow = pickAR(rowsForFamSeg, fam, flags);
 
-      const baHold = getBaBaseHoldback(rowsForFam, fam);
-      const baRow  = makeBaHoldbackRow(
-        fam==="SV" ? baHold : 0,
-        fam==="MF" ? baHold : 0
-      );
+      // BA holdback silently included on bundles, not CR
+      const baHold = getBaBaseHoldback(rowsForFamSeg, fam);
 
-      return {pair, cr, addOns:addOnsExclusive, arRow, baRow};
+      return {pair, cr, addOns:addOnsExclusive, arRow, baHold, rowsForFamSeg};
     }
 
     function familyLines(row, fam){
@@ -353,18 +308,26 @@
       return {copay:copay||0, hold:hold||0, fee:(copay||0)-(hold||0)};
     }
 
-    function renderCard(title, mainRow, fam, breakdownRows){
+    function renderCard(title, mainRow, fam, extras, opts){
       if (!mainRow){
         return `<div class="card"><div class="meta">Missing data for ${title}.</div></div>`;
       }
-      const lines = breakdownRows.map(r=> ({r, l: familyLines(r, fam)}));
+
+      // Base lines
+      const lines = extras.map(r=> ({r, l: familyLines(r, fam)}));
       const main = familyLines(mainRow, fam);
+
+      // Silent BA holdback on bundles (not CR)
+      let baAdj = {copay:0, hold:0, fee:0};
+      if (opts.includeBaHoldback){
+        baAdj = {copay:0, hold: opts.baHold||0, fee: -(opts.baHold||0)};
+      }
 
       const totals = lines.reduce((s,x)=>({
         copay: s.copay + x.l.copay,
         hold : s.hold  + x.l.hold,
         fee  : s.fee   + x.l.fee
-      }), {copay: main.copay, hold: main.hold, fee: main.fee});
+      }), {copay: main.copay + baAdj.copay, hold: main.hold + baAdj.hold, fee: main.fee + baAdj.fee});
 
       const rowsHtml = [
         {r: mainRow, l: main},
@@ -378,6 +341,31 @@
           <td class="right">${money(l.fee)}</td>
         </tr>`).join("");
 
+      // Optional components breakdown (for combo pairs NA+NJ etc.)
+      let compHtml = "";
+      if (opts.components && opts.components.length){
+        compHtml = `
+          <tr>
+            <td colspan="5">
+              <div class="muted small" style="margin:6px 0">
+                <span class="pill">Code breakdown</span>
+              </div>
+              <table style="width:100%;font-size:12px">
+                <thead><tr><th>Code</th><th class="right">Copay</th><th class="right">Holdback</th><th class="right">Svc Fee</th></tr></thead>
+                <tbody>
+                  ${opts.components.map(c=>`
+                    <tr>
+                      <td class="muted">${c.code}</td>
+                      <td class="right">${money(c.copay)}</td>
+                      <td class="right">${money(c.hold)}</td>
+                      <td class="right">${money(c.fee)}</td>
+                    </tr>`).join("")}
+                </tbody>
+              </table>
+            </td>
+          </tr>`;
+      }
+
       return `
         <div class="card">
           <h2>${money(totals.copay)}</h2>
@@ -387,6 +375,7 @@
             <thead><tr><th>Item</th><th>Code</th><th class="right">Copay</th><th class="right">Holdback</th><th class="right">Service Fee</th></tr></thead>
             <tbody>
               ${rowsHtml}
+              ${compHtml}
               <tr>
                 <td class="muted">Totals</td><td></td>
                 <td class="right"><b>${money(totals.copay)}</b></td>
@@ -398,53 +387,54 @@
         </div>`;
     }
 
-    function toggleArControls(){
-      const on = document.getElementById("ar").checked;
-      document.getElementById("arTier").disabled = !on;
-      document.getElementById("arStrategy").disabled = !on;
-      document.getElementById("arTier").style.opacity = on ? 1 : 0.5;
-      document.getElementById("arStrategy").style.opacity = on ? 1 : 0.5;
+    /*************** MAIN ***************/
+    let ALL_ROWS = [];
+
+    async function init(){
+      ALL_ROWS = byPlan(await loadCsv(), "VSP_choice");
+      const options = famSegOptionsFromRows(ALL_ROWS);
+      $fam.innerHTML = options.map(o=>`<option data-family="${o.family}" data-segment="${o.segment}">${o.label}</option>`).join("");
+      run();
     }
 
     async function run(){
-      toggleArControls();
-
-      const fam  = famKey(document.getElementById("lensFamily").value);
+      const famSeg = selectedFamSeg();
+      const fam = famSeg.family;
+      const seg = famSeg.segment;
       const tint = document.getElementById("lensTint").value;
       const flags = flagsFromUI();
 
-      const rows = byPlan(await loadCsv(), PLAN);
-      if (!rows.length){ $cards.innerHTML = `<div class='meta' style='padding:20px'>No CSV rows found.</div>`; return; }
-
       const out = [];
-      for (const c of CARDS){
-        const {pair, cr, addOns, arRow, baRow} = bundleRows(rows, fam, c.level, tint, flags);
+      for (const c of MATERIAL_CARDS){
+        const {pair, cr, addOns, arRow, baHold, rowsForFamSeg} =
+          bundleRows(ALL_ROWS, fam, seg, c.level, tint, flags);
 
         if (c.level === "CR"){
           if (!cr){ out.push(`<div class="card"><div class="meta">Missing AA (CR) row.</div></div>`); continue; }
           const extras = [...addOns.filter(a=> a.applies_to!="bundle_only")];
           if (flags.arOn && arRow) extras.push(arRow);
-          out.push(renderCard("CR", cr, fam, extras));
+          out.push(renderCard("CR", cr, fam, extras, {includeBaHoldback:false, baHold:0, components:[]}));
         } else {
           if (!pair){ out.push(`<div class="card"><div class="meta">Missing pair for ${c.level}.</div></div>`); continue; }
           const extras = [...addOns.filter(a=> a.applies_to!="cr_only")];
           if (flags.arOn && arRow) extras.push(arRow);
-          extras.push(baRow); // BA base holdback always on bundles
-          out.push(renderCard(c.title, pair, fam, extras));
+          const comps = componentBreakdown(pair, rowsForFamSeg, fam);
+          out.push(renderCard(c.title, pair, fam, extras, {
+            includeBaHoldback:true, baHold, components: comps
+          }));
         }
       }
-
       $cards.innerHTML = out.join("");
     }
 
     // events
-    document.getElementById("lensFamily").addEventListener("change", ()=>{ sessionStorage.removeItem(CACHE_KEY); run(); });
     document.getElementById("lensTint").addEventListener("change", run);
-    ["aspheric","oversize","glass","noOnly","ar","arTier","arStrategy"].forEach(id=> document.getElementById(id).addEventListener("change", run));
-    document.getElementById("refresh").addEventListener("click", ()=>{ sessionStorage.removeItem(CACHE_KEY); run(); });
-    document.getElementById("clear").addEventListener("click", ()=>{ sessionStorage.clear(); $meta.textContent="cache cleared"; run(); });
+    document.getElementById("ar").addEventListener("change", run);
+    document.getElementById("refresh").addEventListener("click", ()=>{ sessionStorage.removeItem(CACHE_KEY); init(); });
+    document.getElementById("clear").addEventListener("click", ()=>{ sessionStorage.clear(); $meta.textContent="cache cleared"; init(); });
+    $fam.addEventListener("change", run);
 
-    run();
+    init();
   </script>
 </body>
 </html>
