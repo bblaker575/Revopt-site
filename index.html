@@ -134,32 +134,21 @@
     <div id="diag" class="diag" style="display:none"></div>
   </main>
 
-  <!-- Error overlay for runtime issues (noise-filtered) -->
+  <!-- Error overlay (silences user-cancel noise) -->
   <script>
     if (!window.__PAYEREDGE_V15__) {
       (function(){
         const IGNORE_RE = /(User rejected the request|user aborted|AbortError|NotAllowedError|permission denied|The user denied)/i;
-
-        function shouldIgnore(reason){
-          const msg = (reason && (reason.stack || reason.message || String(reason))) || '';
-          return IGNORE_RE.test(msg);
+        function overlay(err, where){
+          const msg = (err && (err.stack||err.message||String(err))) || '';
+          if (IGNORE_RE.test(msg)) return;
+          const el = document.createElement('div');
+          el.style.cssText='position:fixed;inset:12px;z-index:99999;background:#0b1220;border:1px solid #f44;box-shadow:0 8px 24px rgba(0,0,0,.5);color:#fff;border-radius:12px;padding:12px;overflow:auto;max-height:90vh;font:12px/1.4 ui-monospace,Menlo,Consolas,monospace';
+          el.innerHTML='<b>JS Error @ '+where+':</b><pre style="white-space:pre-wrap;margin:8px 0 0">'+msg+'</pre>';
+          document.body.appendChild(el);
         }
-
-        function showErrorOverlay(err, where){
-          if (shouldIgnore(err)) { console.warn('[overlay:silenced]', where, err); return; }
-          const wrap = document.createElement('div');
-          wrap.style.cssText = 'position:fixed;inset:12px;z-index:99999;background:#0b1220;border:1px solid #f44;box-shadow:0 8px 24px rgba(0,0,0,.5);color:#fff;border-radius:12px;padding:12px;overflow:auto;max-height:90vh;font:12px/1.4 ui-monospace,Menlo,Consolas,monospace';
-          wrap.innerHTML = '<b>JS Error @ '+where+':</b><pre style="white-space:pre-wrap;margin:8px 0 0">'+
-            (err && (err.stack||err.message||String(err))) + '</pre>';
-          document.body.appendChild(wrap);
-        }
-
-        window.addEventListener('error', e=>showErrorOverlay(e.error||e,'window.error'));
-        window.addEventListener('unhandledrejection', e=>{
-          const r = e.reason || e;
-          if (shouldIgnore(r)) { console.warn('[overlay:silenced:unhandledrejection]', r); e.preventDefault(); return; }
-          showErrorOverlay(r,'unhandledrejection');
-        });
+        window.addEventListener('error', e=>overlay(e.error||e,'window.error'));
+        window.addEventListener('unhandledrejection', e=>overlay(e.reason||e,'unhandledrejection'));
       })();
     }
   </script>
@@ -218,56 +207,34 @@
       return d;
     };
 
-    function normKey(k){
-      return String(k||'').toLowerCase().replace(/[^a-z0-9]+/g,'');
-    }
+    function normKey(k){ return String(k||'').toLowerCase().replace(/[^a-z0-9]+/g,''); }
+
     function discoverAliases(sampleRow){
       const keys = Object.keys(sampleRow||{});
       const addIf = (arr, k)=>{ if (!arr.includes(k)) arr.unshift(k); };
       for (const k of keys){
         const n = normKey(k);
-
-        // copay
         if (/(^|_)copay$/.test(n) || /patientcopay|ptcopay|copayamount|copaypatient/.test(n)) addIf(COPAY_KEYS, k);
-
-        // chargeback / holdback
         if (/chargeback|chargebacktotal|chargebackamount|chargebackpatient|chargebackplan/.test(n)) addIf(CB_KEYS,k);
         if (/holdback/.test(n)) addIf(CB_KEYS,k);
         if (/^(cb|hb)$/.test(n)) addIf(CB_KEYS,k);
-
-        // split fields
         if ((/split/.test(n)) && (/(charge|hold|cb|hb)/.test(n))) addIf(CBSPLIT_KEYS,k);
-
-        // exclusive key / bucket
         if (/exclusivekey|exclusive|bucket|group|category|tier|level|kind|type/.test(n)) addIf(EXCLUSIVE_KEYS,k);
-
-        // applies/family
         if (/appliesto|applies|applyto|family|lensfamily|sv|mf|occ/.test(n)) addIf(APPLIES_KEYS,k);
-
-        // enhancement/description
         if (/enhancement|lensenhancement|description|desc|subtype|name|label/.test(n)) addIf(ENHANCE_KEYS,k);
-
-        // code
         if (/^code(s)?$/.test(n)) addIf(CODE_KEYS,k);
       }
     }
 
-    const isDCode  = r => /^d/i.test(String(field(r,CODE_KEYS,'')).trim());
-    const isPPhoto = r => /^p(m|r)/i.test(String(field(r,CODE_KEYS,'')).trim());
-    const preferPhotoCodeForBase = row => {
-      const txt = N((field(row,ENHANCE_KEYS,'')||''));
-      return /glass/.test(txt) ? 'PM' : 'PR';
-    };
-
-    // AR detection: by exclusive key, text, or AR-like words.
+    // Extended AR recognition (v9 strict two-letter A*)
     const isARRow = (r)=>{
+      const codeUp = String(field(r,CODE_KEYS,'')).trim().toUpperCase();
+      if (/^(CR|AR)\b/.test(codeUp)) return true;         // legacy
+      if (/^[A][A-Z]$/.test(codeUp)) return true;         // v9 strict AA/AB/AD/AF/AH...
       const ex = normKey(field(r,EXCLUSIVE_KEYS,''));
-      if (['ar','arlevel','antireflective','antireflect','antiglare','noglare'].includes(ex)) return true;
-      const codeUp = String(field(r,CODE_KEYS,'')).toUpperCase();
-      if (/^(CR|AR)\b/.test(codeUp)) return true;
+      if (ex && (ex.includes('ar') || ex.includes('antireflect'))) return true;
       const txt = N((field(r,ENHANCE_KEYS,'')||''));
-      if (/(anti[\s-]?reflect|anti[\s-]?glare|no[\s-]?glare|\bar\b)/i.test(txt)) return true;
-      return false;
+      return /(anti[\s-]?reflect|anti[\s-]?glare|no[\s-]?glare|\bar\b)/i.test(txt);
     };
 
     function parseCSV(text){
@@ -380,7 +347,7 @@
       el('version').textContent = `plan=${meta.plan||'VSP_choice'} • rows=${count||0} • version=${meta.version||'—'} • source=${meta.source||'—'} • sha=${meta.sha||'—'}`;
     }
 
-    /* ---------- Bucket mapping with heuristic fallback ---------- */
+    /* ---------- Bucket mapping including v9 strict fallback ---------- */
     const NAMES = {
       base: new Set(['base_material','base','material','lens_material','sv_base']),
       occ:  new Set(['occupational','occ','lined','bifocal','trifocal']),
@@ -390,17 +357,26 @@
       os:   new Set(['oversize','os'])
     };
 
+    // v9 strict code-family mapping
+    function v9CodeFamily(codeUp){
+      if (/^[A][A-Z]$/.test(codeUp)) return 'ar';     // AA, AB, AD, AF, AH…
+      if (/^[B][A-Z]$/.test(codeUp)) return 'base';   // BA, BB, BD, BV, BH…
+      if (/^[D][A-Z]$/.test(codeUp)) return 'sun';    // DA, DB…
+      if (codeUp === 'CM') return 'cm';
+      return null;
+    }
+
     function codeCategoryFallback(r){
       const codeStr = String(field(r, CODE_KEYS, '')).toUpperCase();
       const parts = splitCodes(codeStr);
       const main = parts[0] || '';
-      // D* -> sun (polarized family)
+      const v9 = v9CodeFamily(main);
+      if (v9 && v9!=='cm') return v9;
+
+      // legacy fallbacks
       if (/^D/.test(main)) return 'sun';
-      // NA or OA (progressive A-base codes)
       if (/^(NA|OA)/.test(main)) return 'pal';
-      // CR/AR -> AR families
       if (/^(CR|AR)/.test(main)) return 'ar';
-      // Composite BA+BB style -> Base bucket
       if (/\+/.test(codeStr) || /(BA|BB|BD|BH)\b/.test(codeStr)) return 'base';
       return null;
     }
@@ -425,7 +401,7 @@
       if (/progressive|multi\s*focal|\bpal\b|\bmf\b/.test(txt)) return 'pal';
       if (/occupational|lined|bifocal|trifocal|\bocc\b/.test(txt)) return 'occ';
 
-      // 3) code-only fallback
+      // 3) code-only fallback (incl. v9 strict families)
       const cat = codeCategoryFallback(r);
       if (cat) return cat;
 
@@ -451,6 +427,7 @@
     }
 
     function applies(row, fam){
+      // If CSV has explicit applies_to, respect it
       const a=(String(field(row,APPLIES_KEYS,'ALL'))||'ALL').toUpperCase();
       if(a.includes('ALL')) return true;
       const inSet = (arr)=>arr.some(t=>a.includes(t));
@@ -469,7 +446,13 @@
       // single code
       if (partsCodes.length === 1){
         const cop = num(field(row, COPAY_KEYS, 0));
-        const cb  = num(field(row, CB_KEYS, 0));
+        // Prefer generic holdback but fall back to family-specific if present
+        let cb = num(field(row, CB_KEYS, 0));
+        if (!cb) {
+          const hbSV = num(row.holdback_sv ?? '');
+          const hbMF = num(row.holdback_mf ?? '');
+          cb = Math.max(hbSV, hbMF, cb);
+        }
         return { name:desc, code:codeStr, copay:cop, chargeback:cb, profit:cop-cb, parts:[] };
       }
 
@@ -502,7 +485,14 @@
       } else {
         hb = partsCodes.map((c)=>{
           const r = pickSimpleByExactCode(c);
-          return r ? num(field(r, CB_KEYS, 0)) : 0;
+          if (!r) return 0;
+          let v = num(field(r, CB_KEYS, 0));
+          if (!v) {
+            const sv = num(r.holdback_sv ?? '');
+            const mf = num(r.holdback_mf ?? '');
+            v = Math.max(sv, mf, v);
+          }
+          return v;
         });
       }
 
@@ -661,9 +651,9 @@
       });
 
       if (tintSel==='transitions') {
-        const want = preferPhotoCodeForBase(baseRow);
+        const want = (N(field(baseRow,ENHANCE_KEYS,''))).includes('glass') ? 'PM' : 'PR';
         let pool = sunAll.filter(r => /photochrom|transition/.test(N(field(r,ENHANCE_KEYS,''))));
-        let choice = pool.find(r => new RegExp('^' + want, 'i').test(String(field(r,CODE_KEYS,'')).trim())) || pool.find(r=>isPPhoto(r));
+        let choice = pool.find(r => new RegExp('^' + want, 'i').test(String(field(r,CODE_KEYS,'')).trim())) || pool.find(r=>/^(PM|PR)$/i.test(String(field(r,CODE_KEYS,'')).trim()));
         return choice || null;
       }
       if (tintSel==='tinted') {
@@ -710,7 +700,7 @@
         return true;
       });
 
-      const isCustomMeasure = (row) => /custom\s*measure/i.test(N(field(row,ENHANCE_KEYS,'')));
+      const isCustomMeasure = (row) => /custom\s*measure/i.test(N(field(row,ENHANCE_KEYS,''))) || /^CM$/i.test(String(field(row,CODE_KEYS,'')).trim());
       const customPool = ACTIVE_ROWS.filter(r => applies(r, 'PAL')).filter(isCustomMeasure);
 
       // Base candidates
@@ -726,11 +716,11 @@
         });
       } else {
         if (tintSel==='polarized') {
-          base = sunAll.filter(r => /polariz/.test(N(field(r,ENHANCE_KEYS,''))) && isDCode(r));
+          base = sunAll.filter(r => /polariz/.test(N(field(r,ENHANCE_KEYS,''))) && /^[D]/.test(String(field(r,CODE_KEYS,'')).trim().toUpperCase()));
         } else {
           const pool = fam==='SV' ? rowsByCanon('base') : rowsByCanon('occ').concat(rowsByCanon('base'));
           base = pool.filter(r=>applies(r,fam))
-                     .filter(r=>!isARRow(r)) // never let AR be a base
+                     .filter(r=>!isARRow(r))
                      .filter(r=>{
                         const name=N(field(r,ENHANCE_KEYS,''));
                         if(!wantAsp && name.includes('aspheric')) return false;
