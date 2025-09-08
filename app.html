@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>PayerEdge — VSP Bundles (App v17.4.2)</title>
+  <title>PayerEdge — VSP Bundles (App v18.0.0)</title>
 
   <!-- Typography -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -132,9 +132,9 @@
     <div id="stack" class="stack"></div>
   </main>
 
-  <!-- Error overlay for runtime issues -->
+  <!-- Error overlay -->
   <script>
-    if (!window.__PAYEREDGE_V1742__) {
+    if (!window.__PAYEREDGE_V1800__) {
       (function(){
         function showErrorOverlay(err, where){
           const wrap = document.createElement('div');
@@ -150,18 +150,23 @@
   </script>
 
   <script>
-  if (window.__PAYEREDGE_V1742__) {
+  if (window.__PAYEREDGE_V1800__) {
     console.warn('PayerEdge APP script already loaded; skipping second init.');
   } else {
-    window.__PAYEREDGE_V1742__ = true;
+    window.__PAYEREDGE_V1800__ = true;
 
     /* ================== Config & utils ================== */
 
+    // Primary points to v8-from-patched in /data. Others are fallbacks.
     const CSV_CANDIDATES = [
-      './vsp_choice_master_v7_full_fixed_patched.csv',
-      './vsp_choice_master_v7_full_fixed.csv',
+      './data/vsp_choice_master_v8_from_patched.csv',
+      './data/vsp_choice_master_v8.csv',
       './data/vsp_choice_master_v7_full_fixed_patched.csv',
-      './data/vsp_choice_master_v7_full_fixed.csv'
+      './data/vsp_choice_master_v7_full_fixed.csv',
+      './vsp_choice_master_v8_from_patched.csv',
+      './vsp_choice_master_v8.csv',
+      './vsp_choice_master_v7_full_fixed_patched.csv',
+      './vsp_choice_master_v7_full_fixed.csv'
     ];
 
     const BETTER_CAP_OF_MAX = 0.75;
@@ -177,7 +182,7 @@
     const isDCode  = r => /^d/i.test((r.code||'').trim());
 
     /* ===== Code/material understanding ===== */
-    const GLASS_BASE_CODES = new Set(['AF','DE','FE']);
+    const GLASS_BASE_CODES = new Set(['AF','DE','FE']); // add more if needed
     const baseCodeOf = row => {
       const raw = String(row?.code || '').trim().toUpperCase();
       const parts = raw.split(/[\s+&/,\-]+/).filter(Boolean);
@@ -193,8 +198,8 @@
       .toUpperCase().replace(/[^\w+&/,\s-]/g,'')
       .split(/[\s+&/,\-]+/).map(t=>t.trim()).filter(Boolean);
 
-    function parseCopayNumbers(copayStr){
-      const m = String(copayStr||'').match(/[0-9]+(?:\.[0-9]{1,2})?/g);
+    function parseNumbersSplit(str){
+      const m = String(str||'').match(/[0-9]+(?:\.[0-9]{1,2})?/g);
       return m ? m.map(x=>parseFloat(x)) : [];
     }
 
@@ -267,7 +272,7 @@
       }
 
       if (loaded){
-        const meta = { plan:'VSP_choice', version:new Date().toISOString().slice(0,10)+'.ui17.4.2', source:'network:'+loaded.url, sha:quickHash(loaded.text) };
+        const meta = { plan:'VSP_choice', version:new Date().toISOString().slice(0,10)+'.ui18.0.0', source:'network:'+loaded.url, sha:quickHash(loaded.text) };
         setCache(loaded.text, meta);
         DATA = parseCSV(loaded.text);
         buildSimpleIndex();
@@ -320,108 +325,94 @@
       return true;
     }
 
-    /* ===== Per-line math (UNIVERSAL composite handling, FAMILY-AWARE) ===== */
+    /* ===== Per-line math (composites split into base A + add-on(s)) ===== */
     function line(row, fam){
       const desc = row.enhancement || row.subtype || '—';
       const codeStr = String(row.code||'').trim().toUpperCase();
       const partsCodes = splitCodes(codeStr);
 
-      // Single-code line → direct
+      // Single-code line
       if (partsCodes.length === 1){
         const cop = num(row.copay), cb = num(row.chargeback);
         return { name:desc, code:codeStr, copay:cop, chargeback:cb, profit:cop-cb, parts:[] };
       }
 
-      // COMPOSITE
-      const compositeCopayNums  = parseCopayNumbers(row.copay);
-      const compositeTotalCopay = num(row.copay);
-      const compositeAddOnCB    = num(row.chargeback);
+      // Composite
+      const compositeCopayNums  = parseNumbersSplit(row.copay);
+      const compositeCBsplitRaw = row.chargeback_split || row.cb_split || '';
+      const compositeCBsplit    = parseNumbersSplit(compositeCBsplitRaw);
+      const compositeAddOnCB    = num(row.chargeback); // sum of add-on CBs in many sheets
+      const compositeTotalCopay = compositeCopayNums.length ? compositeCopayNums.reduce((a,b)=>a+b,0) : num(row.copay);
       const ctx                 = (row.enhancement || row.subtype || '').toLowerCase();
 
-      // Material-aware, FAMILY-AWARE single-row picker
+      // Family+material aware single-row picker
       function pickSimpleMatched(code){
         let cands = (SIMPLE_BY_CODE.get(code) || []).filter(r => applies(r, fam));
         if (!cands.length) return null;
-
         function score(r){
           const t = (r.enhancement || r.subtype || '').toLowerCase();
           let s = 0;
-
-          // broad buckets
           if (/polycarb/.test(ctx) && /polycarb/.test(t)) s += 6;
           if (/trivex/.test(ctx)   && /trivex/.test(t))   s += 6;
           if (/glass/.test(ctx)    && /glass/.test(t))    s += 6;
           if (/(cr[\s-]?39|plastic)/.test(ctx) && /(cr[\s-]?39|plastic)/.test(t) && !/high/.test(t)) s += 4;
-
-          // high-index matching
           if (/1\.66|1\.67/.test(ctx) && /1\.66|1\.67/.test(t)) s += 9;
           if (/1\.70|1\.71/.test(ctx) && /1\.70|1\.71/.test(t)) s += 8;
           if (/1\.74|1\.75/.test(ctx) && /1\.74|1\.75/.test(t)) s += 8;
           if (/1\.53|1\.60/.test(ctx) && /1\.53|1\.60/.test(t)) s += 6;
-
-          // avoid sun-tech rows for add-ons
           if (/polariz|photochrom|transitions|tint|tinted|gradient|sunglass/.test(t)) s -= 20;
-
-          // prefer “true single” rows
           if (splitCodes(String(r.code||'')).length === 1) s += 1;
-
           return s;
         }
-
         return cands.slice().sort((a,b)=>score(b)-score(a))[0] || cands[0];
       }
 
       const parts = [];
 
-      // Base (A-code)
+      // Base part
       const baseCode  = partsCodes[0];
       const baseRow   = pickBaseByExactCode(baseCode) || pickSimpleMatched(baseCode);
-      const baseCopay = (compositeCopayNums.length >= partsCodes.length)
-        ? num(compositeCopayNums[0])     // explicit split like "45 + 58"
-        : (baseRow ? num(baseRow.copay) : compositeTotalCopay);
-      const baseCB    = baseRow ? num(baseRow.chargeback) : 0;
 
-      parts.push({ code:baseCode, copay:baseCopay, chargeback:baseCB, profit:baseCopay-baseCB });
-
-      // Add-ons
-      const addonCount = partsCodes.length - 1;
-
-      // explicit per-part copays from composite, if present
-      let addonCopays = [];
-      if (compositeCopayNums.length >= partsCodes.length){
-        addonCopays = compositeCopayNums.slice(1).map(num);
+      // Copay split: prefer explicit per-part split; else derive
+      let baseCopay, addonCopays = [];
+      if (compositeCopayNums.length === partsCodes.length){
+        baseCopay   = compositeCopayNums[0];
+        addonCopays = compositeCopayNums.slice(1);
       } else {
-        const remaining = Math.max(compositeTotalCopay - baseCopay, 0);
-        const each = addonCount ? (remaining / addonCount) : 0;
+        const baseFromSimple = baseRow ? num(baseRow.copay) : 0;
+        baseCopay = (baseFromSimple || 0);
+        const remain = Math.max(compositeTotalCopay - baseCopay, 0);
+        const addonCount = partsCodes.length - 1;
+        const each = addonCount ? remain / addonCount : 0;
         addonCopays = Array.from({length:addonCount}, ()=>each);
       }
 
-      const compositeHasCB = isFinite(compositeAddOnCB) && compositeAddOnCB > 0;
-      const cbPerAddon = compositeHasCB
-        ? (addonCount <= 1 ? compositeAddOnCB : compositeAddOnCB / addonCount)
-        : null;
+      // Chargeback split: prefer chargeback_split if provided; else synthesize
+      let baseCB, addonCBs = [];
+      if (compositeCBsplit.length === partsCodes.length){
+        baseCB  = compositeCBsplit[0];
+        addonCBs= compositeCBsplit.slice(1);
+      } else {
+        // If the sheet's 'chargeback' is the add-on total and there's 1 add-on, use that.
+        if (partsCodes.length === 2 && isFinite(compositeAddOnCB) && compositeAddOnCB>0){
+          baseCB   = baseRow ? num(baseRow.chargeback) : 0;
+          addonCBs = [compositeAddOnCB];
+        } else {
+          // Fall back to single rows
+          baseCB   = baseRow ? num(baseRow.chargeback) : 0;
+          addonCBs = partsCodes.slice(1).map(c=>{
+            const s = pickSimpleMatched(c);
+            return s ? num(s.chargeback) : 0;
+          });
+        }
+      }
+
+      parts.push({ code:baseCode, copay:baseCopay, chargeback:baseCB, profit:baseCopay-baseCB });
 
       for (let i=1;i<partsCodes.length;i++){
-        const code   = partsCodes[i];
-        const simple = pickSimpleMatched(code);
-
-        // copay preference: explicit split → matched single-row → fallback split
-        let cop = addonCopays[i-1];
-        if (!(isFinite(cop) && cop > 0)){
-          cop = simple ? num(simple.copay) : addonCopays[i-1];
-        }
-
-        // holdback preference: composite CB (if present) → matched single-row → split CB fallback
-        let cb;
-        if (compositeHasCB){
-          cb = cbPerAddon;
-        } else {
-          cb = simple ? num(simple.chargeback) : 0;
-          if (!simple){
-            cb = (addonCount <= 1) ? compositeAddOnCB : (compositeAddOnCB / addonCount);
-          }
-        }
-
+        const code = partsCodes[i];
+        const cop  = num(addonCopays[i-1] ?? 0);
+        const cb   = num(addonCBs[i-1] ?? 0);
         parts.push({ code, copay:cop, chargeback:cb, profit:cop-cb });
       }
 
@@ -432,7 +423,7 @@
 
     function makeBundle(base, addOns, fam){
       const rows = [base, ...addOns.filter(Boolean)];
-      const lines = rows.map(r => line(r, fam));   // <<< pass family
+      const lines = rows.map(r => line(r, fam));
       const cop = sum(lines.map(x=>x.copay));
       const cb  = sum(lines.map(x=>x.chargeback));
       const pr  = cop - cb;
@@ -570,11 +561,13 @@
       }
     }
 
+    // PAL polarized: NP/OP; SV/LINED polarized: D-codes
     function isPolarizedPAL(row){
       const parts = splitCodes(String(row.code||'').trim().toUpperCase());
       return parts.includes('NP') || parts.includes('OP');
     }
 
+    // CM only when base starts with NA/OA
     function isNOBase(row){
       const code = baseCodeOf(row);
       return code.startsWith('NA') || code.startsWith('OA');
@@ -588,7 +581,7 @@
         byKey('sun_tech').filter(r=>applies(r,fam)),
         wantGlassOnly
       ).filter(r => PHOTO_RX.test(r.enhancement||r.subtype||''));
-      const want = preferPhotoCodeForBase(baseRow);
+      const want = preferPhotoCodeForBase(baseRow); // PR vs PM
       let best = all.find(r => new RegExp('^'+want+'\\b','i').test((r.code||'').trim()));
       if (!best){
         const pool = all.filter(r => sunMatchesBase(r, baseRow));
@@ -613,8 +606,8 @@
       const wantSolid = variant === 'tint-solid';
       const hasVariant = r => {
         const t=N(r.enhancement||r.subtype||'');
-        if (wantGrad)  return /gradient|grad/i.test(t);
-        if (wantSolid) return /solid/.test(t) || (/tint/i.test(t) && !/gradient/i.test(t));
+        if (wantGrad)  return /gradient|grad/.test(t);
+        if (wantSolid) return /solid/.test(t) || (/tint/.test(t) && !/gradient/.test(t));
         return true;
       };
       let pool = candidates.filter(hasVariant);
@@ -674,15 +667,15 @@
       const customPool = DATA.filter(r => applies(r, 'PAL'))
                              .filter(r => /custom\s*measure/i.test(N(r.enhancement||r.subtype||'')));
 
+      // Base candidates
       let base = [];
-
       if (fam === 'PAL') {
         base = byKey('progressive_level').filter(r=>applies(r,fam)).filter(r=>{
           const name=N(r.enhancement||r.subtype||'');
           const code=String(r.code||'').toUpperCase();
           if(!wantAsp && name.includes('aspheric')) return false;
           if (/photochrom|tint|tinted|sunglass|gradient/.test(name)) return false;
-          if (tintSel==='polarized') return isPolarizedPAL(r);
+          if (tintSel==='polarized') return isPolarizedPAL(r); // NP/OP
           return !/polariz/i.test(name) && !/NP|OP/.test(code);
         });
         base = enforceGlassPolicy(base, wantGlassOnly);
@@ -704,11 +697,12 @@
         }
       }
 
+      // AR ranked by grade then profit
       function rankAR(ars){
         const gradeVal = (s)=>{ const m=String(s||'').match(/\b([A-D])\b/i); if(!m) return null; return {A:1,B:2,C:3,D:4}[m[1].toUpperCase()]||null; };
         return [...ars].sort((a,b)=>{
           const ga=gradeVal(a.enhancement||a.subtype)||-1, gb=gradeVal(b.enhancement||b.subtype)||-1;
-          if(ga!==gb) return gb-ga;
+          if(ga!==gb) return gb-ga; // prefer A
           const pa=num(a.copay)-num(a.chargeback);
           const pb=num(b.copay)-num(b.chargeback);
           return pb-pa;
@@ -758,6 +752,7 @@
         return;
       }
 
+      // Tiers
       const MaxPrice = Math.max(...all.map(b => b.copay));
       function mostProfit(arr){
         let pick=null;
