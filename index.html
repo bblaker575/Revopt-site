@@ -134,7 +134,7 @@
     <div id="diag" class="diag" style="display:none"></div>
   </main>
 
-  <!-- Error overlay for runtime issues -->
+  <!-- Error overlay -->
   <script>
     if (!window.__PAYEREDGE_V15__) {
       (function(){
@@ -159,7 +159,6 @@
 
     /* ================== Config & utils ================== */
 
-    // Strict → recent → legacy fallbacks
     const CSV_CANDIDATES = [
       './data/vsp_choice_master_v9_strict.csv',
       './data/vsp_choice_master_v8_1_from_patched.csv',
@@ -183,11 +182,6 @@
     const quickHash=(s)=>{ let h=2166136261>>>0; for(let i=0;i<s.length;i++){ h^=s.charCodeAt(i); h=Math.imul(h,16777619)>>>0; } return ('00000000'+h.toString(16)).slice(-8); };
     const N = s => String(s||'').toLowerCase();
 
-    const isDCode  = r => /^d/i.test((r.code||'').trim());
-    const isPPhoto = r => /^p(m|r)/i.test((r.code||'').trim());
-    const isGlassBase = row => /glass/i.test(N(row?.enhancement || row?.subtype || ''));
-    const preferPhotoCodeForBase = row => (isGlassBase(row) ? 'PM' : 'PR');
-
     const splitCodes = (s)=> String(s||'')
       .toUpperCase().replace(/[^\w+&/,\s-]/g,'')
       .split(/[\s+&/,\-]+/).map(t=>t.trim()).filter(Boolean);
@@ -197,16 +191,41 @@
       return m ? m.map(x=>parseFloat(x)) : [];
     }
 
+    // ---- CSV field aliases (no guessing; we read the common variants) ----
+    const field = (row, names, d='')=>{
+      for (const k of names) { if (k in row && String(row[k]).trim()!=='') return row[k]; }
+      return d;
+    };
+    const COPAY_KEYS   = ['copay','patient_copay','patient'];
+    const CB_KEYS      = ['chargeback','holdback','cb'];
+    const CBSPLIT_KEYS = ['chargeback_split','holdback_split','cb_split'];
+
+    const isDCode  = r => /^d/i.test((r.code||'').trim());
+    const isPPhoto = r => /^p(m|r)/i.test((r.code||'').trim());
+    const isGlassBase = row => /glass/i.test(N(row?.enhancement || row?.subtype || ''));
+    const preferPhotoCodeForBase = row => (isGlassBase(row) ? 'PM' : 'PR');
+
+    // AR rows: exclusive_key says so, text says so, or code is AA/AB/AC/AD/AE/AF/AH…
+    const isARRow = (r)=>{
+      const ex = String(r.exclusive_key||'').toLowerCase();
+      if (ex==='ar' || ex==='ar_level' || ex==='anti_reflective') return true;
+      const txt = N((r.enhancement||'')+' '+(r.subtype||''));
+      if (/anti[-\s]?reflect/.test(txt)) return true;
+      const c = String(r.code||'').trim().toUpperCase();
+      if (/^A[A-Z]$/.test(c)) return true; // captures AA, AB, AC, AD, AE, AF, AH…
+      return false;
+    };
+
     function parseCSV(text){
-      const rows=[]; let row=[], field='', q=false;
+      const rows=[]; let row=[], fieldV='', q=false;
       for(let i=0;i<text.length;i++){
         const ch=text[i];
-        if(ch==='\"'){ if(q && text[i+1]==='\"'){ field+='\"'; i++; } else { q=!q; } continue; }
-        if(!q && ch===','){ row.push(field); field=''; continue; }
-        if(!q && (ch==='\n' || ch==='\r')){ if(field!==''||row.length){ row.push(field); rows.push(row); row=[]; field=''; } continue; }
-        field+=ch;
+        if(ch==='\"'){ if(q && text[i+1]==='\"'){ fieldV+='\"'; i++; } else { q=!q; } continue; }
+        if(!q && ch===','){ row.push(fieldV); fieldV=''; continue; }
+        if(!q && (ch==='\n' || ch==='\r')){ if(fieldV!==''||row.length){ row.push(fieldV); rows.push(row); row=[]; fieldV=''; } continue; }
+        fieldV+=ch;
       }
-      if(field!==''||row.length){ row.push(field); rows.push(row); }
+      if(fieldV!==''||row.length){ row.push(fieldV); rows.push(row); }
       const headers = rows.shift().map(h=>h.replace(/^\"|\"$/g,'').trim());
       return rows.filter(r=>r.length>=headers.length).map(r=>{
         const o={}; headers.forEach((h,i)=>o[h]=(r[i]||'').replace(/^\"|\"$/g,'').trim()); return o;
@@ -219,13 +238,12 @@
     const getCache=()=>({ text: localStorage.getItem(CACHE_KEY), meta: JSON.parse(localStorage.getItem(META_KEY)||'{}') });
     const clearCacheStorage=()=>{ localStorage.removeItem(CACHE_KEY); localStorage.removeItem(META_KEY); };
 
-    let DATA=[];
-    let SIMPLE_BY_CODE = new Map(); // single-code rows
-    let ACTIVE_ROWS = [];
+    let DATA=[], ACTIVE_ROWS=[];
+    let SIMPLE_BY_CODE = new Map();
 
     function buildSimpleIndex(){
       SIMPLE_BY_CODE = new Map();
-      for (const r of DATA){
+      for (const r of ACTIVE_ROWS){
         const parts = splitCodes(r.code);
         if (parts.length === 1){
           const code = parts[0];
@@ -234,7 +252,6 @@
         }
       }
     }
-
     function pickSimpleByExactCode(code){
       const list = SIMPLE_BY_CODE.get(code) || [];
       if (!list.length) return null;
@@ -266,16 +283,20 @@
         if (r.ok){ loaded = r; break; }
       }
 
-      if (loaded){
-        const meta = { plan:'VSP_choice', version:new Date().toISOString().slice(0,10)+'.ui18.3-alamo', source:'network:'+loaded.url, sha:quickHash(loaded.text) };
-        setCache(loaded.text, meta);
-        DATA = parseCSV(loaded.text);
+      function activateAndIndex(text, meta){
+        DATA = parseCSV(text);
         ACTIVE_ROWS = DATA.filter(r => {
           const v = String(r.active??'yes').trim().toLowerCase();
           return ['',' ','y','yes','true','1','active','enabled'].includes(v);
         });
         buildSimpleIndex();
         renderMeta(ACTIVE_ROWS.length, meta);
+      }
+
+      if (loaded){
+        const meta = { plan:'VSP_choice', version:new Date().toISOString().slice(0,10)+'.ui18.4-alamo', source:'network:'+loaded.url, sha:quickHash(loaded.text) };
+        setCache(loaded.text, meta);
+        activateAndIndex(loaded.text, meta);
         status.textContent = ` [ok] ${loaded.url} • ${ACTIVE_ROWS.length} rows`;
         computeBundles();
         return;
@@ -283,13 +304,7 @@
 
       const {text, meta} = getCache();
       if(text){
-        DATA = parseCSV(text);
-        ACTIVE_ROWS = DATA.filter(r => {
-          const v = String(r.active??'yes').trim().toLowerCase();
-          return ['',' ','y','yes','true','1','active','enabled'].includes(v);
-        });
-        buildSimpleIndex();
-        renderMeta(ACTIVE_ROWS.length, {...meta, source:'cache'});
+        activateAndIndex(text, {...meta, source:'cache'});
         status.textContent = ` Network failed. Using cached data (${ACTIVE_ROWS.length} rows).`;
         computeBundles();
         return;
@@ -304,12 +319,7 @@
         hint = `<div style="margin-top:6px">You opened this file via <code>file://</code>. Start a tiny local server instead:
                 <br/><code>python -m http.server 8080</code> → open <code>http://localhost:8080/index.html</code></div>`;
       }
-      diag.innerHTML = `
-        <b>Load failed — no cache available.</b>
-        <div style="margin-top:6px">I tried these paths (first wins):</div>
-        <ul>${urls}</ul>
-        <div style="margin-top:6px">Results:</div>
-        <ul>${errs}</ul>${hint}`;
+      diag.innerHTML = `<b>Load failed — no cache available.</b><div style="margin-top:6px">I tried:</div><ul>${urls}</ul><div style="margin-top:6px">Results:</div><ul>${errs}</ul>${hint}`;
       el('status').textContent = ' load failed (see diagnostics below)';
       document.querySelector('main').appendChild(diag);
     }
@@ -318,17 +328,15 @@
       el('version').textContent = `plan=${meta.plan||'VSP_choice'} • rows=${count||0} • version=${meta.version||'—'} • source=${meta.source||'—'} • sha=${meta.sha||'—'}`;
     }
 
-    /* ---------- Key mapping with heuristic fallback ---------- */
-
+    /* ---------- Bucket mapping with heuristic fallback ---------- */
     const NAMES = {
       base: new Set(['base_material','base','material','lens_material','sv_base']),
       occ:  new Set(['occupational','occ','lined','bifocal','trifocal']),
       pal:  new Set(['progressive_level','progressive','pal','mf_level','multifocal']),
-      ar:   new Set(['ar_level','ar','anti_reflective','antireflective','coating_ar','anti-reflective']),
+      ar:   new Set(['ar_level','ar','anti_reflective','antireflective','anti-reflective']),
       sun:  new Set(['sun_tech','sun','tint','photochromic','polarized','sunwear','sunwear_tech']),
       os:   new Set(['oversize','os'])
     };
-
     function bucketGuess(r){
       const s = N((r.enhancement||'')+' '+(r.subtype||'')+' '+(r.code||''));
       if (/over\s*size|oversize|oversized|\bos\b/.test(s)) return 'os';
@@ -338,7 +346,6 @@
       if (/occupational|lined|bifocal|trifocal|\bocc\b/.test(s)) return 'occ';
       return 'base';
     }
-
     function rowsByCanon(canon){
       return ACTIVE_ROWS.filter(r=>{
         const ex = String(r.exclusive_key||'').toLowerCase();
@@ -346,7 +353,6 @@
         return bucketGuess(r) === canon;
       });
     }
-
     function applies(row, fam){
       const a=(row.applies_to||'ALL').toUpperCase();
       if(a.includes('ALL')) return true;
@@ -357,44 +363,49 @@
       return true;
     }
 
-    /* ===== Per-line math (strict-friendly; respects embedded splits) ===== */
+    /* ===== Per-line math ===== */
     function line(row){
       const desc = row.enhancement || row.subtype || '—';
       const codeStr = String(row.code||'').trim().toUpperCase();
       const partsCodes = splitCodes(codeStr);
 
+      // single code
       if (partsCodes.length === 1){
-        const cop = num(row.copay), cb = num(row.chargeback);
+        const cop = num(field(row, COPAY_KEYS, 0));
+        const cb  = num(field(row, CB_KEYS, 0));
         return { name:desc, code:codeStr, copay:cop, chargeback:cb, profit:cop-cb, parts:[] };
       }
 
-      const copParts = parseNumberList(row.copay);
-      const hbParts  = parseNumberList(row.chargeback_split || row.holdback_split || row.chargeback);
+      // composite
+      const copRaw = field(row, COPAY_KEYS, '');
+      const cbRaw  = field(row, CBSPLIT_KEYS, field(row, CB_KEYS, ''));
+      const copParts = parseNumberList(copRaw);
+      const hbParts  = parseNumberList(cbRaw);
 
       const n = partsCodes.length;
       const parts = [];
 
-      // Copay per part
+      // copay split
       let cp = [];
       if (copParts.length === n){
         cp = copParts;
-      }else{
+      } else {
         const baseCode = partsCodes[0];
         const baseRow  = pickSimpleByExactCode(baseCode);
-        let baseCop  = baseRow ? num(baseRow.copay) : num(row.copay)/n;
-        const remain = Math.max(num(row.copay) - baseCop, 0);
+        let baseCop  = baseRow ? num(field(baseRow, COPAY_KEYS, 0)) : num(field(row, COPAY_KEYS, 0))/n;
+        const remain = Math.max(num(field(row, COPAY_KEYS, 0)) - baseCop, 0);
         const each = n>1 ? remain/(n-1) : 0;
         cp = [baseCop, ...Array.from({length:n-1}, ()=>each)];
       }
 
-      // Holdback per part
+      // holdback split
       let hb = [];
       if (hbParts.length === n){
         hb = hbParts;
-      }else{
+      } else {
         hb = partsCodes.map((c)=>{
           const r = pickSimpleByExactCode(c);
-          return r ? num(r.chargeback) : 0;
+          return r ? num(field(r, CB_KEYS, 0)) : 0;
         });
       }
 
@@ -613,21 +624,22 @@
           if(!wantAsp && name.includes('aspheric')) return false;
           if(!wantGlass && name.includes('glass'))  return false;
           if(isCustomMeasure(r)) return false;
-          if (tintSel==='polarized') return /polariz/.test(name); // PAL polarized uses NP/OP bases
+          if (tintSel==='polarized') return /polariz/.test(name);
           return !/(photochrom|polariz|tint|tinted|sunglass|gradient)/.test(name);
         });
       } else {
         if (tintSel==='polarized') {
-          base = sunAll.filter(r => /polariz/.test(N(r.enhancement)) && isDCode(r)); // SV/Lined → D-codes
+          base = sunAll.filter(r => /polariz/.test(N(r.enhancement)) && isDCode(r));
         } else {
           const pool = fam==='SV' ? rowsByCanon('base') : rowsByCanon('occ').concat(rowsByCanon('base'));
-          base = pool.filter(r=>applies(r,fam)).filter(r=>{
-            const name=N(r.enhancement);
-            if(!wantAsp && name.includes('aspheric')) return false;
-            if(!wantGlass && name.includes('glass'))  return false;
-            if(/photochrom|polariz|tint|tinted|sunglass|gradient/.test(name)) return false;
-            return true;
-          });
+          base = pool.filter(r=>applies(r,fam))
+                     .filter(r=>!isARRow(r)) // <-- keep AR out of base no matter what
+                     .filter(r=>{
+                        const name=N(r.enhancement);
+                        if(!wantAsp && name.includes('aspheric')) return false;
+                        if(!wantGlass && name.includes('glass'))  return false;
+                        return !/(photochrom|polariz|tint|tinted|sunglass|gradient)/.test(name);
+                     });
         }
       }
 
@@ -635,10 +647,10 @@
       function rankAR(ars){
         const gradeVal = (s)=>{ const m=String(s||'').match(/\b([A-D])\b/i); if(!m) return null; return {A:1,B:2,C:3,D:4}[m[1].toUpperCase()]||null; };
         return [...ars].sort((a,b)=>{
-          const ga=gradeVal(a.enhancement)||-1, gb=gradeVal(b.enhancement)||-1;
+          const ga=gradeVal(a.enhancement||a.subtype)||-1, gb=gradeVal(b.enhancement||b.subtype)||-1;
           if(ga!==gb) return gb-ga;
-          const pa=num(a.copay)-num(a.chargeback);
-          const pb=num(b.copay)-num(b.chargeback);
+          const pa=num(field(a, COPAY_KEYS, 0)) - num(field(a, CB_KEYS, 0));
+          const pb=num(field(b, COPAY_KEYS, 0)) - num(field(b, CB_KEYS, 0));
           return pb-pa;
         });
       }
@@ -662,8 +674,8 @@
         const c = diagCounts(fam);
         diagBox.style.display = 'block';
         diagBox.innerHTML = `<b>Diagnostics:</b> No viable bundle for <code>${fam}</code>.
-        <div>Bucket counts after <i>applies_to</i> filter — base:${c.base} • occ:${c.occ} • pal:${c.pal} • ar:${c.ar} • sun:${c.sun} • oversize:${c.os}</div>
-        <div>Tip: ensure <code>exclusive_key</code> or descriptions map to these buckets (base/occ/pal/ar/sun/oversize).</div>`;
+        <div>Bucket counts — base:${c.base} • occ:${c.occ} • pal:${c.pal} • ar:${c.ar} • sun:${c.sun} • oversize:${c.os}</div>
+        <div>Tip: ensure headers include <code>copay</code> &amp; <code>chargeback</code> (or aliases), and AR rows have <code>exclusive_key=ar_level</code>.</div>`;
         renderStack([
           {name:'Best',cls:'best',b:null},
           {name:'Better',cls:'better',b:null},
