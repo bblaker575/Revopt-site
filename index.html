@@ -239,13 +239,13 @@
         if ((/split/.test(n)) && (/(charge|hold|cb|hb)/.test(n))) addIf(CBSPLIT_KEYS,k);
 
         // exclusive key / bucket
-        if (/exclusivekey|exclusive|bucket|group|category|tier|level/.test(n)) addIf(EXCLUSIVE_KEYS,k);
+        if (/exclusivekey|exclusive|bucket|group|category|tier|level|kind|type/.test(n)) addIf(EXCLUSIVE_KEYS,k);
 
         // applies/family
-        if (/appliesto|applies|applyto|family|lensfamily/.test(n)) addIf(APPLIES_KEYS,k);
+        if (/appliesto|applies|applyto|family|lensfamily|sv|mf|occ/.test(n)) addIf(APPLIES_KEYS,k);
 
         // enhancement/description
-        if (/enhancement|lensenhancement|description|desc|subtype/.test(n)) addIf(ENHANCE_KEYS,k);
+        if (/enhancement|lensenhancement|description|desc|subtype|name|label/.test(n)) addIf(ENHANCE_KEYS,k);
 
         // code
         if (/^code(s)?$/.test(n)) addIf(CODE_KEYS,k);
@@ -263,6 +263,8 @@
     const isARRow = (r)=>{
       const ex = normKey(field(r,EXCLUSIVE_KEYS,''));
       if (['ar','arlevel','antireflective','antireflect','antiglare','noglare'].includes(ex)) return true;
+      const codeUp = String(field(r,CODE_KEYS,'')).toUpperCase();
+      if (/^(CR|AR)\b/.test(codeUp)) return true;
       const txt = N((field(r,ENHANCE_KEYS,'')||''));
       if (/(anti[\s-]?reflect|anti[\s-]?glare|no[\s-]?glare|\bar\b)/i.test(txt)) return true;
       return false;
@@ -387,22 +389,67 @@
       sun:  new Set(['sun_tech','sun','tint','photochromic','polarized','sunwear','sunwear_tech']),
       os:   new Set(['oversize','os'])
     };
+
+    function codeCategoryFallback(r){
+      const codeStr = String(field(r, CODE_KEYS, '')).toUpperCase();
+      const parts = splitCodes(codeStr);
+      const main = parts[0] || '';
+      // D* -> sun (polarized family)
+      if (/^D/.test(main)) return 'sun';
+      // NA or OA (progressive A-base codes)
+      if (/^(NA|OA)/.test(main)) return 'pal';
+      // CR/AR -> AR families
+      if (/^(CR|AR)/.test(main)) return 'ar';
+      // Composite BA+BB style -> Base bucket
+      if (/\+/.test(codeStr) || /(BA|BB|BD|BH)\b/.test(codeStr)) return 'base';
+      return null;
+    }
+
     function bucketGuess(r){
+      // 1) explicit exclusive key mapping
+      const ex = normKey(field(r,EXCLUSIVE_KEYS,''));
+      if (ex) {
+        if (ex.startsWith('base')) return 'base';
+        if (ex.startsWith('occ') || /lined|bifocal|trifocal/.test(ex)) return 'occ';
+        if (ex.startsWith('pal') || ex.startsWith('mf') || /progressive|multifocal/.test(ex)) return 'pal';
+        if (ex.includes('ar') || ex.includes('antireflect')) return 'ar';
+        if (ex.includes('sun') || ex.includes('photo') || ex.includes('polar') || ex.includes('tint')) return 'sun';
+        if (ex.includes('oversize') || ex==='os') return 'os';
+      }
+
+      // 2) text/description mapping
       const txt = N((field(r,ENHANCE_KEYS,'')||'')+' '+(field(r,CODE_KEYS,'')||''));
       if (/over\s*size|oversize|oversized|\bos\b/.test(txt)) return 'os';
       if (/anti[-\s]?reflect|anti[-\s]?glare|no[-\s]?glare|\bar\b/.test(txt)) return 'ar';
       if (/polariz|photochrom|transition|tint|tinted|gradient|sunglass/.test(txt)) return 'sun';
       if (/progressive|multi\s*focal|\bpal\b|\bmf\b/.test(txt)) return 'pal';
       if (/occupational|lined|bifocal|trifocal|\bocc\b/.test(txt)) return 'occ';
+
+      // 3) code-only fallback
+      const cat = codeCategoryFallback(r);
+      if (cat) return cat;
+
+      // 4) default to base
       return 'base';
     }
+
     function rowsByCanon(canon){
       return ACTIVE_ROWS.filter(r=>{
+        // Prefer explicit names from CSV if present
         const ex = normKey(field(r,EXCLUSIVE_KEYS,''));
-        if (NAMES[canon].has(ex)) return true;
+        if (ex) {
+          if (canon==='base' && (NAMES.base.has(ex) || ex.startsWith('base'))) return true;
+          if (canon==='occ'  && (NAMES.occ.has(ex)  || ex.startsWith('occ')  || /lined|bifocal|trifocal/.test(ex))) return true;
+          if (canon==='pal'  && (NAMES.pal.has(ex)  || ex.startsWith('pal')  || ex.startsWith('mf'))) return true;
+          if (canon==='ar'   && (NAMES.ar.has(ex)   || ex.includes('ar') || ex.includes('antireflect'))) return true;
+          if (canon==='sun'  && (NAMES.sun.has(ex)  || /sun|photo|polar|tint/.test(ex))) return true;
+          if (canon==='os'   && (NAMES.os.has(ex)   || /oversize|os/.test(ex))) return true;
+        }
+        // Heuristic
         return bucketGuess(r) === canon;
       });
     }
+
     function applies(row, fam){
       const a=(String(field(row,APPLIES_KEYS,'ALL'))||'ALL').toUpperCase();
       if(a.includes('ALL')) return true;
