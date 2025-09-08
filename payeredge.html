@@ -1,3 +1,4 @@
+<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8"/>
@@ -266,7 +267,7 @@
         DATA = parseCSV(loaded.text);
         buildSimpleIndex();
         renderMeta(DATA.length, meta);
-        status.textContent =  [ok] ${loaded.url} • ${DATA.length} rows;
+        status.textContent = ` [ok] ${loaded.url} • ${DATA.length} rows`;
         computeBundles();
         return;
       }
@@ -276,21 +277,21 @@
         DATA = parseCSV(text);
         buildSimpleIndex();
         renderMeta(DATA.length, {...meta, source:'cache'});
-        status.textContent =  Network failed. Using cached data (${DATA.length} rows).;
+        status.textContent = ` Network failed. Using cached data (${DATA.length} rows).`;
         computeBundles();
         return;
       }
 
       const diag = document.createElement('div');
       diag.style.cssText = 'margin-top:12px; padding:10px; border:1px solid #843; background:#1a0f16; color:#f8cdd5; border-radius:10px; font-size:13px';
-      const urls = CSV_CANDIDATES.map(u => <li><code>${u}</code></li>).join('');
-      const errs = tried.map(t => <li><code>${t.url}</code> → ${t.ok ? 'OK' : t.err}</li>).join('');
+      const urls = CSV_CANDIDATES.map(u => `<li><code>${u}</code></li>`).join('');
+      const errs = tried.map(t => `<li><code>${t.url}</code> → ${t.ok ? 'OK' : t.err}</li>`).join('');
       let hint = '';
       if (location.protocol === 'file:') {
-        hint = <div style="margin-top:6px">You opened this file via <code>file://</code>. Start a tiny local server instead:
-                <br/><code>python -m http.server 8080</code> → open <code>http://localhost:8080/payeredge.html</code></div>;
+        hint = `<div style="margin-top:6px">You opened this file via <code>file://</code>. Start a tiny local server instead:
+                <br/><code>python -m http.server 8080</code> → open <code>http://localhost:8080/payeredge.html</code></div>`;
       }
-      diag.innerHTML = 
+      diag.innerHTML = `
         <b>Load failed — no cache available.</b>
         <div style="margin-top:6px">I tried these paths (first wins):</div>
         <ul>${urls}</ul>
@@ -302,13 +303,13 @@
             <li>Open this page via a local server (not <code>file://</code>).</li>
             <li>Click <b>Clear Cache</b> then <b>Force Refresh</b>.</li>
           </ol>
-        </div>${hint};
+        </div>${hint}`;
       el('status').textContent = ' load failed (see diagnostics below)';
       document.querySelector('main').appendChild(diag);
     }
 
     function renderMeta(count, meta){
-      el('version').textContent = plan=${meta.plan||'VSP_choice'} • rows=${count||0} • version=${meta.version||'—'} • source=${meta.source||'—'} • sha=${meta.sha||'—'};
+      el('version').textContent = `plan=${meta.plan||'VSP_choice'} • rows=${count||0} • version=${meta.version||'—'} • source=${meta.source||'—'} • sha=${meta.sha||'—'}`;
     }
 
     const byKey=(k)=>DATA.filter(r=>(r.active||'yes').toLowerCase()==='yes' && (r.exclusive_key||'').toLowerCase()===k);
@@ -397,19 +398,19 @@
     /* ===== UI ===== */
     function animateNumber(el,to){
       const from=parseFloat(el.getAttribute('data-prev')||'0'); const start=performance.now(); const dur=380;
-      function step(t){ const k=Math.min(1,(t-start)/dur); const v=from+(to-from)*(0.5-Math.cos(Math.PI*k)/2); el.textContent=$${v.toFixed(2)}; if(k<1)requestAnimationFrame(step); else el.setAttribute('data-prev',to); }
+      function step(t){ const k=Math.min(1,(t-start)/dur); const v=from+(to-from)*(0.5-Math.cos(Math.PI*k)/2); el.textContent=`$${v.toFixed(2)}`; if(k<1)requestAnimationFrame(step); else el.setAttribute('data-prev',to); }
       requestAnimationFrame(step);
     }
-    const tdMoney = v => <td class="money">$${v.toFixed(2)}</td>;
+    const tdMoney = v => `<td class="money">$${v.toFixed(2)}</td>`;
 
     function renderTier({name, cls, b}){
       const div=document.createElement('div'); div.className='tier';
       if(!b){
-        div.innerHTML=<div class="tierHead"><div class="stars ${cls}"><span class="tag">${name}</span></div><div class="figures"><div class="hero">—</div><div class="caption">Patient Copay</div></div></div><div class="sub">No viable bundle</div>;
+        div.innerHTML=`<div class="tierHead"><div class="stars ${cls}"><span class="tag">${name}</span></div><div class="figures"><div class="hero">—</div><div class="caption">Patient Copay</div></div></div><div class="sub">No viable bundle</div>`;
         return div;
       }
       const stars = name==='Best' ? '★★★' : name==='Better' ? '★★' : name==='Good' ? '★' : '◎';
-      const head = 
+      const head = `
         <div class="tierHead">
           <div class="stars ${cls}">
             <div aria-label="${name}" title="${name}" style="font-size:18px">${stars}</div>
@@ -420,20 +421,20 @@
             <div class="caption">Patient Copay</div>
             <div class="caption">Service Fee (Practice Profit): <span class="svc">$${b.profit.toFixed(2)}</span></div>
           </div>
-        </div>;
+        </div>`;
 
       const lines = b.lines.map(li=>{
-        const main = 
+        const main = `
           <tr>
             <td>${li.name}</td>
             <td class="code">${li.code || '—'}</td>
             ${tdMoney(li.copay)}
             ${tdMoney(li.chargeback)}
             ${tdMoney(li.profit)}
-          </tr>;
+          </tr>`;
 
         const parts = (li.parts && li.parts.length)
-          ? 
+          ? `
             <tr>
               <td colspan="5">
                 <div class="break">
@@ -447,24 +448,24 @@
                       </tr>
                     </thead>
                     <tbody>
-                      ${li.parts.map(p=>
+                      ${li.parts.map(p=>`
                         <tr>
                           <td><span class="codepill">${p.code}</span></td>
                           ${tdMoney(p.copay)}
                           ${tdMoney(p.chargeback)}
                           ${tdMoney(p.profit)}
-                        </tr>).join('')}
+                        </tr>`).join('')}
                     </tbody>
                   </table>
                 </div>
               </td>
-            </tr>
+            </tr>`
           : '';
 
         return main + parts;
       }).join('');
 
-      div.innerHTML = head + 
+      div.innerHTML = head + `
         <table>
           <thead>
             <tr>
@@ -482,7 +483,7 @@
               ${tdMoney(b.copay)}${tdMoney(b.chargeback)}${tdMoney(b.profit)}
             </tr>
           </tfoot>
-        </table>;
+        </table>`;
       const hero = div.querySelector('.hero'); animateNumber(hero, b.copay);
       return div;
     }
@@ -685,4 +686,4 @@
   }
   </script>
 </body>
-</html> 
+</html>
