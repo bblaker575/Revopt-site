@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8"/>
-<title>PayerEdge — VSP Bundles (v11)</title>
+<title>PayerEdge — VSP Bundles (v11.1)</title>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <style>
   :root{--bg:#0b0f14;--fg:#e7eefc;--muted:#9fb0c9;--card:#101722;--line:#233044;--ok:#10b981}
@@ -37,7 +37,7 @@
       <div class="meta">Scoreboard shows <b>patient copay</b> and <b>service fee</b> (Copay − Holdback). Sun choices are exclusive.</div>
     </div>
     <div style="display:flex;gap:8px;align-items:center">
-      <span class="meta">plan=<b>VSP_choice</b> • version=<b>v11</b> • source=<span id="src" class="muted">…</span></span>
+      <span class="meta">plan=<b>VSP_choice</b> • version=<b>v11.1</b> • source=<span id="src" class="muted">…</span></span>
       <button class="btn" id="refresh">Force Refresh</button>
       <button class="btn" id="clear">Clear Cache</button>
     </div>
@@ -82,9 +82,9 @@
      ***************/
     const CSV_PATH = "./data/vsp_choice_master_v8_from_patched.csv"; // change if your path differs
     document.getElementById("src").textContent = CSV_PATH;
-    const CACHE_KEY = "vsp_choice_v11";
+    const CACHE_KEY = "vsp_choice_v11_1";
 
-    // Cards we render
+    // Cards to render
     const CARDS = [
       {key:"Hi67", pair:"BA+BH", title:"Hi67"},
       {key:"Mid",  pair:"BA+BB", title:"Mid"},
@@ -106,6 +106,9 @@
       return (["sv","mf"].includes(s)) ? s.toUpperCase() : "SV";
     }
 
+    // Normalize a code string: uppercase + remove all whitespace
+    const normCode = (c)=>String(c||"").toUpperCase().replace(/\s+/g,"");
+
     /*****************
      * CSV LOADING   *
      *****************/
@@ -114,7 +117,7 @@
       return {
         group: r.group||"",
         enhancement: r.enhancement||"",
-        code: (r.code || r.codes || "").toUpperCase(),
+        code: normCode(r.code || r.codes),
         notes: r.notes||"",
         copay_raw: r.copay||"",
         vsp: num(r.vsp),
@@ -125,7 +128,7 @@
     }
 
     function parseAddFromNotes(notes){
-      // e.g., "Copay = 45+28 (SV) / 55+28 (MF)"
+      // Example in CSV notes: "Copay = 45+58 (SV) / 55+68 (MF)"
       const m = /Copay\s*=\s*45\+(\d+)\s*\(SV\)\s*\/\s*55\+(\d+)\s*\(MF\)/i.exec(notes||"");
       if (!m) return null;
       return {sv_add: Number(m[1]), mf_add: Number(m[2])};
@@ -134,8 +137,9 @@
     function indexRows(rows){
       const byCode = {};
       for (const r of rows){
-        if (!r.code) continue;
-        (byCode[r.code] ||= []).push(r);
+        const code = normCode(r.code);
+        if (!code) continue;
+        (byCode[code] ||= []).push(r);
       }
       return byCode;
     }
@@ -144,8 +148,9 @@
       const cached = sessionStorage.getItem(CACHE_KEY);
       if (cached){
         const {rows, when} = JSON.parse(cached);
-        $meta.textContent = `rows=${rows.length} • cache ${(new Date(when)).toLocaleTimeString()}`;
-        return rows.map(norm);
+        const nrows = rows.map(norm);
+        $meta.textContent = `rows=${nrows.length} • cache ${(new Date(when)).toLocaleTimeString()}`;
+        return nrows;
       }
       try{
         const res = await fetch(CSV_PATH, {cache:"no-store"});
@@ -174,49 +179,60 @@
     /*****************
      * PRICING LOGIC *
      *****************/
-    // Pick the BA base (SV=$45/$24/$21, MF=$55/$34/$21)
+    // BA base (SV = $45/$24/$21, MF = $55/$34/$21) chosen directly from CSV
     function baseBA(byCode, fam){
-      const baRows = (byCode["BA"]||[]);
-      // choose by $45 or $55 in copay_raw
+      const baRows = (byCode[normCode("BA")]||[]);
+      if (!baRows.length) return null;
+      // identify by leading 45 or 55 in copay_raw
       let row = baRows.find(r=>/^\$?45\b/.test(String(r.copay_raw))) || baRows[0];
       if (fam==="MF") row = baRows.find(r=>/^\$?55\b/.test(String(r.copay_raw))) || row;
-      return { item:"Digital Aspheric", code:"BA", copay: num(String(row.copay_raw).replace("$","")), holdback: row.chargeback||0, serviceFee: row.vsp||0, source:"csv"};
+      return {
+        item:"Digital Aspheric",
+        code:"BA",
+        copay: num(String(row.copay_raw).replace("$","")),
+        holdback: row.chargeback||0,
+        serviceFee: row.vsp||0,
+        source:"csv"
+      };
     }
 
-    // Compute BA+* pair totals straight from CSV semantics
+    // BA+* pair totals (SV/MF) computed from CSV notes + correct row for CB/SF
     function pairFromCsv(byCode, pairCode, fam){
-      const rows = (byCode[pairCode]||[]);
+      const code = normCode(pairCode);
+      const rows = (byCode[code]||[]);
       if (!rows.length) return null;
 
-      // parse add values from notes (authoritative)
       const addInfo = parseAddFromNotes(rows[0].notes);
-      // fallback for BA+BJ which is SV-only and lacks MF part
-      if (!addInfo && pairCode==="BA+BJ"){
+
+      // BA+BJ is SV-only in some sheets; handle gracefully
+      if (!addInfo && code==="BA+BJ"){
         const r = rows[0];
         const m = /45\s*\+\s*(\d+)/.exec(String(r.copay_raw));
         const sv = 45 + (m ? Number(m[1]) : 0);
-        return { item:"Digital Aspheric", code:pairCode, copay: sv, holdback: r.chargeback||0, serviceFee: r.vsp||0, source:"csv" };
+        return { item:"Digital Aspheric", code, copay: sv, holdback: r.chargeback||0, serviceFee: r.vsp||0, source:"csv" };
       }
+
+      if (!addInfo) return null;
 
       const svTotal = 45 + addInfo.sv_add;
       const mfTotal = 55 + addInfo.mf_add;
 
-      // choose the row whose "45 + X" second term matches our fam (CSV encodes MF as 45 + (mf_add+10))
-      const second = s => { const m=/\+\s*(\d+)/.exec(String(s)); return m?Number(m[1]):null; };
-      const svRow = rows.find(r => second(r.copay_raw)===addInfo.sv_add) || rows[0];
-      const mfRow = rows.find(r => second(r.copay_raw)===(addInfo.mf_add+10)) || rows[rows.length-1];
+      // CSV often encodes MF as "45 + (mf_add+10)" in copay_raw second term
+      const secondTerm = s => { const m=/\+\s*(\d+)/.exec(String(s)); return m?Number(m[1]):null; };
+      const svRow = rows.find(r => secondTerm(r.copay_raw)===addInfo.sv_add) || rows[0];
+      const mfRow = rows.find(r => secondTerm(r.copay_raw)===(addInfo.mf_add+10)) || rows[rows.length-1];
 
       const picked = (fam==="SV") ? svRow : mfRow;
       const total  = (fam==="SV") ? svTotal : mfTotal;
 
-      return { item:"Digital Aspheric", code:pairCode, copay: total, holdback: picked.chargeback||0, serviceFee: picked.vsp||0, source:"csv" };
+      return { item:"Digital Aspheric", code, copay: total, holdback: picked.chargeback||0, serviceFee: picked.vsp||0, source:"csv" };
     }
 
-    // CR / AA and AR / QM (from CSV)
-    function codeFromCsv(byCode, fam, code){
+    // CR codes from CSV (AA: SV=$31, MF=$35; QM: AR add-on)
+    function codeFromCsv(byCode, fam, rawCode){
+      const code = normCode(rawCode);
       const rows = (byCode[code]||[]);
       if (!rows.length) return null;
-      // AA has two rows ($31 and $35). QM rows are identical, we can pick the first.
       let row = rows[0];
       if (code==="AA"){
         row = (fam==="SV")
@@ -228,10 +244,12 @@
 
     const sum = (arr,k) => arr.reduce((s,x)=>s+(x[k]||0),0);
 
-    function renderPairCard(badge, pair, base, fam){
-      // pair: totals for BA+*, base: BA base row (for quick reference)
+    /****************
+     * RENDER CARDS *
+     ****************/
+    function renderPairCard(badge, pair, base){
       const infoRows = [
-        { code:"BA",       copay: base.copay, holdback: base.holdback, serviceFee: base.serviceFee },
+        { code:"BA", copay: base.copay, holdback: base.holdback, serviceFee: base.serviceFee },
         { code: pair.code.split("+")[1], copay: pair.copay, holdback: pair.holdback, serviceFee: pair.serviceFee }
       ];
       return `
@@ -268,7 +286,7 @@
       `;
     }
 
-    function renderSimpleCardCR(rows){
+    function renderCR(rows){
       const copay = sum(rows,"copay"), hold=sum(rows,"holdback"), fee=sum(rows,"serviceFee");
       return `
         <div class="card">
@@ -278,4 +296,67 @@
           <table>
             <thead><tr><th>Item</th><th>Code</th><th class="right">Copay</th><th class="right">Holdback</th><th class="right">Service Fee</th></tr></thead>
             <tbody>
-              ${rows.
+              ${rows.map(r=>`
+                <tr>
+                  <td>${r.item}</td>
+                  <td class="muted">${r.code}</td>
+                  <td class="right">${money(r.copay)}</td>
+                  <td class="right">${money(r.holdback)}</td>
+                  <td class="right">${money(r.serviceFee)}</td>
+                </tr>`).join("")}
+              <tr>
+                <td class="muted">Totals</td><td></td>
+                <td class="right"><b>${money(copay)}</b></td>
+                <td class="right"><b>${money(hold)}</b></td>
+                <td class="right"><b>${money(fee)}</b></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      `;
+    }
+
+    /************
+     * PIPELINE *
+     ************/
+    async function run(){
+      const fam = famKey(document.getElementById("lensFamily").value);
+      const includeAR = document.getElementById("ar").checked;
+
+      const rows = await loadCsv();
+      const byCode = indexRows(rows);
+
+      const out = [];
+
+      // BA base (for consistent breakdown display)
+      const base = baseBA(byCode, fam);
+      if (!base){ $cards.innerHTML = "<div class='meta' style='padding:20px'>No BA base row found in CSV.</div>"; return; }
+
+      // Hi67 / Mid / Poly — pair totals from CSV (no BA double-count)
+      for (const c of CARDS.slice(0,3)){
+        const pair = pairFromCsv(byCode, c.pair, fam);
+        if (!pair){ out.push(`<div class="card"><div class="meta">Missing ${c.pair} in CSV.</div></div>`); continue; }
+        out.push(renderPairCard(c.key, pair, base));
+      }
+
+      // CR: AA (+ QM if AR checked) from CSV
+      const crRows = [];
+      const aa = codeFromCsv(byCode, fam, "AA"); if (aa) crRows.push(aa);
+      if (includeAR){ const qm = codeFromCsv(byCode, fam, "QM"); if (qm) crRows.push(qm); }
+      out.push(renderCR(crRows));
+
+      $cards.innerHTML = out.join("");
+    }
+
+    // events
+    document.getElementById("lensFamily").addEventListener("change", ()=>{ sessionStorage.removeItem(CACHE_KEY); run(); });
+    document.getElementById("lensTint").addEventListener("change", run); // future: tint rules
+    document.getElementById("ar").addEventListener("change", run);
+    ["aspheric","oversize","glass","noOnly"].forEach(id=>document.getElementById(id).addEventListener("change", run));
+    document.getElementById("refresh").addEventListener("click", ()=>{ sessionStorage.removeItem(CACHE_KEY); run(); });
+    document.getElementById("clear").addEventListener("click", ()=>{ sessionStorage.clear(); $meta.textContent="cache cleared"; run(); });
+
+    run();
+  </script>
+</body>
+</html>
