@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>PayerEdge — VSP Bundles (App v17.3)</title>
+  <title>PayerEdge — VSP Bundles (App v17.3.3)</title>
 
   <!-- Typography -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -134,7 +134,7 @@
 
   <!-- Error overlay for runtime issues -->
   <script>
-    if (!window.__PAYEREDGE_V173__) {
+    if (!window.__PAYEREDGE_V1733__) {
       (function(){
         function showErrorOverlay(err, where){
           const wrap = document.createElement('div');
@@ -150,10 +150,10 @@
   </script>
 
   <script>
-  if (window.__PAYEREDGE_V173__) {
+  if (window.__PAYEREDGE_V1733__) {
     console.warn('PayerEdge APP script already loaded; skipping second init.');
   } else {
-    window.__PAYEREDGE_V173__ = true;
+    window.__PAYEREDGE_V1733__ = true;
 
     /* ================== Config & utils ================== */
 
@@ -175,20 +175,19 @@
     const N = s => String(s||'').toLowerCase();
 
     const isDCode  = r => /^d/i.test((r.code||'').trim());
-    const isPPhoto = r => /^p(m|r)\b/i.test((r.code||'').trim());
 
-    // ===== Glass detection by code & text =====
-    const GLASS_BASE_CODES = new Set(['AF','DE','FE']); // expand if needed
-    function isGlassByCode(row){
+    /* ===== Glass detection: codes & text ===== */
+    const GLASS_BASE_CODES = new Set(['AF','DE','FE']); // add more if needed
+    function baseCodeOf(row){
       const raw = String(row?.code || '').trim().toUpperCase();
       const parts = raw.split(/[\s+&/,\-]+/).filter(Boolean);
-      const base = parts[0] || raw; // base A-code
-      return GLASS_BASE_CODES.has(base);
+      return parts[0] || raw;
     }
+    function isGlassByCode(row){ return GLASS_BASE_CODES.has(baseCodeOf(row)); }
     const isGlassText = s => /glass/i.test(String(s||''));
     const isGlassBase = row => isGlassByCode(row) || isGlassText(row?.enhancement) || isGlassText(row?.subtype);
 
-    const preferPhotoCodeForBase = row => (isGlassBase(row) ? 'PM' : 'PR');
+    const preferPhotoCodeForBase = row => (isGlassBase(row) ? 'PM' : 'PR'); // Transitions PR vs PM
 
     const splitCodes = (s)=> String(s||'')
       .toUpperCase().replace(/[^\w+&/,\s-]/g,'')
@@ -268,7 +267,7 @@
       }
 
       if (loaded){
-        const meta = { plan:'VSP_choice', version:new Date().toISOString().slice(0,10)+'.ui17.3', source:'network:'+loaded.url, sha:quickHash(loaded.text) };
+        const meta = { plan:'VSP_choice', version:new Date().toISOString().slice(0,10)+'.ui17.3.3', source:'network:'+loaded.url, sha:quickHash(loaded.text) };
         setCache(loaded.text, meta);
         DATA = parseCSV(loaded.text);
         buildSimpleIndex();
@@ -327,46 +326,55 @@
       const codeStr = String(row.code||'').trim().toUpperCase();
       const partsCodes = splitCodes(codeStr);
 
-      // Single-code line
+      // Simple line
       if (partsCodes.length === 1){
         const cop = num(row.copay), cb = num(row.chargeback);
         return { name:desc, code:codeStr, copay:cop, chargeback:cb, profit:cop-cb, parts:[] };
       }
 
-      // Composite (split by A + addons)
-      const compositeCopayNums = parseCopayNumbers(row.copay);
+      // Composite: prefer single-code rows for each part
+      const compositeCopayNums  = parseCopayNumbers(row.copay);
       const compositeTotalCopay = num(row.copay);
-      const compositeAddOnCB = num(row.chargeback);
+      const compositeAddOnCB    = num(row.chargeback);
 
       const parts = [];
+      const pickSimple = (code)=> (SIMPLE_BY_CODE.get(code)||[])[0] || null;
 
-      // Base part from exact A-code row (or fallback)
-      const baseCode = partsCodes[0];
-      const baseRow  = pickBaseByExactCode(baseCode);
-      let baseCop  = baseRow ? num(baseRow.copay)      : (compositeCopayNums[0] ?? compositeTotalCopay);
-      let baseCB   = baseRow ? num(baseRow.chargeback) : 0;
-      parts.push({ code:baseCode, copay:baseCop, chargeback:baseCB, profit:baseCop-baseCB });
+      // Base (A-code)
+      const baseCode  = partsCodes[0];
+      const baseRow   = pickBaseByExactCode(baseCode) || pickSimple(baseCode);
+      const baseCopay = (compositeCopayNums.length >= partsCodes.length)
+        ? num(compositeCopayNums[0])
+        : (baseRow ? num(baseRow.copay) : compositeTotalCopay);
+      const baseCB    = baseRow ? num(baseRow.chargeback) : 0;
+      parts.push({ code:baseCode, copay:baseCopay, chargeback:baseCB, profit:baseCopay-baseCB });
 
       // Add-ons
       const addonCount = partsCodes.length - 1;
+
       let addonCopays = [];
       if (compositeCopayNums.length >= partsCodes.length){
-        addonCopays = compositeCopayNums.slice(1);
+        addonCopays = compositeCopayNums.slice(1).map(num);
       } else {
-        const remaining = Math.max(compositeTotalCopay - baseCop, 0);
-        if (addonCount <= 1){
-          addonCopays = [remaining];
-        } else {
-          const each = remaining / addonCount;
-          addonCopays = Array.from({length:addonCount}, ()=>each);
-        }
+        const remaining = Math.max(compositeTotalCopay - baseCopay, 0);
+        const each = addonCount ? (remaining / addonCount) : 0;
+        addonCopays = Array.from({length:addonCount}, ()=>each);
       }
-      const addonCBEach = addonCount <= 1 ? compositeAddOnCB : (compositeAddOnCB / addonCount);
 
       for (let i=1;i<partsCodes.length;i++){
         const code = partsCodes[i];
-        const cop  = num(addonCopays[i-1] ?? 0);
-        const cb   = addonCBEach;
+        const simple = pickSimple(code);
+
+        let cop = addonCopays[i-1];
+        if (!(isFinite(cop) && cop > 0)){
+          cop = simple ? num(simple.copay) : (addonCount ? compositeTotalCopay / addonCount : 0);
+        }
+
+        let cb = simple ? num(simple.chargeback) : 0;
+        if (!simple){
+          cb = (addonCount <= 1) ? compositeAddOnCB : (compositeAddOnCB / addonCount);
+        }
+
         parts.push({ code, copay:cop, chargeback:cb, profit:cop-cb });
       }
 
@@ -496,7 +504,7 @@
       return 'other';
     }
 
-    // Strict glass policy (now that we detect by code too)
+    // Strict glass policy (we detect by code and by text)
     function enforceGlassPolicy(rows, wantGlassOnly){
       return rows.filter(r => wantGlassOnly ? isGlassBase(r) : !isGlassBase(r));
     }
@@ -516,17 +524,15 @@
       }
     }
 
-    // PAL polarized base identification: NP / OP (or composites using them)
+    // PAL polarized base identification: NP / OP (or composites containing them)
     function isPolarizedPAL(row){
-      const code = String(row.code||'').trim().toUpperCase();
-      if (code==='NP' || code==='OP') return true;
-      const parts = splitCodes(code);
+      const parts = splitCodes(String(row.code||'').trim().toUpperCase());
       return parts.includes('NP') || parts.includes('OP');
     }
 
-    // PAL N/O base eligibility for CM: base must be NA* or OA*
+    // PAL N/O base eligibility for CM: base must begin NA or OA
     function isNOBase(row){
-      const code = String(row.code||'').trim().toUpperCase();
+      const code = baseCodeOf(row);
       return code.startsWith('NA') || code.startsWith('OA');
     }
 
@@ -628,7 +634,7 @@
       let base = [];
 
       if (fam === 'PAL') {
-        // PAL: materials from progressive_level. Polarized uses NP/OP (not D-codes).
+        // PAL: progressive_level materials. Polarized uses NP/OP (not D-codes).
         base = byKey('progressive_level').filter(r=>applies(r,fam)).filter(r=>{
           const name=N(r.enhancement||r.subtype||'');
           const code=String(r.code||'').toUpperCase();
@@ -640,7 +646,7 @@
         base = enforceGlassPolicy(base, wantGlassOnly);
       } else {
         if (tintSel==='polarized') {
-          // SV/LINED: D-coded polarized base (exclusive); DO NOT apply glass policy here
+          // SV/LINED: D-coded polarized base (exclusive); do NOT apply glass policy here
           base = byKey('sun_tech')
             .filter(r => applies(r, fam))
             .filter(r => /polariz/i.test(r.enhancement || r.subtype || ''))
