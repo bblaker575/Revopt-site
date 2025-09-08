@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8"/>
-  <title>PayerEdge — VSP Bundles (v12.5)</title>
+  <title>PayerEdge — VSP Bundles (v12.6)</title>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <style>
     :root{--bg:#0b0f14;--fg:#e7eefc;--muted:#9fb0c9;--card:#101722;--line:#233044;--ok:#10b981}
@@ -37,7 +37,7 @@
       <div class="meta">Scoreboard shows <b>patient copay</b> and <b>service fee</b> (Copay − Holdback). Sun choices are exclusive.</div>
     </div>
     <div style="display:flex;gap:8px;align-items:center">
-      <span class="meta">plan=<b id="planName">VSP_choice</b> • version=<b>v12.5</b> • source=<span id="src" class="muted">…</span></span>
+      <span class="meta">plan=<b id="planName">VSP_choice</b> • version=<b>v12.6</b> • source=<span id="src" class="muted">…</span></span>
       <button class="btn" id="refresh">Force Refresh</button>
       <button class="btn" id="clear">Clear Cache</button>
     </div>
@@ -65,6 +65,14 @@
 
     <div class="group" style="gap:12px">
       <label><input type="checkbox" id="ar" checked/> Include AR</label>
+      <span class="muted">Strategy</span>
+      <select id="arStrategy">
+        <option value="profit">Max Profit (default)</option>
+        <option value="disc25">≥25% Copay Discount</option>
+        <option value="disc50">≥50% Copay Discount</option>
+        <option value="cheapest">Cheapest for Patient</option>
+      </select>
+      <span class="muted">Tier</span>
       <select id="arTier">
         <option value="QM">Tier A (QM)</option>
         <option value="QT">Tier C (QT)</option>
@@ -88,11 +96,11 @@
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
   <script>
     /*************** CONFIG ***************/
-    const CSV_PATH = "./data/vsp_choice_master_v9_strict.csv"; // strict file
+    const CSV_PATH = "./data/vsp_choice_master_v9_strict.csv";
     const PLAN = "VSP_choice";
     const CACHE_KEY = "payeredge_v12_cache";
 
-    // Fallback BA base holdback (used only if CSV lacks a BA row)
+    // Fallback BA base holdback (only used if CSV lacks BA row)
     const BA_HOLDBACK_DEFAULT = { SV: 24, MF: 34 };
 
     const CARDS = [
@@ -107,6 +115,7 @@
     const $net   = document.getElementById("net");
     const $arCbx = document.getElementById("ar");
     const $arSel = document.getElementById("arTier");
+    const $arStr = document.getElementById("arStrategy");
     document.getElementById("src").textContent = CSV_PATH;
 
     const money = n => `$${Number(n||0).toFixed(2).replace(/\.00$/,'')}`;
@@ -200,7 +209,8 @@
         glass: document.getElementById("glass").checked,
         no_only: document.getElementById("noOnly").checked,
         arOn: document.getElementById("ar").checked,
-        arTier: document.getElementById("arTier").value // QM/QT/QV
+        arTier: document.getElementById("arTier").value,
+        arStrategy: document.getElementById("arStrategy").value
       };
     }
 
@@ -214,7 +224,7 @@
       if ((r.exclusive_group||"").trim()) return true; // e.g. sun
       const req = r.requires_flags||[];
       return req.includes("oversize") || req.includes("no_only") || req.includes("glass");
-      // NOTE: AR handled separately by checkbox + tier picker
+      // AR handled separately
     }
 
     function pickExclusive(rows){
@@ -232,18 +242,64 @@
       return [...passthrough, ...winners.values()];
     }
 
-    function pickAR(rowsForFam, flags){
-      if (!flags.arOn) return null;
-      const code = flags.arTier; // QM/QT/QV
-      const ar = rowsForFam.find(r => r.kind==="addon"
-        && (r.requires_flags||[]).includes("ar")
-        && r.code===code);
-      return ar || null;
+    function getArTiers(rowsForFam, fam){
+      const tiers = ["QM","QT","QV"].map(code=>{
+        const r = rowsForFam.find(x => x.kind==="addon" && (x.requires_flags||[]).includes("ar") && x.code===code);
+        if (!r) return null;
+        const {copay, hold} = familyRowVal(r, fam);
+        const fee = (copay||0) - (hold||0);
+        return {code, copay:copay||0, hold:hold||0, fee, row:r};
+      }).filter(Boolean);
+      return tiers;
     }
 
-    // Try to find BA base row in CSV; else use fallback per-family value.
+    function chooseArTierByStrategy(tiers, strategy){
+      if (!tiers.length) return null;
+      const maxCopay = Math.max(...tiers.map(t=>t.copay));
+
+      if (strategy==="profit"){
+        // Highest service fee; tie-break lower copay
+        return tiers.slice().sort((a,b)=> (b.fee - a.fee) || (a.copay - b.copay))[0];
+      }
+
+      if (strategy==="disc25" || strategy==="disc50"){
+        const cutoff = strategy==="disc25" ? 0.75*maxCopay : 0.50*maxCopay;
+        const eligible = tiers.filter(t=> t.copay <= cutoff);
+        if (eligible.length){
+          return eligible.slice().sort((a,b)=> (b.fee - a.fee) || (a.copay - b.copay))[0];
+        }
+        // Fallback: cheapest
+        return tiers.slice().sort((a,b)=> (a.copay - b.copay) || (b.fee - a.fee))[0];
+      }
+
+      if (strategy==="cheapest"){
+        // Lowest copay; tie-break higher fee
+        return tiers.slice().sort((a,b)=> (a.copay - b.copay) || (b.fee - a.fee))[0];
+      }
+
+      // Default
+      return tiers.slice().sort((a,b)=> (b.fee - a.fee) || (a.copay - b.copay))[0];
+    }
+
+    function pickAR(rowsForFam, fam, flags){
+      if (!flags.arOn) return null;
+
+      // Compute tiers for family, then pick by strategy
+      const tiers = getArTiers(rowsForFam, fam);
+      if (!tiers.length) return null;
+
+      const choice = chooseArTierByStrategy(tiers, flags.arStrategy);
+      // Reflect chosen tier in the visible dropdown (so users see what was picked)
+      if (choice) document.getElementById("arTier").value = choice.code;
+
+      // If user manually changes Tier, honor it (overrides strategy)
+      const manualTier = flags.arTier;
+      const manual = tiers.find(t=> t.code===manualTier);
+      return (manual || choice)?.row || null;
+    }
+
     function getBaBaseHoldback(rowsForFam, fam){
-      const ba = rowsForFam.find(r => r.code==="BA"); // any kind
+      const ba = rowsForFam.find(r => r.code==="BA");
       if (ba){
         const {hold} = familyRowVal(ba, fam);
         if (hold != null) return hold;
@@ -251,7 +307,6 @@
       return BA_HOLDBACK_DEFAULT[fam] || 0;
     }
 
-    // Build a virtual row that contributes holdback only (no copay)
     function makeBaHoldbackRow(holdSV, holdMF){
       return {
         item: "BA (base) — holdback only",
@@ -282,9 +337,8 @@
       ));
       const addOnsExclusive = pickExclusive(addOns);
 
-      const arRow = pickAR(rowsForFam, flags);
+      const arRow = pickAR(rowsForFam, fam, flags);
 
-      // BA base holdback should ALWAYS be withheld on pair bundles (not on CR)
       const baHold = getBaBaseHoldback(rowsForFam, fam);
       const baRow  = makeBaHoldbackRow(
         fam==="SV" ? baHold : 0,
@@ -294,30 +348,27 @@
       return {pair, cr, addOns:addOnsExclusive, arRow, baRow};
     }
 
-    function computeLines(row, fam){
+    function familyLines(row, fam){
       const {copay, hold} = familyRowVal(row, fam);
-      const fee = (copay||0) - (hold||0);
-      return {copay, hold, fee};
+      return {copay:copay||0, hold:hold||0, fee:(copay||0)-(hold||0)};
     }
 
     function renderCard(title, mainRow, fam, breakdownRows){
       if (!mainRow){
         return `<div class="card"><div class="meta">Missing data for ${title}.</div></div>`;
       }
+      const lines = breakdownRows.map(r=> ({r, l: familyLines(r, fam)}));
+      const main = familyLines(mainRow, fam);
 
-      const rowsLined = breakdownRows.map(r=> ({r, l: computeLines(r, fam)}));
-      const main = computeLines(mainRow, fam);
-
-      const grand = rowsLined.reduce((s,x)=>{
-        s.copay += (x.l.copay||0);
-        s.hold  += (x.l.hold||0);
-        s.fee   += (x.l.fee||0);
-        return s;
-      }, {copay: main.copay, hold: main.hold, fee: main.fee});
+      const totals = lines.reduce((s,x)=>({
+        copay: s.copay + x.l.copay,
+        hold : s.hold  + x.l.hold,
+        fee  : s.fee   + x.l.fee
+      }), {copay: main.copay, hold: main.hold, fee: main.fee});
 
       const rowsHtml = [
         {r: mainRow, l: main},
-        ...rowsLined
+        ...lines
       ].map(({r,l})=>`
         <tr>
           <td>${r.item}</td>
@@ -329,8 +380,8 @@
 
       return `
         <div class="card">
-          <h2>${money(grand.copay)}</h2>
-          <div class="kicker">Patient Copay<br><span class="ok">Service Fee (Practice Profit): ${money(grand.fee)}</span></div>
+          <h2>${money(totals.copay)}</h2>
+          <div class="kicker">Patient Copay<br><span class="ok">Service Fee (Practice Profit): ${money(totals.fee)}</span></div>
           <div class="meta" style="margin-bottom:6px">${title}</div>
           <table>
             <thead><tr><th>Item</th><th>Code</th><th class="right">Copay</th><th class="right">Holdback</th><th class="right">Service Fee</th></tr></thead>
@@ -338,22 +389,25 @@
               ${rowsHtml}
               <tr>
                 <td class="muted">Totals</td><td></td>
-                <td class="right"><b>${money(grand.copay)}</b></td>
-                <td class="right"><b>${money(grand.hold)}</b></td>
-                <td class="right"><b>${money(grand.fee)}</b></td>
+                <td class="right"><b>${money(totals.copay)}</b></td>
+                <td class="right"><b>${money(totals.hold)}</b></td>
+                <td class="right"><b>${money(totals.fee)}</b></td>
               </tr>
             </tbody>
           </table>
         </div>`;
     }
 
-    function toggleArTierDisabled(){
-      $arSel.disabled = !$arCbx.checked;
-      $arSel.style.opacity = $arCbx.checked ? 1 : 0.5;
+    function toggleArControls(){
+      const on = document.getElementById("ar").checked;
+      document.getElementById("arTier").disabled = !on;
+      document.getElementById("arStrategy").disabled = !on;
+      document.getElementById("arTier").style.opacity = on ? 1 : 0.5;
+      document.getElementById("arStrategy").style.opacity = on ? 1 : 0.5;
     }
 
     async function run(){
-      toggleArTierDisabled();
+      toggleArControls();
 
       const fam  = famKey(document.getElementById("lensFamily").value);
       const tint = document.getElementById("lensTint").value;
@@ -370,14 +424,12 @@
           if (!cr){ out.push(`<div class="card"><div class="meta">Missing AA (CR) row.</div></div>`); continue; }
           const extras = [...addOns.filter(a=> a.applies_to!="bundle_only")];
           if (flags.arOn && arRow) extras.push(arRow);
-          // No BA base holdback on CR
           out.push(renderCard("CR", cr, fam, extras));
         } else {
           if (!pair){ out.push(`<div class="card"><div class="meta">Missing pair for ${c.level}.</div></div>`); continue; }
           const extras = [...addOns.filter(a=> a.applies_to!="cr_only")];
           if (flags.arOn && arRow) extras.push(arRow);
-          // Always add BA base holdback to bundles
-          extras.push(baRow);
+          extras.push(baRow); // BA base holdback always on bundles
           out.push(renderCard(c.title, pair, fam, extras));
         }
       }
@@ -388,7 +440,7 @@
     // events
     document.getElementById("lensFamily").addEventListener("change", ()=>{ sessionStorage.removeItem(CACHE_KEY); run(); });
     document.getElementById("lensTint").addEventListener("change", run);
-    ["aspheric","oversize","glass","noOnly","ar","arTier"].forEach(id=> document.getElementById(id).addEventListener("change", run));
+    ["aspheric","oversize","glass","noOnly","ar","arTier","arStrategy"].forEach(id=> document.getElementById(id).addEventListener("change", run));
     document.getElementById("refresh").addEventListener("click", ()=>{ sessionStorage.removeItem(CACHE_KEY); run(); });
     document.getElementById("clear").addEventListener("click", ()=>{ sessionStorage.clear(); $meta.textContent="cache cleared"; run(); });
 
