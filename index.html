@@ -2,439 +2,568 @@
 <html lang="en">
 <head>
   <meta charset="utf-8"/>
-  <title>PayerEdge — VSP Bundles (v12.8)</title>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>PayerEdge — VSP Bundles</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+
   <style>
-    :root{--bg:#0b0f14;--fg:#e7eefc;--muted:#9fb0c9;--card:#101722;--line:#233044;--ok:#10b981}
+    :root{
+      --bg:#090e16; --bg-elev:#0c1320; --fg:#eaf1ff; --muted:#9fb0c9; --line:#263448;
+      --accent:#72a8ff; --accent-2:#7be0c3;
+      --tier-best:#ffd166; --tier-better:#a9c2ff; --tier-good:#7be0c3;
+      --shadow-lg:0 18px 40px rgba(0,0,0,.35); --shadow-md:0 10px 26px rgba(0,0,0,.28);
+      --radius:18px; --radius-sm:12px;
+      --fz-12:12px; --fz-13:13px; --fz-15:15px; --fz-18:18px; --fz-20:20px; --fz-36:36px;
+    }
     *{box-sizing:border-box}
-    body{background:var(--bg);color:var(--fg);font:15px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;margin:0}
-    header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 20px;border-bottom:1px solid #1b2535}
-    h1{font-size:18px;margin:0}
-    .meta{color:var(--muted);font-size:12px}
-    .row{display:flex;gap:12px;flex-wrap:wrap;padding:12px 20px}
-    .group{background:#0f1621;border:1px solid var(--line);border-radius:12px;padding:8px 10px;display:flex;gap:10px;align-items:center}
-    select{background:#152033;border:1px solid var(--line);color:var(--fg);padding:6px 10px;border-radius:8px}
-    .btn{background:#162130;border:1px solid var(--line);color:var(--fg);padding:8px 12px;border-radius:10px;cursor:pointer}
-    .cards{display:grid;grid-template-columns:repeat(4,minmax(260px,1fr));gap:14px;padding:0 20px 40px}
-    .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px}
-    .card h2{margin:0 0 2px 0;font-size:32px}
-    .kicker{color:var(--muted);font-size:12px;margin-bottom:12px}
-    table{width:100%;border-collapse:collapse;font-size:13px}
-    th,td{padding:8px;border-top:1px solid #1b2535;text-align:left}
-    .right{text-align:right}
-    .muted{color:var(--muted)}
-    .ok{color:var(--ok)}
-    .banner{margin:12px 20px;background:#1a1320;border:1px dashed #6b4fa3;padding:10px 12px;border-radius:10px;display:none}
-    .small{font-size:12px}
-    @media(max-width:1200px){.cards{grid-template-columns:repeat(2,minmax(260px,1fr))}}
-    @media(max-width:700px){.cards{grid-template-columns:1fr}}
-    .pill{display:inline-block;padding:2px 8px;border:1px solid var(--line);border-radius:999px;font-size:11px;color:var(--muted)}
+    html,body{height:100%}
+    body{
+      margin:0;
+      background:
+        radial-gradient(1200px 600px at 20% -10%, rgba(90,168,255,.12), transparent 60%),
+        radial-gradient(900px 500px at 110% 10%, rgba(123,224,195,.10), transparent 60%),
+        var(--bg);
+      color:var(--fg);
+      font:var(--fz-15)/1.45 Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
+      font-variant-numeric: tabular-nums;
+    }
+
+    header{
+      position:sticky; top:0; z-index:20; display:flex; justify-content:space-between; align-items:center; gap:14px;
+      padding:16px 20px; background:linear-gradient(180deg, rgba(9,14,22,.95), rgba(9,14,22,.78));
+      border-bottom:1px solid var(--line); backdrop-filter: blur(10px);
+    }
+    h1{margin:0; font-weight:800; font-size:var(--fz-20); letter-spacing:.2px}
+    .sub{color:var(--muted); font-size:var(--fz-12)}
+    .version{color:var(--muted)}
+    main{padding:18px}
+
+    .bar{
+      display:flex; align-items:center; flex-wrap:wrap; gap:10px 14px;
+      background:linear-gradient(180deg, var(--bg-elev), #0b1220);
+      border:1px solid var(--line); border-radius:var(--radius); padding:12px 12px;
+      box-shadow: var(--shadow-md);
+    }
+    .group{display:flex; gap:10px; align-items:center; padding:6px 10px; border-radius:999px; background:#0b1424}
+    .btn{ background:#121f35; border:1px solid var(--line); color:var(--fg); padding:8px 12px; border-radius:var(--radius-sm); cursor:pointer; font-weight:600; transition:.15s }
+    .btn:hover{ background:#162844; border-color:#2e4260 }
+    .switch{display:inline-flex; align-items:center; gap:8px}
+    .switch select, .switch input[type="checkbox"]{ accent-color:var(--accent) }
+    select{ background:#0e1a30; color:var(--fg); border:1px solid var(--line); border-radius:10px; padding:6px 8px; outline:none }
+    select:focus{ box-shadow:0 0 0 3px rgba(114,168,255,.25) }
+    #status{ margin-left:auto; padding:6px 10px; border-radius:999px; border:1px dashed var(--line); background:#0b1422; color:#c7d6ef }
+
+    .stack{ display:grid; gap:18px; grid-template-columns:repeat(auto-fit, minmax(320px,1fr)); align-items:stretch; margin-top:16px }
+    .tier{ background:linear-gradient(180deg, #0f1726, #0c1422); border:1px solid var(--line); border-radius:var(--radius); box-shadow: var(--shadow-lg); padding:16px; transition:.25s }
+    .tierHead{display:grid; grid-template-columns:1fr auto; align-items:center; gap:10px; margin-bottom:12px}
+    .stars{font-weight:800; display:flex; align-items:center; gap:8px}
+    .stars .tag{font-size:var(--fz-12); color:var(--muted); padding:2px 8px; border:1px solid var(--line); border-radius:999px; background:#0c1424}
+    .stars.best{color:var(--tier-best)} .stars.better{color:var(--tier-better)} .stars.good{color:var(--tier-good)}
+
+    .figures{ text-align:right; display:grid; gap:2px }
+    .hero{ font-size:var(--fz-36); font-weight:800; line-height:1.0; letter-spacing:.2px; color:#cfe6ff; text-shadow: 0 6px 18px rgba(114,168,255,.18) }
+    .caption{ color:var(--muted); font-size:var(--fz-12) }
+    .svc{ font-weight:800; color:var(--accent-2) }
+
+    table{width:100%; border-collapse:collapse; margin-top:12px}
+    th,td{border-bottom:1px dashed #203043; padding:9px 6px; text-align:left; font-size:var(--fz-13)}
+    th{color:var(--muted); font-weight:700}
+    .code{font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size:12px; color:#cfe1ff}
+    .money{font-weight:800}
+    .nowrap{white-space:nowrap}
+
+    .break{ margin:6px 0 10px; background:#0b1424; border:1px solid var(--line); border-radius:10px; }
+    .break table{ width:100%; border-collapse:collapse; }
+    .break th,.break td{ border:0; padding:6px 8px; text-align:left; font-size:12px; }
+    .break .codepill{ display:inline-block; padding:2px 8px; border:1px solid var(--line); border-radius:999px; font-family:ui-monospace,Menlo,Consolas,monospace; font-size:12px; color:#cfe1ff; background:#0e1a30; }
+    .break .colhed{ color:var(--muted); font-weight:600; }
+
+    :focus-visible{ outline:2px solid var(--accent); outline-offset:2px; border-radius:8px }
+    @media print{ header,.bar{display:none} body{background:#fff; color:#000} .tier{break-inside:avoid; border:1px solid #000; box-shadow:none} table, th, td{border-color:#000} }
   </style>
 </head>
 <body>
   <header>
     <div>
       <h1>PayerEdge — VSP Bundles</h1>
-      <div class="meta">Scoreboard shows <b>patient copay</b> and <b>service fee</b> (Copay − Holdback). Sun choices are exclusive.</div>
+      <div class="sub">Scoreboard shows <b>patient copay</b> and <b>service fee</b> (Copay − Holdback). Sun choices are exclusive.</div>
     </div>
-    <div style="display:flex;gap:8px;align-items:center">
-      <span class="meta">plan=<b id="planName">VSP_choice</b> • version=<b>v12.8</b> • source=<span id="src" class="muted">…</span></span>
-      <button class="btn" id="refresh">Force Refresh</button>
-      <button class="btn" id="clear">Clear Cache</button>
-    </div>
+    <div class="version sub" id="version">loading…</div>
   </header>
 
-  <div class="row">
-    <div class="group">
-      <span class="muted">Lens family</span>
-      <select id="lensFamily"><!-- options filled after CSV loads --></select>
+  <main>
+    <div class="bar" role="toolbar" aria-label="Bundle controls">
+      <div class="group">
+        <button class="btn" id="forceRefresh" title="Reload CSV and recompute">Force Refresh</button>
+        <button class="btn" id="clearCache" title="Clear local CSV cache">Clear Cache</button>
+      </div>
+      <div class="group">
+        <label class="switch">Lens family
+          <select id="lensFamily" aria-label="Lens family">
+            <option value="SV" selected>Single Vision</option>
+            <option value="LINED">Lined Bi/Tri</option>
+            <option value="PAL">Progressive</option>
+          </select>
+        </label>
+        <label class="switch">Lens tint
+          <select id="lensTint" aria-label="Lens tint">
+            <option value="clear" selected>Clear</option>
+            <option value="tinted">Tinted</option>
+            <option value="polarized">Polarized</option>
+            <option value="transitions">Transitions®</option>
+          </select>
+        </label>
+      </div>
+      <div class="group">
+        <label class="switch"><input type="checkbox" id="includeAR" checked> Include AR (tiered)</label>
+        <label class="switch"><input type="checkbox" id="includeAspheric"> Aspheric</label>
+        <label class="switch"><input type="checkbox" id="includeOversize"> Oversize</label>
+        <label class="switch"><input type="checkbox" id="includeGlass"> Glass</label>
+        <label class="switch"><input type="checkbox" id="includeCM"> Custom measurements (N/O only)</label>
+      </div>
+      <span id="status" aria-live="polite"></span>
     </div>
 
-    <div class="group">
-      <span class="muted">Lens tint</span>
-      <select id="lensTint">
-        <option>Clear</option>
-        <option>Solid</option>
-        <option>Gradient</option>
-        <option>Photochromic</option>
-        <option>Polarized</option>
-      </select>
-    </div>
+    <div id="stack" class="stack"></div>
+  </main>
 
-    <div class="group" style="gap:12px">
-      <label><input type="checkbox" id="ar" checked/> Include AR (tiered)</label>
-    </div>
-
-    <div class="group" id="debugBox"><span class="muted">[debug]</span> <span id="meta" class="meta">…</span></div>
-  </div>
-
-  <div id="net" class="banner"></div>
-  <div class="cards" id="cards"></div>
-
-  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
   <script>
-    /*************** CONFIG ***************/
-    const CSV_PATH = "./data/vsp_choice_master_v9_strict.csv";
-    const PLAN = "VSP_choice";
-    const CACHE_KEY = "payeredge_v128_cache";
-    // BA holdback defaults if BA row is absent
-    const BA_HOLDBACK_DEFAULT = { SV: 24, MF: 34 };
+  (function(){
+    /* ================== Config ================== */
+    const CSV_PATH = './data/vsp_choice_master_v9_1_strict.csv'; // strict schema (see bottom)
+    const CACHE_KEY='vsp-v9-1-text';
+    const META_KEY='vsp-v9-1-meta';
+    const BA_HOLDBACK_DEFAULT = { SV:24, MF:34 }; // used only if BA row missing
 
-    const MATERIAL_CARDS = [
-      {key:"Hi67", level:"Hi67", title:"Hi67"},
-      {key:"Mid",  level:"Mid",  title:"Mid"},
-      {key:"Poly", level:"Poly", title:"Poly"},
-      {key:"CR",   level:"CR",   title:"CR"}
-    ];
+    const BETTER_CAP_OF_MAX = 0.75; // ≤75% of max copay
+    const GOOD_CAP_OF_MAX   = 0.50; // ≤50% of max copay
+    const CAP_RELAX_FACTOR  = 0.90; // fallback relaxer
 
-    const $cards = document.getElementById("cards");
-    const $meta  = document.getElementById("meta");
-    const $net   = document.getElementById("net");
-    const $fam   = document.getElementById("lensFamily");
-    document.getElementById("src").textContent = CSV_PATH;
+    /* ================== Utils ================== */
+    const $ = id => document.getElementById(id);
+    const money = n => '$'+Number(n||0).toFixed(2);
+    const num = v => { const x=parseFloat(String(v??'').replace(/[^0-9.-]/g,'')); return isFinite(x)?x:0; };
 
-    const money = n => `$${Number(n||0).toFixed(2).replace(/\.00$/,'')}`;
+    function parseCSV(text){
+      const rows=[]; let row=[], field='', q=false;
+      for(let i=0;i<text.length;i++){
+        const ch=text[i];
+        if(ch==='\"'){ if(q && text[i+1]==='\"'){ field+='\"'; i++; } else { q=!q; } continue; }
+        if(!q && ch===','){ row.push(field); field=''; continue; }
+        if(!q && (ch==='\n' || ch==='\r')){ if(field!==''||row.length){ row.push(field); rows.push(row); row=[]; field=''; } continue; }
+        field+=ch;
+      }
+      if(field!==''||row.length){ row.push(field); rows.push(row); }
+      const headers = rows.shift().map(h=>h.replace(/^\"|\"$/g,'').trim());
+      return rows.filter(r=>r.length>=headers.length).map(r=>{
+        const o={}; headers.forEach((h,i)=>o[h]=(r[i]||'').replace(/^\"|\"$/g,'').trim()); return o;
+      });
+    }
 
-    /*************** CSV LOAD ***************/
+    function setCache(text,meta){ localStorage.setItem(CACHE_KEY,text); localStorage.setItem(META_KEY,JSON.stringify(meta)); }
+    function getCache(){ return { text: localStorage.getItem(CACHE_KEY), meta: JSON.parse(localStorage.getItem(META_KEY)||'{}') }; }
+    function clearCache(){ localStorage.removeItem(CACHE_KEY); localStorage.removeItem(META_KEY); }
+
+    function famSegFromUI(){
+      const fam = $('lensFamily').value; // SV | LINED | PAL
+      if (fam==='SV')     return {family:'SV', segment:'SV'};
+      if (fam==='PAL')    return {family:'MF', segment:'Prog'};
+      if (fam==='LINED')  return {family:'MF', segment:'Bifocal'};
+      return {family:'SV', segment:'SV'};
+    }
+
     function normRow(r){
-      const o = {};
-      for (const [k,v] of Object.entries(r)){
-        o[String(k).trim().toLowerCase()] = typeof v === "string" ? v.trim() : v;
-      }
-      const n = (k)=>{
-        const v = o[k];
-        if (v==null || v==="") return null;
-        const z = String(v).replace(/[^0-9.\-]/g,"");
-        return z===""? null : Number(z);
-      };
+      const n=(k)=>num(r[k]);
       return {
-        plan: o.plan || "",
-        kind: (o.kind||"").toLowerCase(),          // pair | base | addon
-        code: (o.code||"").toUpperCase(),
-        item: o.item || "",
-        family: (o.family||"BOTH").toUpperCase(),  // SV | MF | BOTH
-        // optional extensions:
-        segment: (o.segment||"Any"),               // SV | Prog | Bifocal | Any
-        pair_components: (o.pair_components||""),
-        // filters:
-        material_level: (o.material_level||"—"),
-        sun: (o.sun||"—"),
-        exclusive_group: o.exclusive_group || "",
-        requires_flags: (o.requires_flags||"").toLowerCase().split(/\s*,\s*/).filter(Boolean),
-        forbids_flags: (o.forbids_flags||"").toLowerCase().split(/\s*,\s*/).filter(Boolean),
-        applies_to: (o.applies_to||"all").toLowerCase(),
-        pair_with: (o.pair_with||"").toUpperCase(),
-        // numbers
-        copay_sv: n("copay_sv"),
-        holdback_sv: n("holdback_sv"),
-        copay_mf: n("copay_mf"),
-        holdback_mf: n("holdback_mf"),
-        notes: o.notes || ""
+        plan: (r.plan||'').trim(),
+        kind: (r.kind||'').toLowerCase(),           // pair | base | addon
+        code: (r.code||'').toUpperCase(),
+        item: r.item||'',
+        family: (r.family||'BOTH').toUpperCase(),    // SV | MF | BOTH
+        material_level: r.material_level||'—',       // Hi67 | Mid | Poly | CR
+        sun: r.sun||'—',
+        exclusive_group: r.exclusive_group||'',
+        requires_flags: String(r.requires_flags||'').toLowerCase().split(/\s*,\s*/).filter(Boolean),
+        forbids_flags: String(r.forbids_flags||'').toLowerCase().split(/\s*,\s*/).filter(Boolean),
+        applies_to: (r.applies_to||'all').toLowerCase(),
+        pair_with: (r.pair_with||'').toUpperCase(),
+        copay_sv: n('copay_sv'),
+        holdback_sv: n('holdback_sv'),
+        copay_mf: n('copay_mf'),
+        holdback_mf: n('holdback_mf'),
+        notes: r.notes||'',
+        segment: (r.segment||'Any'),
+        pair_components: (r.pair_components||'').toUpperCase()
       };
     }
 
-    async function loadCsv(){
-      const cached = sessionStorage.getItem(CACHE_KEY);
-      if (cached){
-        const {rows, when} = JSON.parse(cached);
-        const nrows = rows.map(normRow);
-        $meta.textContent = `rows=${nrows.length} • cache ${(new Date(when)).toLocaleTimeString()}`;
-        return nrows;
-      }
+    function familyVals(row, fam){
+      return (fam==='SV')
+        ? {copay: row.copay_sv||0, hold: row.holdback_sv||0}
+        : {copay: row.copay_mf||0, hold: row.holdback_mf||0};
+    }
+
+    /* ================== Load CSV ================== */
+    let ALL = []; // normalized rows for this plan
+
+    async function loadCSV(){
+      const status=$('status'); status.textContent=' loading…';
+
       try{
-        const res = await fetch(CSV_PATH, {cache:"no-store"});
-        if(!res.ok) throw new Error(`HTTP ${res.status}`);
+        const res = await fetch(CSV_PATH, {cache:'no-store'});
+        if(!res.ok) throw new Error('HTTP '+res.status);
         const text = await res.text();
-        const parsed = Papa.parse(text, {header:true, skipEmptyLines:true});
-        const rows = parsed.data.map(normRow);
-        sessionStorage.setItem(CACHE_KEY, JSON.stringify({rows: parsed.data, when: Date.now()}));
-        $meta.textContent = `rows=${rows.length} • fresh`;
-        return rows;
+        const raw = parseCSV(text);
+        const rows = raw.map(normRow).filter(r=>!r.plan || r.plan==='VSP_choice');
+        ALL = rows;
+        setCache(text, {plan:'VSP_choice', source:'network', version:'v15'});
+        $('version').textContent = `plan=VSP_choice • rows=${rows.length} • version=v15 • source=network`;
+        status.textContent = ` [ok] ${CSV_PATH} • ${rows.length} rows`;
       }catch(e){
-        $net.style.display="block";
-        $net.textContent = "Network failed. Using cached data if available.";
-        const c2 = sessionStorage.getItem(CACHE_KEY);
-        if (c2){
-          const {rows} = JSON.parse(c2);
-          const r2 = rows.map(normRow);
-          $meta.textContent = `rows=${r2.length} • cache (offline)`;
-          return r2;
+        const {text, meta} = getCache();
+        if (text){
+          const raw = parseCSV(text);
+          const rows = raw.map(normRow).filter(r=>!r.plan || r.plan==='VSP_choice');
+          ALL = rows;
+          $('version').textContent = `plan=VSP_choice • rows=${rows.length} • version=${meta?.version||'cache'} • source=cache`;
+          status.textContent = ` network failed — using cached data (${rows.length} rows)`;
+        } else {
+          $('version').textContent = 'load error — no cache';
+          status.textContent = ' load failed';
+          ALL = [];
         }
-        $meta.textContent = "rows=0 • offline";
-        return [];
       }
+
+      compute();
     }
 
-    /*************** HELPERS ***************/
-    function famSegOptionsFromRows(rows){
-      // If CSV provides segment, expose SV / Progressive / Lined Bifocal; else SV / Multifocal
-      const hasSeg = rows.some(r => ["Prog","Bifocal"].includes(r.segment));
-      if (hasSeg){
-        return [
-          {label:"Single Vision", family:"SV", segment:"SV"},
-          {label:"Progressive",   family:"MF", segment:"Prog"},
-          {label:"Lined Bifocal", family:"MF", segment:"Bifocal"},
-        ];
-      }else{
-        return [
-          {label:"Single Vision", family:"SV", segment:"SV"},
-          {label:"Multifocal",    family:"MF", segment:"Any"},
-        ];
-      }
-    }
-
-    function selectedFamSeg(){
-      const opt = $fam.options[$fam.selectedIndex];
-      return {family: opt.dataset.family, segment: opt.dataset.segment};
-    }
-
-    function familyRowVal(row, fam){
-      if (fam === "SV") return {copay: row.copay_sv||0, hold: row.holdback_sv||0};
-      return {copay: row.copay_mf||0, hold: row.holdback_mf||0};
-    }
-
-    function flagsFromUI(){
+    /* ================== Selections & Filters ================== */
+    function flags(){
       return {
-        arOn: document.getElementById("ar").checked,
-        oversize: document.getElementById("oversize")?.checked || false,
-        glass: document.getElementById("glass")?.checked || false,
-        aspheric: document.getElementById("aspheric")?.checked || false,
-        no_only: document.getElementById("noOnly")?.checked || false,
+        arOn: $('includeAR').checked,
+        aspheric: $('includeAspheric').checked,
+        oversize: $('includeOversize').checked,
+        glass: $('includeGlass').checked,
+        no_only: $('includeCM').checked
       };
     }
 
-    function flagsAllow(row, flags){
-      for (const f of row.requires_flags){ if (!flags[f]) return false; }
-      for (const f of row.forbids_flags){ if (flags[f]) return false; }
+    function filterByFamSeg(rows, fam, seg){
+      return rows.filter(r=>{
+        const famOk = (r.family==='BOTH' || r.family===fam);
+        const segVal = r.segment || 'Any';
+        const segOk = (segVal==='Any' || segVal===seg || (seg==='SV' && segVal==='SV'));
+        return famOk && segOk;
+      });
+    }
+
+    function flagsAllow(row, f){
+      for (const req of (row.requires_flags||[])){ if (!f[req]) return false; }
+      for (const ban of (row.forbids_flags||[])){ if (f[ban]) return false; }
       return true;
     }
 
-    function isPositiveSignalAddon(r){
-      if ((r.exclusive_group||"").trim()) return true; // e.g., sun
+    function isSignalAddon(r){
+      if ((r.exclusive_group||'').trim()) return true; // e.g., sun
       const req = r.requires_flags||[];
-      return req.includes("oversize") || req.includes("no_only") || req.includes("glass");
-      // AR handled separately
+      return req.includes('oversize') || req.includes('no_only') || req.includes('glass');
     }
 
-    function pickExclusive(rows){
-      const winners = new Map();
-      const passthrough = [];
+    function exclusivePick(rows){
+      const win = new Map(); const pass=[];
       for (const r of rows){
-        const g = r.exclusive_group||"";
-        if (!g){ passthrough.push(r); continue; }
-        const prev = winners.get(g);
-        if (!prev){ winners.set(g, r); continue; }
-        const cA = (r.copay_sv||0)+(r.copay_mf||0);
-        const cB = (prev.copay_sv||0)+(prev.copay_mf||0);
-        if (cA > cB) winners.set(g, r);
+        const g = r.exclusive_group||'';
+        if (!g){ pass.push(r); continue; }
+        const prev = win.get(g);
+        if (!prev){ win.set(g,r); continue; }
+        const cA=(r.copay_sv||0)+(r.copay_mf||0);
+        const cB=(prev.copay_sv||0)+(prev.copay_mf||0);
+        if (cA>cB) win.set(g,r);
       }
-      return [...passthrough, ...winners.values()];
+      return [...pass, ...win.values()];
     }
 
-    function getArTiers(rowsForFam, fam){
-      const codes = ["QM","QT","QV"];
-      const tiers = [];
-      for (const code of codes){
-        const r = rowsForFam.find(x => x.kind==="addon" && (x.requires_flags||[]).includes("ar") && x.code===code);
-        if (!r) continue;
-        const {copay, hold} = familyRowVal(r, fam);
-        tiers.push({code, copay:copay||0, hold:hold||0, fee:(copay||0)-(hold||0), row:r});
-      }
-      return tiers;
-    }
-
-    function chooseMostProfitableTier(tiers){
-      if (!tiers.length) return null;
-      // Highest fee, tie-break lower copay
-      return tiers.slice().sort((a,b)=> (b.fee - a.fee) || (a.copay - b.copay))[0];
-    }
-
-    function pickAR(rowsForFam, fam, flags){
-      if (!flags.arOn) return null;
-      const tiers = getArTiers(rowsForFam, fam);
-      const choice = chooseMostProfitableTier(tiers);
-      return choice ? choice.row : null;
-    }
-
-    function getBaBaseHoldback(rowsForFam, fam){
-      const ba = rowsForFam.find(r => r.code==="BA");
-      if (ba){
-        const {hold} = familyRowVal(ba, fam);
-        if (hold != null) return hold;
-      }
-      return BA_HOLDBACK_DEFAULT[fam] || 0;
-    }
-
-    function byPlan(rows, plan){ return rows.filter(r=> !r.plan || r.plan===plan); }
-
-    function componentBreakdown(pairRow, rowsForFamSeg, fam){
-      const raw = (pairRow.pair_components||"").trim();
-      if (!raw) return [];
-      const codes = raw.split(",").map(s=>s.trim()).filter(Boolean);
-      return codes.map(code => {
-        const r = rowsForFamSeg.find(x => x.code===code);
+    function pickAR(rowsForFam, fam, f){
+      if (!f.arOn) return null;
+      const tiers = ['QM','QT','QV'].map(code=>{
+        const r = rowsForFam.find(x => x.kind==='addon' && (x.requires_flags||[]).includes('ar') && x.code===code);
         if (!r) return null;
-        const {copay, hold} = familyRowVal(r, fam);
-        return {code, copay:copay||0, hold:hold||0, fee:(copay||0)-(hold||0)};
+        const {copay, hold} = familyVals(r, fam);
+        return {code, copay, hold, fee:(copay-hold), row:r};
       }).filter(Boolean);
+      if (!tiers.length) return null;
+      // Most profitable, tie-break lower copay
+      tiers.sort((a,b)=> (b.fee - a.fee) || (a.copay - b.copay));
+      return tiers[0].row;
     }
 
-    /*************** PIPELINE ***************/
-    function bundleRows(rows, fam, seg, level, tint, flags){
-      const rowsForFamSeg = rows.filter(r=>{
-        const famOk = (r.family==="BOTH" || r.family===fam);
-        const segVal = r.segment || "Any";
-        const segOk = (segVal==="Any" || segVal===seg || (seg==="SV" && segVal==="SV"));
-        return famOk && segOk;
+    function getBAHoldback(rowsForFam, fam){
+      const ba = rowsForFam.find(r=> r.code==='BA');
+      if (ba){
+        const {hold} = familyVals(ba, fam);
+        if (hold!=null) return hold;
+      }
+      return BA_HOLDBACK_DEFAULT[fam]||0;
+    }
+
+    /* ================== Bundle Build ================== */
+    function rowsForLevel(rows, level){
+      return {
+        pair: rows.find(r=> r.kind==='pair' && r.material_level===level && r.sun!=='Polarized'),
+        cr  : rows.find(r=> r.kind==='base' && r.code==='AA')
+      };
+    }
+
+    function componentBreakdown(pairRow, rowsForFam, fam){
+      const raw = String(pairRow?.pair_components||'').trim();
+      if (!raw) return [];
+      const out=[];
+      raw.split(',').map(s=>s.trim().toUpperCase()).filter(Boolean).forEach(code=>{
+        const r = rowsForFam.find(x=>x.code===code);
+        if (!r) return;
+        const {copay, hold} = familyVals(r, fam);
+        out.push({code, copay, hold, fee:copay-hold});
       });
-
-      const pair = rowsForFamSeg.find(r=> r.kind==="pair" && r.material_level===level && r.sun!=="Polarized");
-      const cr   = rowsForFamSeg.find(r=> r.kind==="base" && r.code==="AA");
-
-      const addOnsAll = rowsForFamSeg.filter(r=> r.kind==="addon" && isPositiveSignalAddon(r));
-      const addOns = addOnsAll.filter(r=> flagsAllow(r, flags) && (r.sun==="Any" || r.sun==="—" || r.sun===tint));
-      const addOnsExclusive = pickExclusive(addOns);
-
-      const arRow = pickAR(rowsForFamSeg, fam, flags);
-
-      // BA holdback silently included on bundles, not CR
-      const baHold = getBaBaseHoldback(rowsForFamSeg, fam);
-
-      return {pair, cr, addOns:addOnsExclusive, arRow, baHold, rowsForFamSeg};
+      return out;
     }
 
-    function familyLines(row, fam){
-      const {copay, hold} = familyRowVal(row, fam);
-      return {copay:copay||0, hold:hold||0, fee:(copay||0)-(hold||0)};
+    function makeLine(row, fam){
+      const {copay, hold} = familyVals(row, fam);
+      return { name: row.item||row.code, code: row.code, copay, hold, fee: copay - hold, parts: [] };
     }
 
-    function renderCard(title, mainRow, fam, extras, opts){
-      if (!mainRow){
-        return `<div class="card"><div class="meta">Missing data for ${title}.</div></div>`;
+    function makeBundle({pair, cr, addOns, arRow, fam, level, baHold, rowsForFam}){
+      const useCR = (level==='CR');
+      const main = useCR ? cr : pair;
+      if (!main) return null;
+
+      const lines = [];
+      // main line
+      const mainLine = makeLine(main, fam);
+
+      // embed component breakdown for composite pairs
+      const comps = !useCR ? componentBreakdown(main, rowsForFam, fam) : [];
+      if (comps.length){
+        mainLine.parts = comps.map(c=>({ code:c.code, copay:c.copay, hold:c.hold, fee:c.fee }));
+      }
+      lines.push(mainLine);
+
+      // add-ons (exclusive already resolved)
+      for (const a of addOns){ lines.push(makeLine(a, fam)); }
+      if (arRow) lines.push(makeLine(arRow, fam));
+
+      // BA base holdback silently for bundles (not CR)
+      let silentHold = 0;
+      if (!useCR) silentHold = baHold||0;
+
+      // totals
+      const cop = lines.reduce((s,x)=>s+x.copay,0);
+      const hold = lines.reduce((s,x)=>s+x.hold,0) + silentHold;
+      const fee  = cop - hold;
+
+      return { label: main.item||main.code, lines, copay: cop, holdback: hold, profit: fee };
+    }
+
+    /* ================== Compute & Render ================== */
+    function tdMoney(v){ return `<td class="money">${money(v)}</td>`; }
+
+    function renderTierCard(titleCls, bundle){
+      const div=document.createElement('div'); div.className='tier';
+      const nameMap = {best:'Best', better:'Better', good:'Good', cheap:'Cheapest'};
+      const starMap = {best:'★★★', better:'★★', good:'★', cheap:'◎'};
+      const name = nameMap[titleCls], stars=starMap[titleCls];
+
+      if(!bundle){
+        div.innerHTML=`<div class="tierHead"><div class="stars ${titleCls}"><span class="tag">${name}</span></div><div class="figures"><div class="hero">—</div><div class="caption">Patient Copay</div></div></div><div class="sub">No viable bundle</div>`;
+        return div;
       }
 
-      // Base lines
-      const lines = extras.map(r=> ({r, l: familyLines(r, fam)}));
-      const main = familyLines(mainRow, fam);
-
-      // Silent BA holdback on bundles (not CR)
-      let baAdj = {copay:0, hold:0, fee:0};
-      if (opts.includeBaHoldback){
-        baAdj = {copay:0, hold: opts.baHold||0, fee: -(opts.baHold||0)};
-      }
-
-      const totals = lines.reduce((s,x)=>({
-        copay: s.copay + x.l.copay,
-        hold : s.hold  + x.l.hold,
-        fee  : s.fee   + x.l.fee
-      }), {copay: main.copay + baAdj.copay, hold: main.hold + baAdj.hold, fee: main.fee + baAdj.fee});
-
-      const rowsHtml = [
-        {r: mainRow, l: main},
-        ...lines
-      ].map(({r,l})=>`
-        <tr>
-          <td>${r.item}</td>
-          <td class="muted">${r.code}</td>
-          <td class="right">${money(l.copay)}</td>
-          <td class="right">${money(l.hold)}</td>
-          <td class="right">${money(l.fee)}</td>
-        </tr>`).join("");
-
-      // Optional components breakdown (for combo pairs NA+NJ etc.)
-      let compHtml = "";
-      if (opts.components && opts.components.length){
-        compHtml = `
-          <tr>
-            <td colspan="5">
-              <div class="muted small" style="margin:6px 0">
-                <span class="pill">Code breakdown</span>
-              </div>
-              <table style="width:100%;font-size:12px">
-                <thead><tr><th>Code</th><th class="right">Copay</th><th class="right">Holdback</th><th class="right">Svc Fee</th></tr></thead>
-                <tbody>
-                  ${opts.components.map(c=>`
-                    <tr>
-                      <td class="muted">${c.code}</td>
-                      <td class="right">${money(c.copay)}</td>
-                      <td class="right">${money(c.hold)}</td>
-                      <td class="right">${money(c.fee)}</td>
-                    </tr>`).join("")}
-                </tbody>
-              </table>
-            </td>
-          </tr>`;
-      }
-
-      return `
-        <div class="card">
-          <h2>${money(totals.copay)}</h2>
-          <div class="kicker">Patient Copay<br><span class="ok">Service Fee (Practice Profit): ${money(totals.fee)}</span></div>
-          <div class="meta" style="margin-bottom:6px">${title}</div>
-          <table>
-            <thead><tr><th>Item</th><th>Code</th><th class="right">Copay</th><th class="right">Holdback</th><th class="right">Service Fee</th></tr></thead>
-            <tbody>
-              ${rowsHtml}
-              ${compHtml}
-              <tr>
-                <td class="muted">Totals</td><td></td>
-                <td class="right"><b>${money(totals.copay)}</b></td>
-                <td class="right"><b>${money(totals.hold)}</b></td>
-                <td class="right"><b>${money(totals.fee)}</b></td>
-              </tr>
-            </tbody>
-          </table>
+      const head = `
+        <div class="tierHead">
+          <div class="stars ${titleCls}">
+            <div aria-label="${name}" title="${name}" style="font-size:18px">${stars}</div>
+            <span class="tag">${bundle.label}</span>
+          </div>
+          <div class="figures">
+            <div class="hero" aria-label="Patient Copay">${money(bundle.copay)}</div>
+            <div class="caption">Patient Copay</div>
+            <div class="caption">Service Fee (Practice Profit): <span class="svc">${money(bundle.profit)}</span></div>
+          </div>
         </div>`;
+
+      const rowsHtml = bundle.lines.map(li=>{
+        const main = `
+          <tr>
+            <td>${li.name}</td>
+            <td class="code">${li.code||'—'}</td>
+            ${tdMoney(li.copay)}
+            ${tdMoney(li.hold)}
+            ${tdMoney(li.fee)}
+          </tr>`;
+
+        const parts = (li.parts && li.parts.length)
+          ? `
+            <tr>
+              <td colspan="5">
+                <div class="break">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th class="colhed" style="width:120px">Code</th>
+                        <th class="colhed">Copay</th>
+                        <th class="colhed">Holdback</th>
+                        <th class="colhed">Service Fee</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      ${li.parts.map(p=>`
+                        <tr>
+                          <td><span class="codepill">${p.code}</span></td>
+                          ${tdMoney(p.copay)}
+                          ${tdMoney(p.hold)}
+                          ${tdMoney(p.fee)}
+                        </tr>`).join('')}
+                    </tbody>
+                  </table>
+                </div>
+              </td>
+            </tr>` : '';
+
+        return main + parts;
+      }).join('');
+
+      div.innerHTML = head + `
+        <table>
+          <thead>
+            <tr>
+              <th>Item</th>
+              <th>Code</th>
+              <th class="nowrap">Copay</th>
+              <th class="nowrap">Holdback</th>
+              <th class="nowrap">Service Fee</th>
+            </tr>
+          </thead>
+          <tbody>${rowsHtml}</tbody>
+          <tfoot>
+            <tr>
+              <th colspan="2" style="text-align:right">Totals</th>
+              ${tdMoney(bundle.copay)}${tdMoney(bundle.holdback)}${tdMoney(bundle.profit)}
+            </tr>
+          </tfoot>
+        </table>`;
+      return div;
     }
 
-    /*************** MAIN ***************/
-    let ALL_ROWS = [];
-
-    async function init(){
-      ALL_ROWS = byPlan(await loadCsv(), "VSP_choice");
-      const options = famSegOptionsFromRows(ALL_ROWS);
-      $fam.innerHTML = options.map(o=>`<option data-family="${o.family}" data-segment="${o.segment}">${o.label}</option>`).join("");
-      run();
+    function renderAll(bundles){
+      const stack=$('stack'); stack.innerHTML='';
+      stack.appendChild(renderTierCard('best',   bundles.best));
+      stack.appendChild(renderTierCard('better', bundles.better));
+      stack.appendChild(renderTierCard('good',   bundles.good));
+      stack.appendChild(renderTierCard('cheap',  bundles.cheapest));
     }
 
-    async function run(){
-      const famSeg = selectedFamSeg();
-      const fam = famSeg.family;
-      const seg = famSeg.segment;
-      const tint = document.getElementById("lensTint").value;
-      const flags = flagsFromUI();
+    function compute(){
+      if (!ALL.length){ $('stack').innerHTML=''; return; }
 
-      const out = [];
-      for (const c of MATERIAL_CARDS){
-        const {pair, cr, addOns, arRow, baHold, rowsForFamSeg} =
-          bundleRows(ALL_ROWS, fam, seg, c.level, tint, flags);
+      const {family:fam, segment:seg} = famSegFromUI();
+      const tintSel = $('lensTint').value; // clear | tinted | polarized | transitions
+      const f = flags();
 
-        if (c.level === "CR"){
-          if (!cr){ out.push(`<div class="card"><div class="meta">Missing AA (CR) row.</div></div>`); continue; }
-          const extras = [...addOns.filter(a=> a.applies_to!="bundle_only")];
-          if (flags.arOn && arRow) extras.push(arRow);
-          out.push(renderCard("CR", cr, fam, extras, {includeBaHoldback:false, baHold:0, components:[]}));
-        } else {
-          if (!pair){ out.push(`<div class="card"><div class="meta">Missing pair for ${c.level}.</div></div>`); continue; }
-          const extras = [...addOns.filter(a=> a.applies_to!="cr_only")];
-          if (flags.arOn && arRow) extras.push(arRow);
-          const comps = componentBreakdown(pair, rowsForFamSeg, fam);
-          out.push(renderCard(c.title, pair, fam, extras, {
-            includeBaHoldback:true, baHold, components: comps
-          }));
+      // rows for family/segment
+      const rowsFS = filterByFamSeg(ALL, fam, seg);
+
+      // materials per level
+      function buildForLevel(level){
+        const {pair, cr} = rowsForLevel(rowsFS, level);
+        const useCR = (level==='CR');
+
+        // add-ons (oversize/glass/N-O/etc.), exclusive sun
+        const signalAll = rowsFS.filter(r=> r.kind==='addon' && isSignalAddon(r) && flagsAllow(r, f));
+        const sunOnly = signalAll.filter(r => (r.exclusive_group||'')==='sun');
+        const notSun  = signalAll.filter(r => (r.exclusive_group||'')!=='sun');
+
+        // choose sun by requested tint
+        function chooseSun(){
+          if (tintSel==='clear') return null;
+          if (tintSel==='polarized'){
+            // prefer 'Polarized' code in sun group for this family/seg
+            return sunOnly.find(r=>/polariz/i.test(r.sun)||/polariz/i.test(r.item)) || null;
+          }
+          if (tintSel==='transitions'){
+            // pick a photochromic option
+            return sunOnly.find(r=>/photochrom/i.test(r.sun)||/photochrom/i.test(r.item)) || null;
+          }
+          if (tintSel==='tinted'){
+            // any non photochromic/polarized tint
+            return sunOnly.find(r=>/tint|solid|gradient|sunglass/i.test(r.item)) || null;
+          }
+          return null;
         }
+        const sunPick = chooseSun();
+
+        // AR (auto most profitable when toggle ON)
+        const arRow = pickAR(rowsFS, fam, f);
+
+        // BA base holdback for bundles
+        const baHold = getBAHoldback(rowsFS, fam);
+
+        const extras = [];
+        if (sunPick) extras.push(sunPick);
+        for(const a of notSun) extras.push(a);
+
+        const pack = {pair, cr, addOns:extras, arRow, fam, level, baHold, rowsForFam:rowsFS};
+        return makeBundle(pack);
       }
-      $cards.innerHTML = out.join("");
+
+      // Build *all* bundles (Hi67 / Mid / Poly / CR)
+      const bHi   = buildForLevel('Hi67');
+      const bMid  = buildForLevel('Mid');
+      const bPoly = buildForLevel('Poly');
+      const bCR   = buildForLevel('CR');
+
+      // Gather candidates, then rank into Best / Better / Good / Cheapest
+      const all = [bHi,bMid,bPoly,bCR].filter(Boolean);
+      if (!all.length){ renderAll({}); return; }
+
+      const maxCopay = Math.max(...all.map(b=>b.copay));
+      const chooseMostProfit = (arr)=> arr.slice().sort((a,b)=> (b.profit - a.profit) || (a.copay - b.copay))[0];
+      function underCap(cap, exclude=new Set()){
+        const pick = all
+          .filter(b=>b.copay<=cap && !exclude.has(b.label))
+          .sort((a,b)=> (b.profit - a.profit) || (a.copay - b.copay))[0];
+        if (pick) return pick;
+        const loose = cap / CAP_RELAX_FACTOR;
+        return all
+          .filter(b=>b.copay<=loose && !exclude.has(b.label))
+          .sort((a,b)=> (b.profit - a.profit) || (a.copay - b.copay))[0] || null;
+      }
+      function cheapest(exclude=new Set()){
+        return all.filter(b=>!exclude.has(b.label))
+                  .sort((a,b)=> (a.copay - b.copay) || (b.profit - a.profit))[0] || null;
+      }
+
+      const best = chooseMostProfit(all);
+      const used = new Set(best ? [best.label] : []);
+      const better = underCap(maxCopay*BETTER_CAP_OF_MAX, used); if (better) used.add(better.label);
+      let good = underCap(maxCopay*GOOD_CAP_OF_MAX, used); if (!good) good = cheapest(used); if (good) used.add(good.label);
+      const cheap = cheapest(used);
+
+      renderAll({best, better, good, cheapest:cheap});
     }
 
-    // events
-    document.getElementById("lensTint").addEventListener("change", run);
-    document.getElementById("ar").addEventListener("change", run);
-    document.getElementById("refresh").addEventListener("click", ()=>{ sessionStorage.removeItem(CACHE_KEY); init(); });
-    document.getElementById("clear").addEventListener("click", ()=>{ sessionStorage.clear(); $meta.textContent="cache cleared"; init(); });
-    $fam.addEventListener("change", run);
+    /* ================== Wire-up ================== */
+    $('forceRefresh').onclick = ()=>{ clearCache(); loadCSV(); };
+    $('clearCache').onclick = ()=>{ clearCache(); $('status').textContent=' cache cleared — click Force Refresh'; };
 
-    init();
+    ['lensFamily','lensTint','includeAR','includeAspheric','includeOversize','includeGlass','includeCM']
+      .forEach(id => { const node=$(id); if(node) node.onchange=compute; });
+
+    loadCSV();
+  })();
   </script>
 </body>
 </html>
