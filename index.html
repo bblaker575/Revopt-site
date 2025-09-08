@@ -134,19 +134,32 @@
     <div id="diag" class="diag" style="display:none"></div>
   </main>
 
-  <!-- Error overlay -->
+  <!-- Error overlay for runtime issues (noise-filtered) -->
   <script>
     if (!window.__PAYEREDGE_V15__) {
       (function(){
+        const IGNORE_RE = /(User rejected the request|user aborted|AbortError|NotAllowedError|permission denied|The user denied)/i;
+
+        function shouldIgnore(reason){
+          const msg = (reason && (reason.stack || reason.message || String(reason))) || '';
+          return IGNORE_RE.test(msg);
+        }
+
         function showErrorOverlay(err, where){
+          if (shouldIgnore(err)) { console.warn('[overlay:silenced]', where, err); return; }
           const wrap = document.createElement('div');
           wrap.style.cssText = 'position:fixed;inset:12px;z-index:99999;background:#0b1220;border:1px solid #f44;box-shadow:0 8px 24px rgba(0,0,0,.5);color:#fff;border-radius:12px;padding:12px;overflow:auto;max-height:90vh;font:12px/1.4 ui-monospace,Menlo,Consolas,monospace';
           wrap.innerHTML = '<b>JS Error @ '+where+':</b><pre style="white-space:pre-wrap;margin:8px 0 0">'+
             (err && (err.stack||err.message||String(err))) + '</pre>';
           document.body.appendChild(wrap);
         }
+
         window.addEventListener('error', e=>showErrorOverlay(e.error||e,'window.error'));
-        window.addEventListener('unhandledrejection', e=>showErrorOverlay(e.reason||e,'unhandledrejection'));
+        window.addEventListener('unhandledrejection', e=>{
+          const r = e.reason || e;
+          if (shouldIgnore(r)) { console.warn('[overlay:silenced:unhandledrejection]', r); e.preventDefault(); return; }
+          showErrorOverlay(r,'unhandledrejection');
+        });
       })();
     }
   </script>
@@ -246,14 +259,12 @@
       return /glass/.test(txt) ? 'PM' : 'PR';
     };
 
-    // AR detection: by exclusive key, text, or AR-like code tags.
+    // AR detection: by exclusive key, text, or AR-like words.
     const isARRow = (r)=>{
       const ex = normKey(field(r,EXCLUSIVE_KEYS,''));
       if (['ar','arlevel','antireflective','antireflect','antiglare','noglare'].includes(ex)) return true;
       const txt = N((field(r,ENHANCE_KEYS,'')||''));
       if (/(anti[\s-]?reflect|anti[\s-]?glare|no[\s-]?glare|\bar\b)/i.test(txt)) return true;
-      // If exclusive key is empty but code looks like AR letters (depends on plans),
-      // we leave this to text/exclusive to avoid false positives for BA (aspheric).
       return false;
     };
 
@@ -271,7 +282,7 @@
       const out = rows.filter(r=>r.length>=headers.length).map(r=>{
         const o={}; headers.forEach((h,i)=>o[h]=(r[i]||'').replace(/^\"|\"$/g,'').trim()); return o;
       });
-      if (out.length) discoverAliases(out[0]); // <<< auto-discover here
+      if (out.length) discoverAliases(out[0]);
       return out;
     }
 
@@ -338,7 +349,7 @@
       }
 
       if (loaded){
-        const meta = { plan:'VSP_choice', version:new Date().toISOString().slice(0,10)+'.ui18.5-alamo', source:'network:'+loaded.url, sha:quickHash(loaded.text) };
+        const meta = { plan:'VSP_choice', version:new Date().toISOString().slice(0,10)+'.ui18.6-alamo', source:'network:'+loaded.url, sha:quickHash(loaded.text) };
         setCache(loaded.text, meta);
         activateAndIndex(loaded.text, meta);
         status.textContent = ` [ok] ${loaded.url} • ${ACTIVE_ROWS.length} rows`;
