@@ -1,34 +1,34 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8"/>
-<title>PayerEdge — VSP Bundles (v11.1)</title>
-<meta name="viewport" content="width=device-width,initial-scale=1"/>
-<style>
-  :root{--bg:#0b0f14;--fg:#e7eefc;--muted:#9fb0c9;--card:#101722;--line:#233044;--ok:#10b981}
-  *{box-sizing:border-box}
-  body{background:var(--bg);color:var(--fg);font:15px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;margin:0}
-  header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 20px;border-bottom:1px solid #1b2535}
-  h1{font-size:18px;margin:0}
-  .meta{color:var(--muted);font-size:12px}
-  .row{display:flex;gap:12px;flex-wrap:wrap;padding:12px 20px}
-  .group{background:#0f1621;border:1px solid var(--line);border-radius:12px;padding:8px 10px;display:flex;gap:10px;align-items:center}
-  select{background:#152033;border:1px solid var(--line);color:var(--fg);padding:6px 10px;border-radius:8px}
-  .btn{background:#162130;border:1px solid var(--line);color:var(--fg);padding:8px 12px;border-radius:10px;cursor:pointer}
-  .cards{display:grid;grid-template-columns:repeat(4,minmax(260px,1fr));gap:14px;padding:0 20px 40px}
-  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px}
-  .card h2{margin:0 0 2px 0;font-size:32px}
-  .kicker{color:var(--muted);font-size:12px;margin-bottom:12px}
-  table{width:100%;border-collapse:collapse;font-size:13px}
-  th,td{padding:8px;border-top:1px solid #1b2535;text-align:left}
-  .right{text-align:right}
-  .muted{color:var(--muted)}
-  .ok{color:var(--ok)}
-  .banner{margin:12px 20px;background:#1a1320;border:1px dashed #6b4fa3;padding:10px 12px;border-radius:10px;display:none}
-  .small{font-size:12px}
-  @media(max-width:1200px){.cards{grid-template-columns:repeat(2,minmax(260px,1fr))}}
-  @media(max-width:700px){.cards{grid-template-columns:1fr}}
-</style>
+  <meta charset="utf-8"/>
+  <title>PayerEdge — VSP Bundles (v12)</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <style>
+    :root{--bg:#0b0f14;--fg:#e7eefc;--muted:#9fb0c9;--card:#101722;--line:#233044;--ok:#10b981}
+    *{box-sizing:border-box}
+    body{background:var(--bg);color:var(--fg);font:15px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;margin:0}
+    header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 20px;border-bottom:1px solid #1b2535}
+    h1{font-size:18px;margin:0}
+    .meta{color:var(--muted);font-size:12px}
+    .row{display:flex;gap:12px;flex-wrap:wrap;padding:12px 20px}
+    .group{background:#0f1621;border:1px solid var(--line);border-radius:12px;padding:8px 10px;display:flex;gap:10px;align-items:center}
+    select{background:#152033;border:1px solid var(--line);color:var(--fg);padding:6px 10px;border-radius:8px}
+    .btn{background:#162130;border:1px solid var(--line);color:var(--fg);padding:8px 12px;border-radius:10px;cursor:pointer}
+    .cards{display:grid;grid-template-columns:repeat(4,minmax(260px,1fr));gap:14px;padding:0 20px 40px}
+    .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px}
+    .card h2{margin:0 0 2px 0;font-size:32px}
+    .kicker{color:var(--muted);font-size:12px;margin-bottom:12px}
+    table{width:100%;border-collapse:collapse;font-size:13px}
+    th,td{padding:8px;border-top:1px solid #1b2535;text-align:left}
+    .right{text-align:right}
+    .muted{color:var(--muted)}
+    .ok{color:var(--ok)}
+    .banner{margin:12px 20px;background:#1a1320;border:1px dashed #6b4fa3;padding:10px 12px;border-radius:10px;display:none}
+    .small{font-size:12px}
+    @media(max-width:1200px){.cards{grid-template-columns:repeat(2,minmax(260px,1fr))}}
+    @media(max-width:700px){.cards{grid-template-columns:1fr}}
+  </style>
 </head>
 <body>
   <header>
@@ -37,7 +37,7 @@
       <div class="meta">Scoreboard shows <b>patient copay</b> and <b>service fee</b> (Copay − Holdback). Sun choices are exclusive.</div>
     </div>
     <div style="display:flex;gap:8px;align-items:center">
-      <span class="meta">plan=<b>VSP_choice</b> • version=<b>v11.1</b> • source=<span id="src" class="muted">…</span></span>
+      <span class="meta">plan=<b id="planName">VSP_choice</b> • version=<b>v12</b> • source=<span id="src" class="muted">…</span></span>
       <button class="btn" id="refresh">Force Refresh</button>
       <button class="btn" id="clear">Clear Cache</button>
     </div>
@@ -74,81 +74,72 @@
   <div id="net" class="banner"></div>
   <div class="cards" id="cards"></div>
 
-  <!-- PapaParse (no SRI) -->
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
   <script>
-    /***************
-     * CONFIG/VERS *
-     ***************/
-    const CSV_PATH = "./data/vsp_choice_master_v8_from_patched.csv"; // change if your path differs
-    document.getElementById("src").textContent = CSV_PATH;
-    const CACHE_KEY = "vsp_choice_v11_1";
+    /*************** CONFIG ***************/
+    const CSV_PATH = "./data/vsp_choice_master_v9.csv";  // normalized v9 schema
+    const PLAN = "VSP_choice";
+    const CACHE_KEY = "payeredge_v12_cache";
 
-    // Cards to render
     const CARDS = [
-      {key:"Hi67", pair:"BA+BH", title:"Hi67"},
-      {key:"Mid",  pair:"BA+BB", title:"Mid"},
-      {key:"Poly", pair:"BA+BD", title:"Poly"},
-      {key:"CR",   pair:null,    title:"CR"}
+      {key:"Hi67", level:"Hi67", title:"Hi67"},
+      {key:"Mid",  level:"Mid",  title:"Mid"},
+      {key:"Poly", level:"Poly", title:"Poly"},
+      {key:"CR",   level:"CR",   title:"CR"}
     ];
 
     const $cards = document.getElementById("cards");
     const $meta  = document.getElementById("meta");
     const $net   = document.getElementById("net");
+    document.getElementById("src").textContent = CSV_PATH;
 
-    const money = n => `$${Number(n||0).toFixed(2).replace(/\.00$/,"")}`;
-    const num   = v => v==null||v==="" ? null : Number(String(v).replace(/[^\d.-]/g,""));
+    const money = n => `$${Number(n||0).toFixed(2).replace(/\.00$/,'')}`;
 
     function famKey(raw){
       const s = String(raw||"").toLowerCase();
       if (s.startsWith("single")) return "SV";
       if (s.startsWith("multi"))  return "MF";
-      return (["sv","mf"].includes(s)) ? s.toUpperCase() : "SV";
+      return (s==="sv"||s==="mf") ? s.toUpperCase() : "SV";
     }
 
-    // Normalize a code string: uppercase + remove all whitespace
-    const normCode = (c)=>String(c||"").toUpperCase().replace(/\s+/g,"");
-
-    /*****************
-     * CSV LOADING   *
-     *****************/
-    function norm(row){
-      const r = Object.fromEntries(Object.entries(row).map(([k,v])=>[String(k).trim().toLowerCase(), typeof v==="string"?v.trim():v]));
-      return {
-        group: r.group||"",
-        enhancement: r.enhancement||"",
-        code: normCode(r.code || r.codes),
-        notes: r.notes||"",
-        copay_raw: r.copay||"",
-        vsp: num(r.vsp),
-        chargeback: num(String(r.chargeback||"").replace("$","")),
-        applies_to: r.applies_to||"",
-        chargeback_split: r.chargeback_split||""
-      };
-    }
-
-    function parseAddFromNotes(notes){
-      // Example in CSV notes: "Copay = 45+58 (SV) / 55+68 (MF)"
-      const m = /Copay\s*=\s*45\+(\d+)\s*\(SV\)\s*\/\s*55\+(\d+)\s*\(MF\)/i.exec(notes||"");
-      if (!m) return null;
-      return {sv_add: Number(m[1]), mf_add: Number(m[2])};
-    }
-
-    function indexRows(rows){
-      const byCode = {};
-      for (const r of rows){
-        const code = normCode(r.code);
-        if (!code) continue;
-        (byCode[code] ||= []).push(r);
+    /*************** CSV LOAD ***************/
+    function normRow(r){
+      const o = {};
+      for (const [k,v] of Object.entries(r)){
+        o[String(k).trim().toLowerCase()] = typeof v === "string" ? v.trim() : v;
       }
-      return byCode;
+      const n = (k)=>{
+        const v = o[k];
+        if (v==null || v==="") return null;
+        const z = String(v).replace(/[^0-9.\-]/g,"");
+        return z===""? null : Number(z);
+      };
+      return {
+        plan: o.plan || "",
+        kind: (o.kind||"").toLowerCase(),
+        code: (o.code||"").toUpperCase(),
+        item: o.item || "",
+        family: (o.family||"BOTH").toUpperCase(),
+        material_level: (o.material_level||"—"),
+        sun: (o.sun||"—"),
+        exclusive_group: o.exclusive_group || "",
+        requires_flags: (o.requires_flags||"").toLowerCase().split(/\s*,\s*/).filter(Boolean),
+        forbids_flags: (o.forbids_flags||"").toLowerCase().split(/\s*,\s*/).filter(Boolean),
+        applies_to: (o.applies_to||"all").toLowerCase(),
+        pair_with: (o.pair_with||"").toUpperCase(),
+        copay_sv: n("copay_sv"),
+        holdback_sv: n("holdback_sv"),
+        copay_mf: n("copay_mf"),
+        holdback_mf: n("holdback_mf"),
+        notes: o.notes || ""
+      };
     }
 
     async function loadCsv(){
       const cached = sessionStorage.getItem(CACHE_KEY);
       if (cached){
         const {rows, when} = JSON.parse(cached);
-        const nrows = rows.map(norm);
+        const nrows = rows.map(normRow);
         $meta.textContent = `rows=${nrows.length} • cache ${(new Date(when)).toLocaleTimeString()}`;
         return nrows;
       }
@@ -157,7 +148,7 @@
         if(!res.ok) throw new Error(`HTTP ${res.status}`);
         const text = await res.text();
         const parsed = Papa.parse(text, {header:true, skipEmptyLines:true});
-        const rows = parsed.data.map(norm);
+        const rows = parsed.data.map(normRow);
         sessionStorage.setItem(CACHE_KEY, JSON.stringify({rows: parsed.data, when: Date.now()}));
         $meta.textContent = `rows=${rows.length} • fresh`;
         return rows;
@@ -167,7 +158,7 @@
         const c2 = sessionStorage.getItem(CACHE_KEY);
         if (c2){
           const {rows} = JSON.parse(c2);
-          const r2 = rows.map(norm);
+          const r2 = rows.map(normRow);
           $meta.textContent = `rows=${r2.length} • cache (offline)`;
           return r2;
         }
@@ -176,183 +167,145 @@
       }
     }
 
-    /*****************
-     * PRICING LOGIC *
-     *****************/
-    // BA base (SV = $45/$24/$21, MF = $55/$34/$21) chosen directly from CSV
-    function baseBA(byCode, fam){
-      const baRows = (byCode[normCode("BA")]||[]);
-      if (!baRows.length) return null;
-      // identify by leading 45 or 55 in copay_raw
-      let row = baRows.find(r=>/^\$?45\b/.test(String(r.copay_raw))) || baRows[0];
-      if (fam==="MF") row = baRows.find(r=>/^\$?55\b/.test(String(r.copay_raw))) || row;
+    /*************** RULES ***************/
+    function byPlan(rows, plan){
+      return rows.filter(r=> !r.plan || r.plan===plan);
+    }
+
+    function familyRowVal(row, fam){
+      if (fam === "SV") return {copay: row.copay_sv||0, hold: row.holdback_sv||0};
+      return {copay: row.copay_mf||0, hold: row.holdback_mf||0};
+    }
+
+    function flagsFromUI(){
       return {
-        item:"Digital Aspheric",
-        code:"BA",
-        copay: num(String(row.copay_raw).replace("$","")),
-        holdback: row.chargeback||0,
-        serviceFee: row.vsp||0,
-        source:"csv"
+        ar: document.getElementById("ar").checked,
+        aspheric: document.getElementById("aspheric").checked,
+        oversize: document.getElementById("oversize").checked,
+        glass: document.getElementById("glass").checked,
+        no_only: document.getElementById("noOnly").checked
       };
     }
 
-    // BA+* pair totals (SV/MF) computed from CSV notes + correct row for CB/SF
-    function pairFromCsv(byCode, pairCode, fam){
-      const code = normCode(pairCode);
-      const rows = (byCode[code]||[]);
-      if (!rows.length) return null;
-
-      const addInfo = parseAddFromNotes(rows[0].notes);
-
-      // BA+BJ is SV-only in some sheets; handle gracefully
-      if (!addInfo && code==="BA+BJ"){
-        const r = rows[0];
-        const m = /45\s*\+\s*(\d+)/.exec(String(r.copay_raw));
-        const sv = 45 + (m ? Number(m[1]) : 0);
-        return { item:"Digital Aspheric", code, copay: sv, holdback: r.chargeback||0, serviceFee: r.vsp||0, source:"csv" };
-      }
-
-      if (!addInfo) return null;
-
-      const svTotal = 45 + addInfo.sv_add;
-      const mfTotal = 55 + addInfo.mf_add;
-
-      // CSV often encodes MF as "45 + (mf_add+10)" in copay_raw second term
-      const secondTerm = s => { const m=/\+\s*(\d+)/.exec(String(s)); return m?Number(m[1]):null; };
-      const svRow = rows.find(r => secondTerm(r.copay_raw)===addInfo.sv_add) || rows[0];
-      const mfRow = rows.find(r => secondTerm(r.copay_raw)===(addInfo.mf_add+10)) || rows[rows.length-1];
-
-      const picked = (fam==="SV") ? svRow : mfRow;
-      const total  = (fam==="SV") ? svTotal : mfTotal;
-
-      return { item:"Digital Aspheric", code, copay: total, holdback: picked.chargeback||0, serviceFee: picked.vsp||0, source:"csv" };
+    function flagsAllow(row, flags){
+      for (const f of row.requires_flags){ if (!flags[f]) return false; }
+      for (const f of row.forbids_flags){ if (flags[f]) return false; }
+      return true;
     }
 
-    // CR codes from CSV (AA: SV=$31, MF=$35; QM: AR add-on)
-    function codeFromCsv(byCode, fam, rawCode){
-      const code = normCode(rawCode);
-      const rows = (byCode[code]||[]);
-      if (!rows.length) return null;
-      let row = rows[0];
-      if (code==="AA"){
-        row = (fam==="SV")
-          ? (rows.find(r=>/^\$?31\b/.test(String(r.copay_raw))) || rows[0])
-          : (rows.find(r=>/^\$?35\b/.test(String(r.copay_raw))) || rows[rows.length-1]);
+    function pickExclusive(rows){
+      // Keep one row per exclusive_group; prefer higher copay (stable, deterministic)
+      const winners = new Map();
+      const passthrough = [];
+      for (const r of rows){
+        const g = r.exclusive_group||"";
+        if (!g){ passthrough.push(r); continue; }
+        const key = g;
+        const prev = winners.get(key);
+        if (!prev){ winners.set(key, r); continue; }
+        const cA = (r.copay_sv||0)+(r.copay_mf||0);
+        const cB = (prev.copay_sv||0)+(prev.copay_mf||0);
+        if (cA > cB) winners.set(key, r);
       }
-      return { item: code==="QM" ? "A/R" : "CR", code, copay: num(String(row.copay_raw).replace("$","")), holdback: row.chargeback||0, serviceFee: row.vsp||0 };
+      return [...passthrough, ...winners.values()];
     }
 
-    const sum = (arr,k) => arr.reduce((s,x)=>s+(x[k]||0),0);
+    function bundleRows(rows, fam, level, tint, flags){
+      const rowsForFam = rows.filter(r=> r.family==="BOTH" || r.family===fam);
 
-    /****************
-     * RENDER CARDS *
-     ****************/
-    function renderPairCard(badge, pair, base){
-      const infoRows = [
-        { code:"BA", copay: base.copay, holdback: base.holdback, serviceFee: base.serviceFee },
-        { code: pair.code.split("+")[1], copay: pair.copay, holdback: pair.holdback, serviceFee: pair.serviceFee }
-      ];
+      // 1) Pair row for material level (e.g., BA+BD)
+      const pair = rowsForFam.find(r=> r.kind==="pair" && r.material_level===level && r.sun!=="Polarized");
+
+      // 2) CR base (AA)
+      const cr = rowsForFam.find(r=> r.kind==="base" && r.code==="AA");
+
+      // 3) Add-ons filtered by flags and tint (sun)
+      const addOnsAll = rowsForFam.filter(r=> r.kind==="addon");
+      const addOns = addOnsAll.filter(r=> flagsAllow(r, flags) && (
+        r.sun==="Any" || r.sun==="—" || r.sun===tint
+      ));
+
+      // enforce exclusivity (e.g., only one sun choice)
+      const addOnsExclusive = pickExclusive(addOns);
+
+      return {pair, cr, addOns:addOnsExclusive};
+    }
+
+    function computeLines(row, fam){
+      const {copay, hold} = familyRowVal(row, fam);
+      const fee = (copay||0) - (hold||0);
+      return {copay, hold, fee};
+    }
+
+    function renderCard(title, mainRow, fam, breakdownExtra=[]){
+      if (!mainRow){
+        return `<div class="card"><div class="meta">Missing data for ${title}.</div></div>`;
+      }
+      const main = computeLines(mainRow, fam);
+      const extras = breakdownExtra.map(r=> ({row:r, lines: computeLines(r, fam)}));
+
+      const grand = extras.reduce((s,x)=>{
+        s.copay += (x.lines.copay||0);
+        s.hold  += (x.lines.hold||0);
+        s.fee   += (x.lines.fee||0);
+        return s;
+      }, {copay: main.copay, hold: main.hold, fee: main.fee});
+
       return `
         <div class="card">
-          <h2>${money(pair.copay)}</h2>
-          <div class="kicker">Patient Copay<br><span class="ok">Service Fee (Practice Profit): ${money(pair.serviceFee)}</span></div>
-          <div class="meta" style="margin-bottom:6px">${badge}</div>
+          <h2>${money(grand.copay)}</h2>
+          <div class="kicker">Patient Copay<br><span class="ok">Service Fee (Practice Profit): ${money(grand.fee)}</span></div>
+          <div class="meta" style="margin-bottom:6px">${title}</div>
           <table>
             <thead><tr><th>Item</th><th>Code</th><th class="right">Copay</th><th class="right">Holdback</th><th class="right">Service Fee</th></tr></thead>
             <tbody>
-              <tr>
-                <td>${pair.item}</td>
-                <td class="muted">${pair.code}</td>
-                <td class="right">${money(pair.copay)}</td>
-                <td class="right">${money(pair.holdback)}</td>
-                <td class="right">${money(pair.serviceFee)}</td>
-              </tr>
-            </tbody>
-          </table>
-          <div class="meta small" style="margin-top:10px">Code breakdown (informational — not added to totals)</div>
-          <table>
-            <thead><tr><th>Code</th><th class="right">Copay</th><th class="right">Holdback</th><th class="right">Service Fee</th></tr></thead>
-            <tbody>
-              ${infoRows.map(r=>`
-                <tr>
-                  <td class="muted">${r.code}</td>
-                  <td class="right">${money(r.copay)}</td>
-                  <td class="right">${money(r.holdback)}</td>
-                  <td class="right">${money(r.serviceFee)}</td>
-                </tr>`).join("")}
-            </tbody>
-          </table>
-        </div>
-      `;
-    }
-
-    function renderCR(rows){
-      const copay = sum(rows,"copay"), hold=sum(rows,"holdback"), fee=sum(rows,"serviceFee");
-      return `
-        <div class="card">
-          <h2>${money(copay)}</h2>
-          <div class="kicker">Patient Copay<br><span class="ok">Service Fee (Practice Profit): ${money(fee)}</span></div>
-          <div class="meta" style="margin-bottom:6px">CR</div>
-          <table>
-            <thead><tr><th>Item</th><th>Code</th><th class="right">Copay</th><th class="right">Holdback</th><th class="right">Service Fee</th></tr></thead>
-            <tbody>
-              ${rows.map(r=>`
+              ${[ {r:mainRow, l:main}, ...extras.map(x=>({r:x.row,l:x.lines})) ].map(({r,l})=>`
                 <tr>
                   <td>${r.item}</td>
                   <td class="muted">${r.code}</td>
-                  <td class="right">${money(r.copay)}</td>
-                  <td class="right">${money(r.holdback)}</td>
-                  <td class="right">${money(r.serviceFee)}</td>
+                  <td class="right">${money(l.copay)}</td>
+                  <td class="right">${money(l.hold)}</td>
+                  <td class="right">${money(l.fee)}</td>
                 </tr>`).join("")}
               <tr>
                 <td class="muted">Totals</td><td></td>
-                <td class="right"><b>${money(copay)}</b></td>
-                <td class="right"><b>${money(hold)}</b></td>
-                <td class="right"><b>${money(fee)}</b></td>
+                <td class="right"><b>${money(grand.copay)}</b></td>
+                <td class="right"><b>${money(grand.hold)}</b></td>
+                <td class="right"><b>${money(grand.fee)}</b></td>
               </tr>
             </tbody>
           </table>
-        </div>
-      `;
+        </div>`;
     }
 
-    /************
-     * PIPELINE *
-     ************/
     async function run(){
-      const fam = famKey(document.getElementById("lensFamily").value);
-      const includeAR = document.getElementById("ar").checked;
+      const fam  = famKey(document.getElementById("lensFamily").value);
+      const tint = document.getElementById("lensTint").value; // Clear/Solid/Gradient/Photochromic/Polarized
+      const flags = flagsFromUI();
 
-      const rows = await loadCsv();
-      const byCode = indexRows(rows);
+      const rows = byPlan(await loadCsv(), PLAN);
+      if (!rows.length){ $cards.innerHTML = `<div class='meta' style='padding:20px'>No CSV rows found.</div>`; return; }
 
       const out = [];
+      for (const c of CARDS){
+        const {pair, cr, addOns} = bundleRows(rows, fam, c.level, tint, flags);
 
-      // BA base (for consistent breakdown display)
-      const base = baseBA(byCode, fam);
-      if (!base){ $cards.innerHTML = "<div class='meta' style='padding:20px'>No BA base row found in CSV.</div>"; return; }
-
-      // Hi67 / Mid / Poly — pair totals from CSV (no BA double-count)
-      for (const c of CARDS.slice(0,3)){
-        const pair = pairFromCsv(byCode, c.pair, fam);
-        if (!pair){ out.push(`<div class="card"><div class="meta">Missing ${c.pair} in CSV.</div></div>`); continue; }
-        out.push(renderPairCard(c.key, pair, base));
+        if (c.level === "CR"){
+          if (!cr){ out.push(`<div class="card"><div class="meta">Missing AA (CR) row.</div></div>`); continue; }
+          out.push(renderCard("CR", cr, fam, addOns.filter(a=> a.applies_to!="bundle_only")));
+        } else {
+          if (!pair){ out.push(`<div class="card"><div class="meta">Missing pair for ${c.level}.</div></div>`); continue; }
+          out.push(renderCard(c.title, pair, fam, addOns.filter(a=> a.applies_to!="cr_only")));
+        }
       }
-
-      // CR: AA (+ QM if AR checked) from CSV
-      const crRows = [];
-      const aa = codeFromCsv(byCode, fam, "AA"); if (aa) crRows.push(aa);
-      if (includeAR){ const qm = codeFromCsv(byCode, fam, "QM"); if (qm) crRows.push(qm); }
-      out.push(renderCR(crRows));
 
       $cards.innerHTML = out.join("");
     }
 
     // events
     document.getElementById("lensFamily").addEventListener("change", ()=>{ sessionStorage.removeItem(CACHE_KEY); run(); });
-    document.getElementById("lensTint").addEventListener("change", run); // future: tint rules
-    document.getElementById("ar").addEventListener("change", run);
-    ["aspheric","oversize","glass","noOnly"].forEach(id=>document.getElementById(id).addEventListener("change", run));
+    document.getElementById("lensTint").addEventListener("change", run);
+    ["ar","aspheric","oversize","glass","noOnly"].forEach(id=> document.getElementById(id).addEventListener("change", run));
     document.getElementById("refresh").addEventListener("click", ()=>{ sessionStorage.removeItem(CACHE_KEY); run(); });
     document.getElementById("clear").addEventListener("click", ()=>{ sessionStorage.clear(); $meta.textContent="cache cleared"; run(); });
 
