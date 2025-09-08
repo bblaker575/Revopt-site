@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8"/>
-  <title>PayerEdge — VSP Bundles (v12.3)</title>
+  <title>PayerEdge — VSP Bundles (v12.4)</title>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <style>
     :root{--bg:#0b0f14;--fg:#e7eefc;--muted:#9fb0c9;--card:#101722;--line:#233044;--ok:#10b981}
@@ -37,7 +37,7 @@
       <div class="meta">Scoreboard shows <b>patient copay</b> and <b>service fee</b> (Copay − Holdback). Sun choices are exclusive.</div>
     </div>
     <div style="display:flex;gap:8px;align-items:center">
-      <span class="meta">plan=<b id="planName">VSP_choice</b> • version=<b>v12.3</b> • source=<span id="src" class="muted">…</span></span>
+      <span class="meta">plan=<b id="planName">VSP_choice</b> • version=<b>v12.4</b> • source=<span id="src" class="muted">…</span></span>
       <button class="btn" id="refresh">Force Refresh</button>
       <button class="btn" id="clear">Clear Cache</button>
     </div>
@@ -51,6 +51,7 @@
         <option>Multifocal</option>
       </select>
     </div>
+
     <div class="group">
       <span class="muted">Lens tint</span>
       <select id="lensTint">
@@ -61,13 +62,24 @@
         <option>Polarized</option>
       </select>
     </div>
+
+    <div class="group" style="gap:12px">
+      <label class="muted">AR</label>
+      <select id="arTier">
+        <option value="none">None</option>
+        <option value="QM">Tier A (QM)</option>
+        <option value="QT">Tier C (QT)</option>
+        <option value="QV">Tier D (QV)</option>
+      </select>
+    </div>
+
     <div class="group" style="gap:14px">
-      <label><input type="checkbox" id="ar" checked/> Include AR (tiered)</label>
       <label><input type="checkbox" id="aspheric"/> Aspheric</label>
       <label><input type="checkbox" id="oversize"/> Oversize</label>
       <label><input type="checkbox" id="glass"/> Glass</label>
       <label><input type="checkbox" id="noOnly"/> Custom measurements (N/O only)</label>
     </div>
+
     <div class="group"><span class="muted">[debug]</span> <span id="meta" class="meta">…</span></div>
   </div>
 
@@ -77,7 +89,7 @@
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
   <script>
     /*************** CONFIG ***************/
-    const CSV_PATH = "./data/vsp_choice_master_v9_strict.csv";
+    const CSV_PATH = "./data/vsp_choice_master_v9_strict.csv"; // strict file you uploaded
     const PLAN = "VSP_choice";
     const CACHE_KEY = "payeredge_v12_cache";
 
@@ -179,11 +191,11 @@
 
     function flagsFromUI(){
       return {
-        ar: document.getElementById("ar").checked,
         aspheric: document.getElementById("aspheric").checked,
         oversize: document.getElementById("oversize").checked,
         glass: document.getElementById("glass").checked,
-        no_only: document.getElementById("noOnly").checked
+        no_only: document.getElementById("noOnly").checked,
+        arTier: document.getElementById("arTier").value // 'none' | 'QM' | 'QT' | 'QV'
       };
     }
 
@@ -194,12 +206,14 @@
     }
 
     function isPositiveSignalAddon(r){
-      if ((r.exclusive_group||"").trim()) return true;
+      if ((r.exclusive_group||"").trim()) return true; // e.g. sun
       const req = r.requires_flags||[];
-      return req.includes("ar") || req.includes("oversize") || req.includes("no_only") || req.includes("glass");
+      return req.includes("oversize") || req.includes("no_only") || req.includes("glass");
+      // NOTE: AR handled separately by tier picker
     }
 
     function pickExclusive(rows){
+      // Keep one row per exclusive_group; prefer higher copay (deterministic)
       const winners = new Map();
       const passthrough = [];
       for (const r of rows){
@@ -214,19 +228,33 @@
       return [...passthrough, ...winners.values()];
     }
 
+    function pickAR(rowsForFam, tier){
+      if (tier==="none") return null;
+      // Find a row with requires_flags containing 'ar' and matching the code (QM/QT/QV)
+      const ar = rowsForFam.find(r => r.kind==="addon"
+        && (r.requires_flags||[]).includes("ar")
+        && r.code===tier);
+      return ar || null;
+    }
+
     function bundleRows(rows, fam, level, tint, flags){
       const rowsForFam = rows.filter(r=> r.family==="BOTH" || r.family===fam);
 
+      // Pair/base
       const pair = rowsForFam.find(r=> r.kind==="pair" && r.material_level===level && r.sun!=="Polarized");
       const cr   = rowsForFam.find(r=> r.kind==="base" && r.code==="AA");
 
+      // Non-AR add-ons (sun + oversize/no_only/glass via flags)
       const addOnsAll = rowsForFam.filter(r=> r.kind==="addon" && isPositiveSignalAddon(r));
       const addOns = addOnsAll.filter(r=> flagsAllow(r, flags) && (
         r.sun==="Any" || r.sun==="—" || r.sun===tint
       ));
       const addOnsExclusive = pickExclusive(addOns);
 
-      return {pair, cr, addOns:addOnsExclusive};
+      // AR: exactly one tier (or none)
+      const arRow = pickAR(rowsForFam, flags.arTier);
+
+      return {pair, cr, addOns:addOnsExclusive, arRow};
     }
 
     function computeLines(row, fam){
@@ -235,23 +263,24 @@
       return {copay, hold, fee};
     }
 
-    function renderCard(title, mainRow, fam, breakdownExtra=[]){
+    function renderCard(title, mainRow, fam, breakdownRows){
       if (!mainRow){
         return `<div class="card"><div class="meta">Missing data for ${title}.</div></div>`;
       }
-      const main = computeLines(mainRow, fam);
-      const extras = breakdownExtra.map(r=> ({row:r, lines: computeLines(r, fam)}));
 
-      const grand = extras.reduce((s,x)=>{
-        s.copay += (x.lines.copay||0);
-        s.hold  += (x.lines.hold||0);
-        s.fee   += (x.lines.fee||0);
+      const rowsLined = breakdownRows.map(r=> ({r, l: computeLines(r, fam)}));
+      const main = computeLines(mainRow, fam);
+
+      const grand = rowsLined.reduce((s,x)=>{
+        s.copay += (x.l.copay||0);
+        s.hold  += (x.l.hold||0);
+        s.fee   += (x.l.fee||0);
         return s;
       }, {copay: main.copay, hold: main.hold, fee: main.fee});
 
       const rowsHtml = [
         {r: mainRow, l: main},
-        ...extras.map(x=>({r:x.row, l:x.lines}))
+        ...rowsLined
       ].map(({r,l})=>`
         <tr>
           <td>${r.item}</td>
@@ -291,14 +320,18 @@
 
       const out = [];
       for (const c of CARDS){
-        const {pair, cr, addOns} = bundleRows(rows, fam, c.level, tint, flags);
+        const {pair, cr, addOns, arRow} = bundleRows(rows, fam, c.level, tint, flags);
 
         if (c.level === "CR"){
           if (!cr){ out.push(`<div class="card"><div class="meta">Missing AA (CR) row.</div></div>`); continue; }
-          out.push(renderCard("CR", cr, fam, addOns.filter(a=> a.applies_to!="bundle_only")));
+          const extras = [...addOns.filter(a=> a.applies_to!="bundle_only")];
+          if (arRow) extras.push(arRow);
+          out.push(renderCard("CR", cr, fam, extras));
         } else {
           if (!pair){ out.push(`<div class="card"><div class="meta">Missing pair for ${c.level}.</div></div>`); continue; }
-          out.push(renderCard(c.title, pair, fam, addOns.filter(a=> a.applies_to!="cr_only")));
+          const extras = [...addOns.filter(a=> a.applies_to!="cr_only")];
+          if (arRow) extras.push(arRow);
+          out.push(renderCard(c.title, pair, fam, extras));
         }
       }
 
@@ -308,7 +341,7 @@
     // events
     document.getElementById("lensFamily").addEventListener("change", ()=>{ sessionStorage.removeItem(CACHE_KEY); run(); });
     document.getElementById("lensTint").addEventListener("change", run);
-    ["ar","aspheric","oversize","glass","noOnly"].forEach(id=> document.getElementById(id).addEventListener("change", run));
+    ["aspheric","oversize","glass","noOnly","arTier"].forEach(id=> document.getElementById(id).addEventListener("change", run));
     document.getElementById("refresh").addEventListener("click", ()=>{ sessionStorage.removeItem(CACHE_KEY); run(); });
     document.getElementById("clear").addEventListener("click", ()=>{ sessionStorage.clear(); $meta.textContent="cache cleared"; run(); });
 
