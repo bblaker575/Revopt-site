@@ -7,29 +7,31 @@
   <style>
     :root{
       --bg:#0b0f14;--fg:#e7eefc;--muted:#9fb0c9;--card:#101722;--line:#233044;
-      --ok:#0f6a52;--warn:#7c5c19;--err:#b91c1c;--chip:#172234;--blue:#3b82f6
+      --ok:#0f6a52;--warn:#7c5c19;--err:#b91c1c;--chip:#172234
     }
-    *{box-sizing:border-box} body{background:var(--bg);color:var(--fg);font:15px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;margin:0}
+    *{box-sizing:border-box}
+    body{background:var(--bg);color:var(--fg);font:15px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;margin:0}
     header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 20px;border-bottom:1px solid #1b2535}
-    h1{font-size:18px;margin:0} .sub{color:var(--muted);font-size:12px}
+    h1{font-size:18px;margin:0}
+    .sub{color:var(--muted);font-size:12px}
     .row{display:flex;gap:12px;flex-wrap:wrap;padding:12px 20px}
     .btn{background:#162130;border:1px solid var(--line);color:var(--fg);padding:8px 12px;border-radius:10px;cursor:pointer}
-    .btn:active{transform:translateY(1px)} .btn.warn{border-color:#5c3d10}
+    .btn:active{transform:translateY(1px)}
     .group{background:#0f1621;border:1px solid var(--line);border-radius:12px;padding:10px 12px;display:flex;gap:10px;align-items:center}
     .chip{background:var(--chip);padding:6px 9px;border-radius:999px;border:1px solid var(--line);font-size:12px}
     .ctrl{display:flex;align-items:center;gap:8px}
-    select, .text{background:#152033;border:1px solid var(--line);color:var(--fg);padding:6px 10px;border-radius:8px}
+    select{background:#152033;border:1px solid var(--line);color:var(--fg);padding:6px 10px;border-radius:8px}
     .cards{display:grid;grid-template-columns:repeat(4,minmax(260px,1fr));gap:14px;padding:0 20px 40px}
     .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px}
     .card h2{margin:0 0 2px 0;font-size:32px}
     .kicker{color:var(--muted);font-size:12px;margin-bottom:12px}
     table{width:100%;border-collapse:collapse;font-size:13px}
     th,td{padding:8px;border-top:1px solid #1b2535;text-align:left}
-    .right{text-align:right} .muted{color:var(--muted)}
-    .ok{color:#10b981} .warn{color:#f59e0b}
+    .right{text-align:right}
+    .muted{color:var(--muted)}
+    .ok{color:#10b981}
     .err{background:#2a0f12;border:1px solid var(--err);color:#fca5a5;padding:8px 10px;border-radius:8px;margin:10px 20px}
     .pill{display:inline-flex;gap:6px;align-items:center;font-size:12px;background:#122238;border:1px solid var(--line);padding:4px 8px;border-radius:999px}
-    .note{font-size:12px;color:var(--muted)}
     .headergrid{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center}
     @media(max-width:1200px){.cards{grid-template-columns:repeat(2,minmax(260px,1fr))}}
     @media(max-width:700px){.cards{grid-template-columns:1fr}}
@@ -75,28 +77,23 @@
       <label><input type="checkbox" id="glass" /> Glass</label>
       <label><input type="checkbox" id="noOnly" /> Custom measurements (N/O only)</label>
     </div>
-    <div class="group">
-      <span class="muted">[debug]</span>
-      <span id="meta" class="chip">…</span>
-    </div>
+    <div class="group"><span class="muted">[debug]</span><span id="meta" class="chip">…</span></div>
   </div>
 
   <div id="err" class="err" style="display:none"></div>
   <div class="cards" id="cards"></div>
 
-  <!-- PapaParse for CSV -->
-  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js" integrity="sha256-kW3F6TjDk7p4Y+9lE8N0vC3X8vF4W6lZyqE5N9w3+8w=" crossorigin="anonymous"></script>
+  <!-- PapaParse (fixed: no SRI) -->
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+
   <script>
-    /********************
-     * CONFIG + VERSION *
-     ********************/
-    // Update this to your actual CSV:
-    // e.g., "./data/vsp_choice_master_v8_from_patched.csv"
-    // If it fails to load, the app will use a tiny fallback dataset just to render.
+    /***************
+     * CONFIG/VERS *
+     ***************/
     const CSV_PATH = "./data/vsp_choice_master_v8_from_patched.csv";
     document.getElementById("src").textContent = CSV_PATH;
 
-    // v9: Authoritative Digital Aspheric pricing (from your posted chart)
+    // Authoritative Digital Aspheric (BA…) pricing from the chart you provided
     const DIGITAL_ASPHERIC = {
       SV: {
         "BA":    { cb:24, sf:21, base:45, add:0,  allowed:true },
@@ -109,33 +106,33 @@
         "BA":    { cb:34, sf:21, base:55, add:0,  allowed:true },
         "BA+BB": { cb:16, sf:12, base:55, add:28, allowed:true },
         "BA+BH": { cb:40, sf:28, base:55, add:68, allowed:true },
-        "BA+BJ": { cb:null, sf:null, base:null, add:null, allowed:false },
+        "BA+BJ": { cb:null, sf:null, base:null, add:null, allowed:false }, // not offered
         "BA+BD": { cb:10, sf: 0, base:55, add:10, allowed:true }
       }
     };
 
-    // Polarized / tint exclusivity rules (summary)
-    // - Polarized acts as MATERIAL for MF; excludes other materials.
-    // - For SV/MF: selecting Polarized/Tint/Photochromic excludes the others.
+    // Exclusivity note (UI state only; pricing rules handled elsewhere if needed)
     function enforceExclusivity(state){
-      const t = state.tint;
       state.notes = [];
-      if (t === "Polarized") state.notes.push("Polarized selected — treat as material; exclude other materials.");
-      if (["Solid","Gradient","Photochromic","Polarized"].includes(t)){
-        state.notes.push("Sun options are exclusive.");
+      const t = state.tint;
+      if (["Solid","Gradient","Photochromic","Polarized"].includes(t)) {
+        state.notes.push("Sun choices exclusive.");
+      }
+      if (t === "Polarized" && state.family === "MF") {
+        state.notes.push("Polarized = material for MF; exclude other materials.");
       }
       return state;
     }
 
-    // CSV cache
+    // Cache + DOM refs
     const CACHE_KEY = "vsp_csv_v9";
     const META = document.getElementById("meta");
     const ERRBOX = document.getElementById("err");
     const CARDS = document.getElementById("cards");
 
-    /********************
-     * LOAD CSV (robust)
-     ********************/
+    /*****************
+     * LOAD CSV SAFE *
+     *****************/
     async function loadCsv(){
       const cached = sessionStorage.getItem(CACHE_KEY);
       if (cached){
@@ -144,10 +141,10 @@
         return rows;
       }
       try{
-        const data = await fetch(CSV_PATH,{cache:"no-store"});
-        if(!data.ok) throw new Error(`HTTP ${data.status}`);
-        const text = await data.text();
-        const parsed = Papa.parse(text, {header:true, skipEmptyLines:true});
+        const res = await fetch(CSV_PATH, { cache: "no-store" });
+        if(!res.ok) throw new Error(`HTTP ${res.status}`);
+        const text = await res.text();
+        const parsed = Papa.parse(text, { header:true, skipEmptyLines:true });
         const rows = parsed.data;
         sessionStorage.setItem(CACHE_KEY, JSON.stringify({rows, when:Date.now()}));
         META.textContent = `rows=${rows.length} • fresh`;
@@ -160,17 +157,16 @@
       }
     }
 
-    // Minimal fallback data (keeps UI rendering if CSV fails)
     function sampleRows(){
       return [
-        { item:"Digital Aspheric", code:"BA+BD", family:"SV", copay:"", holdback:"10", service_fee:"0" },
         { item:"Digital Aspheric", code:"BA+BH", family:"SV", copay:"", holdback:"37", service_fee:"21" },
-        { item:"CR", code:"AA", family:"SV", copay:"31", holdback:"10", service_fee:"21" },
-        { item:"A/R", code:"QM", family:"SV", copay:"41", holdback:"21", service_fee:"20" }
+        { item:"Digital Aspheric", code:"BA+BD", family:"SV", copay:"", holdback:"10", service_fee:"0" },
+        { item:"CR", code:"AA", family:"SV", copay:"31", holdback:"10", service_fee:"21" }
       ];
     }
 
-    // Normalize a CSV row into a consistent shape
+    // Normalizer
+    const num = (v)=> v==null||v==="" ? null : Number(String(v).replace(/[^\d.-]/g,""));
     function norm(row){
       const r = Object.fromEntries(Object.entries(row).map(([k,v])=>[String(k).trim().toLowerCase(), typeof v==="string"?v.trim():v]));
       return {
@@ -182,29 +178,30 @@
         serviceFee: num(r.service_fee || r.servicefee || r.fee)
       };
     }
-    const num = (v)=> v==null||v==="" ? null : Number(String(v).replace(/[^\d.-]/g,""));
 
-    /********************
-     * PRICING OVERRIDES
-     ********************/
+    /*********************
+     * PRICING OVERRIDES *
+     *********************/
     function priceDigitalAspheric(lensFamily, code){
       const fam = lensFamily==="MF" ? DIGITAL_ASPHERIC.MF : DIGITAL_ASPHERIC.SV;
       const rec = fam[code];
-      if(!rec || !rec.allowed) return null; // not applicable
-      const copay = (rec.base ?? 0) + (rec.add ?? 0);
-      return { copay, holdback: rec.cb ?? 0, serviceFee: rec.sf ?? 0, _source:"v9:aspheric-map" };
+      if(!rec || !rec.allowed) return null;
+      return {
+        copay: (rec.base ?? 0) + (rec.add ?? 0),
+        holdback: rec.cb ?? 0,
+        serviceFee: rec.sf ?? 0,
+        _source:"v9:aspheric-map"
+      };
     }
 
-    // Merge CSV rows with overrides
     function applyOverrides(rows, state){
       const out = [];
       for (const raw of rows){
         const r = norm(raw);
-        let priced = null;
 
-        // If code begins with BA, use authoritative map
+        // Use authoritative BA… map when applicable
         if (r.code.startsWith("BA")){
-          priced = priceDigitalAspheric(state.family, r.code);
+          const priced = priceDigitalAspheric(state.family, r.code);
           if (priced){
             out.push({
               item: "Digital Aspheric",
@@ -219,7 +216,7 @@
           }
         }
 
-        // Default: pass-through CSV values
+        // Default pass-through
         out.push({
           item: r.item || "Item",
           code: r.code || "",
@@ -233,14 +230,11 @@
       return out;
     }
 
-    /********************
-     * RENDER CARDS
-     ********************/
-    function groupForScoreboard(rows, state){
-      // Example buckets like your screenshot (Hi, Mid, Poly, CR). You can refine mapping here.
-      const buckets = {
-        "Hi67": [], "Mid": [], "Poly": [], "CR": []
-      };
+    /****************
+     * PRESENTATION *
+     ****************/
+    function groupForScoreboard(rows){
+      const buckets = { "Hi67": [], "Mid": [], "Poly": [], "CR": [] };
       for (const r of rows){
         if (r.code.startsWith("BA+BH") || r.code.startsWith("BJ")) buckets["Hi67"].push(r);
         else if (r.code.startsWith("BA+BB")) buckets["Mid"].push(r);
@@ -256,7 +250,7 @@
       const copay = list.reduce((s,x)=>s+(x.copay||0),0);
       const hold  = list.reduce((s,x)=>s+(x.holdback||0),0);
       const fee   = list.reduce((s,x)=>s+(x.serviceFee||0),0);
-      return { copay, hold, fee, profit: fee };
+      return { copay, hold, fee };
     }
 
     function renderCard(title, badge, list){
@@ -297,9 +291,9 @@
       ].join("");
     }
 
-    /********************
-     * PIPELINE
-     ********************/
+    /************
+     * PIPELINE *
+     ************/
     async function run(){
       const state = {
         family: document.getElementById("lensFamily").value,
@@ -313,13 +307,13 @@
       enforceExclusivity(state);
       const rows = await loadCsv();
       const patched = applyOverrides(rows, state);
-      const buckets = groupForScoreboard(patched, state);
+      const buckets = groupForScoreboard(patched);
       draw(buckets);
     }
 
-    /********************
-     * EVENTS
-     ********************/
+    /**********
+     * EVENTS *
+     **********/
     document.getElementById("lensFamily").addEventListener("change",()=>{ sessionStorage.removeItem(CACHE_KEY); run();});
     document.getElementById("lensTint").addEventListener("change",run);
     ["ar","aspheric","oversize","glass","noOnly"].forEach(id=>{
@@ -332,7 +326,7 @@
       sessionStorage.clear(); META.textContent="cache cleared"; run();
     });
 
-    // Start
+    // Kickoff
     run();
   </script>
 </body>
