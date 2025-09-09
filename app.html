@@ -2,321 +2,162 @@
 <html lang="en">
 <head>
   <meta charset="utf-8"/>
-  <title>PayerEdge — VSP Bundles (v12.1)</title>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>PayerEdge — VSP Bundles</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
   <style>
-    :root{--bg:#0b0f14;--fg:#e7eefc;--muted:#9fb0c9;--card:#101722;--line:#233044;--ok:#10b981}
+    :root{
+      --bg:#090e16; --bg-elev:#0c1320; --fg:#eaf1ff; --muted:#9fb0c9; --line:#263448;
+      --accent:#72a8ff; --accent-2:#7be0c3;
+      --tier-best:#ffd166; --tier-better:#a9c2ff; --tier-good:#7be0c3;
+      --shadow-lg:0 18px 40px rgba(0,0,0,.35); --shadow-md:0 10px 26px rgba(0,0,0,.28);
+      --radius:18px; --radius-sm:12px;
+      --fz-12:12px; --fz-13:13px; --fz-15:15px; --fz-18:18px; --fz-20:20px; --fz-36:36px;
+    }
     *{box-sizing:border-box}
-    body{background:var(--bg);color:var(--fg);font:15px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;margin:0}
-    header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 20px;border-bottom:1px solid #1b2535}
-    h1{font-size:18px;margin:0}
-    .meta{color:var(--muted);font-size:12px}
-    .row{display:flex;gap:12px;flex-wrap:wrap;padding:12px 20px}
-    .group{background:#0f1621;border:1px solid var(--line);border-radius:12px;padding:8px 10px;display:flex;gap:10px;align-items:center}
-    select{background:#152033;border:1px solid var(--line);color:var(--fg);padding:6px 10px;border-radius:8px}
-    .btn{background:#162130;border:1px solid var(--line);color:var(--fg);padding:8px 12px;border-radius:10px;cursor:pointer}
-    .cards{display:grid;grid-template-columns:repeat(4,minmax(260px,1fr));gap:14px;padding:0 20px 40px}
-    .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px}
-    .card h2{margin:0 0 2px 0;font-size:32px}
-    .kicker{color:var(--muted);font-size:12px;margin-bottom:12px}
-    table{width:100%;border-collapse:collapse;font-size:13px}
-    th,td{padding:8px;border-top:1px solid #1b2535;text-align:left}
-    .right{text-align:right}
-    .muted{color:var(--muted)}
-    .ok{color:var(--ok)}
-    .banner{margin:12px 20px;background:#1a1320;border:1px dashed #6b4fa3;padding:10px 12px;border-radius:10px;display:none}
-    .small{font-size:12px}
-    @media(max-width:1200px){.cards{grid-template-columns:repeat(2,minmax(260px,1fr))}}
-    @media(max-width:700px){.cards{grid-template-columns:1fr}}
+    html,body{height:100%}
+    body{
+      margin:0;
+      background:var(--bg);
+      color:var(--fg);
+      font:var(--fz-15)/1.45 Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      font-variant-numeric: tabular-nums;
+    }
+    header{
+      position:sticky; top:0; z-index:20; display:flex; justify-content:space-between; align-items:center;
+      padding:16px 20px; background:linear-gradient(180deg, rgba(9,14,22,.95), rgba(9,14,22,.78));
+      border-bottom:1px solid var(--line);
+    }
+    h1{margin:0; font-weight:800; font-size:var(--fz-20)}
+    .sub{color:var(--muted); font-size:var(--fz-12)}
+    .version{color:var(--muted)}
+    main{padding:18px}
+    .bar{display:flex; flex-wrap:wrap; gap:10px 14px; background:#0c1320; border:1px solid var(--line); border-radius:var(--radius); padding:12px; box-shadow: var(--shadow-md);}
+    .group{display:flex; gap:10px; align-items:center; padding:6px 10px; border-radius:999px; background:#0b1424}
+    .btn{ background:#121f35; border:1px solid var(--line); color:var(--fg); padding:8px 12px; border-radius:var(--radius-sm); cursor:pointer; font-weight:600; }
+    .btn:hover{ background:#162844; }
+    .switch{display:inline-flex; align-items:center; gap:8px}
+    .switch select, .switch input[type="checkbox"]{ accent-color:var(--accent) }
+    select{ background:#0e1a30; color:var(--fg); border:1px solid var(--line); border-radius:10px; padding:6px 8px }
+    #status{ margin-left:auto; padding:6px 10px; border-radius:999px; border:1px dashed var(--line); background:#0b1422; color:#c7d6ef }
+    .stack{ display:grid; gap:18px; grid-template-columns:repeat(auto-fit, minmax(320px,1fr)); margin-top:16px }
+    .tier{ background:#0f1726; border:1px solid var(--line); border-radius:var(--radius); box-shadow: var(--shadow-lg); padding:16px }
+    .hero{ font-size:var(--fz-36); font-weight:800; color:#cfe6ff }
+    .svc{ font-weight:800; color:var(--accent-2) }
+    table{width:100%; border-collapse:collapse; margin-top:12px}
+    th,td{border-bottom:1px dashed #203043; padding:9px 6px; text-align:left; font-size:var(--fz-13)}
+    th{color:var(--muted); font-weight:700}
+    .code{font-family:monospace; font-size:12px; color:#cfe1ff}
+    .money{font-weight:800}
   </style>
 </head>
 <body>
   <header>
     <div>
       <h1>PayerEdge — VSP Bundles</h1>
-      <div class="meta">Scoreboard shows <b>patient copay</b> and <b>service fee</b> (Copay − Holdback). Sun choices are exclusive.</div>
+      <div class="sub">Scoreboard shows <b>patient copay</b> and <b>service fee</b> (Copay − Holdback).</div>
     </div>
-    <div style="display:flex;gap:8px;align-items:center">
-      <span class="meta">plan=<b id="planName">VSP_choice</b> • version=<b>v12.1</b> • source=<span id="src" class="muted">…</span></span>
-      <button class="btn" id="refresh">Force Refresh</button>
-      <button class="btn" id="clear">Clear Cache</button>
-    </div>
+    <div class="version sub" id="version">loading…</div>
   </header>
 
-  <div class="row">
-    <div class="group">
-      <span class="muted">Lens family</span>
-      <select id="lensFamily">
-        <option>Single Vision</option>
-        <option>Multifocal</option>
-      </select>
+  <main>
+    <div class="bar">
+      <div class="group">
+        <button class="btn" id="forceRefresh">Force Refresh</button>
+        <button class="btn" id="clearCache">Clear Cache</button>
+      </div>
+      <div class="group">
+        <label class="switch">Lens family
+          <select id="lensFamily">
+            <option value="SV" selected>Single Vision</option>
+            <option value="LINED">Lined Bi/Tri</option>
+            <option value="PAL">Progressive</option>
+          </select>
+        </label>
+        <label class="switch">Lens tint
+          <select id="lensTint">
+            <option value="clear" selected>Clear</option>
+            <option value="tinted">Tinted</option>
+            <option value="polarized">Polarized</option>
+            <option value="transitions">Transitions®</option>
+          </select>
+        </label>
+      </div>
+      <div class="group">
+        <label class="switch"><input type="checkbox" id="includeAR" checked> Include AR</label>
+        <label class="switch"><input type="checkbox" id="includeAspheric"> Aspheric</label>
+        <label class="switch"><input type="checkbox" id="includeGlass"> Glass</label>
+      </div>
+      <span id="status"></span>
     </div>
-    <div class="group">
-      <span class="muted">Lens tint</span>
-      <select id="lensTint">
-        <option>Clear</option>
-        <option>Solid</option>
-        <option>Gradient</option>
-        <option>Photochromic</option>
-        <option>Polarized</option>
-      </select>
-    </div>
-    <div class="group" style="gap:14px">
-      <label><input type="checkbox" id="ar" checked/> Include AR (tiered)</label>
-      <label><input type="checkbox" id="aspheric"/> Aspheric</label>
-      <label><input type="checkbox" id="oversize"/> Oversize</label>
-      <label><input type="checkbox" id="glass"/> Glass</label>
-      <label><input type="checkbox" id="noOnly"/> Custom measurements (N/O only)</label>
-    </div>
-    <div class="group"><span class="muted">[debug]</span> <span id="meta" class="meta">…</span></div>
-  </div>
+    <div id="stack" class="stack"></div>
+  </main>
 
-  <div id="net" class="banner"></div>
-  <div class="cards" id="cards"></div>
-
-  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
   <script>
-    /*************** CONFIG ***************/
-    const CSV_PATH = "./data/vsp_choice_master_v9.csv";  // normalized v9 schema
-    const PLAN = "VSP_choice";
-    const CACHE_KEY = "payeredge_v12_cache";
+  if (!window.__PAYEREDGE_V83__) {
+    window.__PAYEREDGE_V83__ = true;
 
-    const CARDS = [
-      {key:"Hi67", level:"Hi67", title:"Hi67"},
-      {key:"Mid",  level:"Mid",  title:"Mid"},
-      {key:"Poly", level:"Poly", title:"Poly"},
-      {key:"CR",   level:"CR",   title:"CR"}
-    ];
+    // === Config ===
+    const CSV_CANDIDATES = ['./vsp_choice_master_v8.3.csv','./data/vsp_choice_master_v8.3.csv'];
+    const el = id=>document.getElementById(id);
+    const sum = a=>a.reduce((x,y)=>x+y,0);
+    const num = v=>{const x=parseFloat(String(v??'').replace(/[^0-9.-]/g,'')); return isFinite(x)?x:0;};
+    const splitCodes = s=>String(s||'').toUpperCase().split(/[\s+&/,\-]+/).filter(Boolean);
 
-    const $cards = document.getElementById("cards");
-    const $meta  = document.getElementById("meta");
-    const $net   = document.getElementById("net");
-    document.getElementById("src").textContent = CSV_PATH;
-
-    const money = n => `$${Number(n||0).toFixed(2).replace(/\.00$/,'')}`;
-
-    function famKey(raw){
-      const s = String(raw||"").toLowerCase();
-      if (s.startsWith("single")) return "SV";
-      if (s.startsWith("multi"))  return "MF";
-      return (s==="sv"||s==="mf") ? s.toUpperCase() : "SV";
-    }
-
-    /*************** CSV LOAD ***************/
-    function normRow(r){
-      const o = {};
-      for (const [k,v] of Object.entries(r)){
-        o[String(k).trim().toLowerCase()] = typeof v === "string" ? v.trim() : v;
+    // === Parse CSV ===
+    function parseCSV(text){
+      const rows=[]; let row=[], field='', q=false;
+      for(let i=0;i<text.length;i++){
+        const ch=text[i];
+        if(ch==='\"'){ if(q && text[i+1]==='\"'){ field+='\"'; i++; } else { q=!q; } continue; }
+        if(!q && ch===','){ row.push(field); field=''; continue; }
+        if(!q && (ch==='\n'||ch==='\r')){ if(field!==''||row.length){ row.push(field); rows.push(row); row=[]; field=''; } continue; }
+        field+=ch;
       }
-      const n = (k)=>{
-        const v = o[k];
-        if (v==null || v==="") return null;
-        const z = String(v).replace(/[^0-9.\-]/g,"");
-        return z===""? null : Number(z);
-      };
-      return {
-        plan: o.plan || "",
-        kind: (o.kind||"").toLowerCase(),
-        code: (o.code||"").toUpperCase(),
-        item: o.item || "",
-        family: (o.family||"BOTH").toUpperCase(),
-        material_level: (o.material_level||"—"),
-        sun: (o.sun||"—"),
-        exclusive_group: o.exclusive_group || "",
-        requires_flags: (o.requires_flags||"").toLowerCase().split(/\s*,\s*/).filter(Boolean),
-        forbids_flags: (o.forbids_flags||"").toLowerCase().split(/\s*,\s*/).filter(Boolean),
-        applies_to: (o.applies_to||"all").toLowerCase(),
-        pair_with: (o.pair_with||"").toUpperCase(),
-        copay_sv: n("copay_sv"),
-        holdback_sv: n("holdback_sv"),
-        copay_mf: n("copay_mf"),
-        holdback_mf: n("holdback_mf"),
-        notes: o.notes || ""
-      };
+      if(field!==''||row.length){ row.push(field); rows.push(row); }
+      const headers=rows.shift().map(h=>h.trim());
+      return rows.map(r=>{const o={}; headers.forEach((h,i)=>o[h]=r[i]||''); return o;});
     }
 
-    async function loadCsv(){
-      const cached = sessionStorage.getItem(CACHE_KEY);
-      if (cached){
-        const {rows, when} = JSON.parse(cached);
-        const nrows = rows.map(normRow);
-        $meta.textContent = `rows=${nrows.length} • cache ${(new Date(when)).toLocaleTimeString()}`;
-        return nrows;
+    // === Load CSV ===
+    async function loadCSV(){
+      const status=el('status'); status.textContent=' loading…';
+      for (const url of CSV_CANDIDATES){
+        try{
+          const res=await fetch(url,{cache:'no-store'});
+          if(res.ok){const text=await res.text(); DATA=parseCSV(text); status.textContent=`Loaded ${url} • ${DATA.length} rows`; computeBundles(); return;}
+        }catch(e){}
       }
-      try{
-        const res = await fetch(CSV_PATH, {cache:"no-store"});
-        if(!res.ok) throw new Error(`HTTP ${res.status}`);
-        const text = await res.text();
-        const parsed = Papa.parse(text, {header:true, skipEmptyLines:true});
-        const rows = parsed.data.map(normRow);
-        sessionStorage.setItem(CACHE_KEY, JSON.stringify({rows: parsed.data, when: Date.now()}));
-        $meta.textContent = `rows=${rows.length} • fresh`;
-        return rows;
-      }catch(e){
-        $net.style.display="block";
-        $net.textContent = "Network failed. Using cached data if available.";
-        const c2 = sessionStorage.getItem(CACHE_KEY);
-        if (c2){
-          const {rows} = JSON.parse(c2);
-          const r2 = rows.map(normRow);
-          $meta.textContent = `rows=${r2.length} • cache (offline)`;
-          return r2;
-        }
-        $meta.textContent = "rows=0 • offline";
-        return [];
-      }
+      status.textContent=' load failed';
     }
 
-    /*************** RULES ***************/
-    function byPlan(rows, plan){
-      return rows.filter(r=> !r.plan || r.plan===plan);
+    // === Compute bundles (simplified demo) ===
+    let DATA=[];
+    function line(row){
+      const cop=num(row.copay), cb=num(row.chargeback);
+      return { name:row.enhancement||'—', code:row.code||'', copay:cop, chargeback:cb, profit:cop-cb };
+    }
+    function makeBundle(base){ const l=line(base); return {label:base.enhancement,copay:l.copay,chargeback:l.chargeback,profit:l.profit,lines:[l]}; }
+
+    function computeBundles(){
+      if(!DATA.length){el('stack').innerHTML=''; return;}
+      const fam=el('lensFamily').value;
+      const base=DATA.filter(r=>r.applies_to.includes(fam));
+      const bundles=base.map(r=>makeBundle(r));
+      renderStack(bundles.slice(0,4));
     }
 
-    function familyRowVal(row, fam){
-      if (fam === "SV") return {copay: row.copay_sv||0, hold: row.holdback_sv||0};
-      return {copay: row.copay_mf||0, hold: row.holdback_mf||0};
+    function renderStack(b){
+      el('stack').innerHTML=b.map(x=>`
+        <div class="tier">
+          <div><b>${x.label}</b></div>
+          <div>Copay: $${x.copay}</div>
+          <div>Profit: $${x.profit}</div>
+        </div>`).join('');
     }
 
-    function flagsFromUI(){
-      return {
-        ar: document.getElementById("ar").checked,
-        aspheric: document.getElementById("aspheric").checked,
-        oversize: document.getElementById("oversize").checked,
-        glass: document.getElementById("glass").checked,
-        no_only: document.getElementById("noOnly").checked
-      };
-    }
-
-    function flagsAllow(row, flags){
-      for (const f of row.requires_flags){ if (!flags[f]) return false; }
-      for (const f of row.forbids_flags){ if (flags[f]) return false; }
-      return true;
-    }
-
-    function pickExclusive(rows){
-      // Keep one row per exclusive_group; prefer higher copay (stable)
-      const winners = new Map();
-      const passthrough = [];
-      for (const r of rows){
-        const g = r.exclusive_group||"";
-        if (!g){ passthrough.push(r); continue; }
-        const prev = winners.get(g);
-        if (!prev){ winners.set(g, r); continue; }
-        const cA = (r.copay_sv||0)+(r.copay_mf||0);
-        const cB = (prev.copay_sv||0)+(prev.copay_mf||0);
-        if (cA > cB) winners.set(g, r);
-      }
-      return [...passthrough, ...winners.values()];
-    }
-
-    function bundleRows(rows, fam, level, tint, flags){
-      const rowsForFam = rows.filter(r=> r.family==="BOTH" || r.family===fam);
-
-      // 1) Main bundle row for the material level (e.g., BA+BD)
-      const pair = rowsForFam.find(r=> r.kind==="pair" && r.material_level===level && r.sun!=="Polarized");
-
-      // 2) CR base (AA)
-      const cr = rowsForFam.find(r=> r.kind==="base" && r.code==="AA");
-
-      // 3) Add-ons filtered by flags and tint (sun)
-      const addOnsAll = rowsForFam.filter(r=> r.kind==="addon");
-      const addOns = addOnsAll.filter(r=> flagsAllow(r, flags) && (
-        r.sun==="Any" || r.sun==="—" || r.sun===tint
-      ));
-
-      // Exclusivity (e.g., only one sun choice)
-      const addOnsExclusive = pickExclusive(addOns);
-
-      return {pair, cr, addOns:addOnsExclusive};
-    }
-
-    function computeLines(row, fam){
-      const {copay, hold} = familyRowVal(row, fam);
-      const fee = (copay||0) - (hold||0);
-      return {copay, hold, fee};
-    }
-
-    /* ************ CRITICAL FIX ************
-       Render only: mainRow (pair/AA) + the chosen add-ons.
-       No other rows are included in totals or table. */
-    function renderCard(title, mainRow, fam, breakdownExtra=[]){
-      if (!mainRow){
-        return `<div class="card"><div class="meta">Missing data for ${title}.</div></div>`;
-      }
-      const main = computeLines(mainRow, fam);
-      const extras = breakdownExtra.map(r=> ({row:r, lines: computeLines(r, fam)}));
-
-      const grand = extras.reduce((s,x)=>{
-        s.copay += (x.lines.copay||0);
-        s.hold  += (x.lines.hold||0);
-        s.fee   += (x.lines.fee||0);
-        return s;
-      }, {copay: main.copay, hold: main.hold, fee: main.fee});
-
-      const rowsHtml = [
-        {r: mainRow, l: main},
-        ...extras.map(x=>({r:x.row, l:x.lines}))
-      ].map(({r,l})=>`
-        <tr>
-          <td>${r.item}</td>
-          <td class="muted">${r.code}</td>
-          <td class="right">${money(l.copay)}</td>
-          <td class="right">${money(l.hold)}</td>
-          <td class="right">${money(l.fee)}</td>
-        </tr>`).join("");
-
-      return `
-        <div class="card">
-          <h2>${money(grand.copay)}</h2>
-          <div class="kicker">Patient Copay<br><span class="ok">Service Fee (Practice Profit): ${money(grand.fee)}</span></div>
-          <div class="meta" style="margin-bottom:6px">${title}</div>
-          <table>
-            <thead><tr><th>Item</th><th>Code</th><th class="right">Copay</th><th class="right">Holdback</th><th class="right">Service Fee</th></tr></thead>
-            <tbody>
-              ${rowsHtml}
-              <tr>
-                <td class="muted">Totals</td><td></td>
-                <td class="right"><b>${money(grand.copay)}</b></td>
-                <td class="right"><b>${money(grand.hold)}</b></td>
-                <td class="right"><b>${money(grand.fee)}</b></td>
-              </tr>
-            </tbody>
-          </table>
-        </div>`;
-    }
-
-    async function run(){
-      const fam  = famKey(document.getElementById("lensFamily").value);
-      const tint = document.getElementById("lensTint").value; // Clear/Solid/Gradient/Photochromic/Polarized
-      const flags = flagsFromUI();
-
-      const rows = byPlan(await loadCsv(), PLAN);
-      if (!rows.length){ $cards.innerHTML = `<div class='meta' style='padding:20px'>No CSV rows found.</div>`; return; }
-
-      const out = [];
-      for (const c of CARDS){
-        const {pair, cr, addOns} = bundleRows(rows, fam, c.level, tint, flags);
-
-        if (c.level === "CR"){
-          if (!cr){ out.push(`<div class="card"><div class="meta">Missing AA (CR) row.</div></div>`); continue; }
-          out.push(renderCard("CR", cr, fam, addOns.filter(a=> a.applies_to!="bundle_only")));
-        } else {
-          if (!pair){ out.push(`<div class="card"><div class="meta">Missing pair for ${c.level}.</div></div>`); continue; }
-          out.push(renderCard(c.title, pair, fam, addOns.filter(a=> a.applies_to!="cr_only")));
-        }
-      }
-
-      $cards.innerHTML = out.join("");
-    }
-
-    // events
-    document.getElementById("lensFamily").addEventListener("change", ()=>{ sessionStorage.removeItem(CACHE_KEY); run(); });
-    document.getElementById("lensTint").addEventListener("change", run);
-    ["ar","aspheric","oversize","glass","noOnly"].forEach(id=> document.getElementById(id).addEventListener("change", run));
-    document.getElementById("refresh").addEventListener("click", ()=>{ sessionStorage.removeItem(CACHE_KEY); run(); });
-    document.getElementById("clear").addEventListener("click", ()=>{ sessionStorage.clear(); $meta.textContent="cache cleared"; run(); });
-
-    run();
-  </script>
-</body>
-</html>
+    // === Wire-up ===
+    el('forceRefresh').onclick=loadCSV;
+    el('clearCache').onclick=()=>{
