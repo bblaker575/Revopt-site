@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>PayerEdge — VSP Bundles</title>
 
-  <!-- Typography -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
@@ -135,11 +134,11 @@
 </main>
 
 <script>
-/* ================ safety overlay (kept quiet unless explicit diagnostics) ================ */
+/* ================ safety overlay ================ */
 if (!window.__PAYEREDGE_ALAMO__) {
   window.__PAYEREDGE_ALAMO__ = true;
   window.addEventListener('unhandledrejection', e=>{
-    if(String(e?.reason||'').includes('User rejected')) return; // hide noisy browser permission errors
+    if(String(e?.reason||'').includes('User rejected')) return;
     const wrap = document.createElement('div');
     wrap.style.cssText = 'position:fixed;inset:12px;z-index:99999;background:#0b1220;border:1px solid #f44;box-shadow:0 8px 24px rgba(0,0,0,.5);color:#fff;border-radius:12px;padding:12px;overflow:auto;max-height:90vh;font:12px/1.4 ui-monospace,Menlo,Consolas,monospace';
     wrap.innerHTML = '<b>JS Error @ unhandledrejection:</b><pre style="white-space:pre-wrap;margin:8px 0 0">'+
@@ -149,7 +148,6 @@ if (!window.__PAYEREDGE_ALAMO__) {
 }
 
 /* ================== Config & utils ================== */
-// v9-strict first, then older candidates.
 const CSV_CANDIDATES = [
   './data/vsp_choice_master_v9_strict.csv',
   './vsp_choice_master_v9_strict.csv',
@@ -172,10 +170,31 @@ const isDCode  = r => /^d/i.test((r.code||'').trim());
 const isPPhoto = r => /^p(m|r)/i.test((r.code||'').trim());
 const isGlassBase = row => /glass/i.test(N(row?.enhancement || row?.subtype || ''));
 const preferPhotoCodeForBase = row => (isGlassBase(row) ? 'PM' : 'PR');
-
 const splitCodes = (s)=> String(s||'')
   .toUpperCase().replace(/[^\w+&/,\s-]/g,'')
   .split(/[\s+&/,\-]+/).map(t=>t.trim()).filter(Boolean);
+
+/* ---- header normalization ---- */
+function normalizeKey(k){ return String(k||'').toLowerCase().replace(/[^a-z0-9]+/g,'_'); }
+function buildNormMap(row){
+  const m={};
+  for(const k of Object.keys(row)){
+    const nk = normalizeKey(k);
+    if (!(nk in m)) m[nk] = row[k];
+    // preserve exact too
+    if (!(k in m)) m[k]=row[k];
+  }
+  return m;
+}
+function pickFirst(row, candidates){
+  const R = row.__ || {};
+  for(const k of candidates){
+    const nk = normalizeKey(k);
+    if (R[nk]!=null && String(R[nk]).trim()!=='') return R[nk];
+    if (row[k]!=null && String(row[k]).trim()!=='') return row[k];
+  }
+  return '';
+}
 
 function parseCopayNumbers(copayStr){
   const m = String(copayStr||'').match(/[0-9]+(?:\.[0-9]{1,2})?/g);
@@ -206,31 +225,7 @@ const clearCacheStorage=()=>{ localStorage.removeItem(CACHE_KEY); localStorage.r
 
 let DATA=[];
 
-/* ---------- CSV adapter: flexible headers & buckets ---------- */
-function pickFirst(row, candidates){
-  for(const k of candidates){ if(row[k]!=null && String(row[k]).trim()!=='') return row[k]; }
-  return '';
-}
-function detectHeaders(sample){
-  // normalize known header variants
-  const hdr = {
-    code:   ['code','Code','CODE'],
-    desc:   ['enhancement','Lens Enhancement Description','subtype','desc','description'],
-    applies:['applies_to','applies','family','Applies','family_tag'],
-    bucket: ['exclusive_key','bucket','group','BUCKET']
-  };
-  const holdback = [
-    'holdback','chargeback','hb','cb',
-    'holdback_sv','holdback_occ','holdback_mf',
-    'cb_sv','cb_occ','cb_mf','chargeback_sv','chargeback_occ','chargeback_mf'
-  ];
-  const splitHB = ['holdback_split','cb_split','hb_split','chargeback_split'];
-  const copay = ['copay','patient_copay','Copay'];
-
-  return {hdr, holdback, splitHB, copay};
-}
-
-// map any label into a canonical bucket
+/* ---------- bucket + header logic ---------- */
 function canonicalBucket(row){
   const raw = (pickFirst(row, ['exclusive_key','bucket','group','category'])||'').toLowerCase();
   if (raw){
@@ -242,7 +237,6 @@ function canonicalBucket(row){
     if (/oversize|over/.test(raw)) return 'oversize';
     if (/custom.*measure|cm\b/.test(raw)) return 'cm';
   }
-  // no bucket column? infer from code/desc
   const c = String(row.code||'').toUpperCase().trim();
   const d = N(row.enhancement || row.subtype || row.desc || '');
   if (/custom\s*measure/.test(d) || /^CM$/.test(c)) return 'cm';
@@ -250,7 +244,6 @@ function canonicalBucket(row){
   if (/occup|lined|bi.?tri/.test(d)) return 'occ';
   if (/ar|anti[-\s]?reflect/.test(d)) return 'ar';
   if (/photo|tint|polar/.test(d)) return 'sun';
-  // two-letter v9 fallback: A*=AR, B*=BASE, D*=SUN
   if (/^A[A-Z]/.test(c)) return 'ar';
   if (/^B[A-Z]/.test(c)) return 'base';
   if (/^D[A-Z]/.test(c)) return 'sun';
@@ -267,43 +260,41 @@ function applies(row, fam){
 }
 
 function familyHoldback(row, fam){
-  // Prefer family-specific HB if present
   const lookup = {
-    SV: ['holdback_sv','cb_sv','chargeback_sv'],
-    LINED: ['holdback_occ','cb_occ','chargeback_occ'],
-    PAL: ['holdback_mf','cb_mf','chargeback_mf']
+    SV: ['holdback_sv','cb_sv','chargeback_sv','hold_back_sv','charge_back_sv'],
+    LINED: ['holdback_occ','cb_occ','chargeback_occ','hold_back_occ','charge_back_occ'],
+    PAL: ['holdback_mf','cb_mf','chargeback_mf','hold_back_mf','charge_back_mf']
   };
   const famKeys = lookup[fam] || [];
   const v = pickFirst(row, famKeys);
   if (String(v||'').trim()!=='') return v;
-  return pickFirst(row, ['holdback','chargeback','hb','cb']);
+  return pickFirst(row, [
+    'holdback','chargeback','hb','cb',
+    'hold_back','charge_back'          // << v9 Title-Case with space
+  ]);
 }
 
-/* ---------- math on a CSV row; composites supported but not required ---------- */
+/* ---------- per-line math ---------- */
 function line(row, fam){
   const desc = row.enhancement || row.subtype || row.desc || '—';
   const codeStr = String(row.code||'').trim().toUpperCase();
   const partsCodes = splitCodes(codeStr);
 
-  const copayVal = num(pickFirst(row, ['copay','patient_copay']));
+  const copayVal = num(pickFirst(row, ['copay','patient_copay','Patient Copay']));
   const hbVal    = num(familyHoldback(row, fam));
 
-  // Single-code line (typical in v9_strict)
   if (partsCodes.length <= 1){
     return { name:desc, code:codeStr, copay:copayVal, chargeback:hbVal, profit:copayVal-hbVal, parts:[] };
   }
 
-  // Composite split (rare; keep logic for v7/v8)
-  const compositeCopayNums = parseCopayNumbers(pickFirst(row,['copay','patient_copay'])); // e.g., [175,35] or [210]
+  const compositeCopayNums = parseCopayNumbers(pickFirst(row,['copay','patient_copay','Patient Copay']));
   const compositeTotalCopay = copayVal;
   const compositeAddOnHB = hbVal;
 
   const parts = [];
-  // Base A-part (first token) — try to locate a dedicated base row with same code
   const baseCode = partsCodes[0];
-  // We don't have an index by code here in v9; treat as: first number in copay split or proportional fallback
   let baseCop = (compositeCopayNums[0] ?? compositeTotalCopay);
-  let baseHB  = 0; // HB typically sits on add-on in composites
+  let baseHB  = 0;
   parts.push({ code:baseCode, copay:baseCop, chargeback:baseHB, profit:baseCop-baseHB });
 
   const addonCount = partsCodes.length - 1;
@@ -489,17 +480,14 @@ async function tryFetch(url){
     return { ok:false, err:String(e), url };
   }
 }
-
 function renderMeta(count, meta){
   el('version').textContent = `plan=${meta.plan||'VSP_choice'} • rows=${count||0} • version=${meta.version||'—'} • source=${meta.source||'—'} • sha=${meta.sha||'—'}`;
 }
-
-function showDiag(counts, hdrs){
+function showDiag(counts){
   const d = el('diag');
   d.style.display = 'block';
   d.innerHTML = [
-    `<b>Diagnostics:</b> Bucket counts — base:${counts.base||0} • occ:${counts.occ||0} • pal:${counts.pal||0} • ar:${counts.ar||0} • sun:${counts.sun||0} • oversize:${counts.oversize||0}`,
-    `Detected headers — copay: ${hdrs.copay.join(', ')} • holdback: ${hdrs.holdback.join(', ')} • split: ${hdrs.splitHB.join(', ')}`
+    `<b>Diagnostics:</b> Bucket counts — base:${counts.base||0} • occ:${counts.occ||0} • pal:${counts.pal||0} • ar:${counts.ar||0} • sun:${counts.sun||0} • oversize:${counts.oversize||0}`
   ].join('<br/>');
 }
 
@@ -517,14 +505,15 @@ async function loadCSV(){
   if (loaded){
     const meta = { plan:'VSP_choice', version:new Date().toISOString().slice(0,10)+'.ui18.6-alamo', source:'network:'+loaded.url, sha:quickHash(loaded.text) };
     setCache(loaded.text, meta);
+
     DATA = parseCSV(loaded.text).map(r=>{
-      // normalize minimal fields we rely on
-      return {
-        ...r,
-        code: r.code || r.Code || r.CODE || '',
-        enhancement: r.enhancement || r['Lens Enhancement Description'] || r.desc || r.description || r.subtype || ''
-      };
+      const norm = buildNormMap(r);
+      const row = { ...r, __: norm };
+      row.code = pickFirst(row, ['code','Code','CODE']) || '';
+      row.enhancement = pickFirst(row, ['enhancement','Lens Enhancement Description','subtype','desc','description']) || '';
+      return row;
     });
+
     renderMeta(DATA.length, meta);
     status.textContent = ` [ok] ${loaded.url} • ${DATA.length} rows`;
     computeBundles();
@@ -533,7 +522,7 @@ async function loadCSV(){
 
   const {text, meta} = getCache();
   if(text){
-    DATA = parseCSV(text);
+    DATA = parseCSV(text).map(r=>({ ...r, __: buildNormMap(r) }));
     renderMeta(DATA.length, {...meta, source:'cache'});
     status.textContent = ` Network failed. Using cached data (${DATA.length} rows).`;
     computeBundles();
@@ -563,7 +552,6 @@ function computeBundles(){
   const wantGlass = el('includeGlass').checked;
   const tintSel = el('lensTint').value;
 
-  // bucketize
   const buckets = {base:[],occ:[],pal:[],ar:[],sun:[],oversize:[],cm:[]};
   for (const r of DATA){
     const b = canonicalBucket(r);
@@ -572,13 +560,12 @@ function computeBundles(){
   showDiag({
     base:buckets.base.length, occ:buckets.occ.length, pal:buckets.pal.length,
     ar:buckets.ar.length, sun:buckets.sun.length, oversize:buckets.oversize.length
-  }, detectHeaders());
+  });
 
   // Base candidates
   let base = [];
   if (fam === 'PAL') {
     if (tintSel==='polarized'){
-      // PAL polarized lives as PAL variants with "polarized" in text
       base = buckets.pal.filter(r=>applies(r,fam)).filter(r=>{
         const name=N(r.enhancement);
         if(!wantAsp && name.includes('aspheric')) return false;
@@ -596,7 +583,6 @@ function computeBundles(){
     }
   } else if (fam === 'LINED') {
     if (tintSel==='polarized'){
-      // For LINED polarized, D-codes should populate (sun bucket, D*)
       base = buckets.sun.filter(r=>applies(r,fam)).filter(r=>{
         const name=N(r.enhancement);
         if(!wantGlass && name.includes('glass'))  return false;
@@ -613,7 +599,6 @@ function computeBundles(){
     }
   } else { // SV
     if (tintSel==='polarized'){
-      // For SV polarized, D-codes populate
       base = buckets.sun.filter(r=>applies(r,fam)).filter(r=>{
         const name=N(r.enhancement);
         if(!wantGlass && name.includes('glass'))  return false;
@@ -630,14 +615,13 @@ function computeBundles(){
     }
   }
 
-  // AR ranked by grade then profit (only if toggled)
   function rankAR(ars){
     const gradeVal = (s)=>{ const m=String(s||'').match(/\b([A-D])\b/i); if(!m) return null; return {A:1,B:2,C:3,D:4}[m[1].toUpperCase()]||null; };
     return [...ars].sort((a,b)=>{
       const ga=gradeVal(a.enhancement)||-1, gb=gradeVal(b.enhancement)||-1;
-      if(ga!==gb) return gb-ga; // prefer A
-      const pa=num(pickFirst(a,['copay']))-num(familyHoldback(a,fam));
-      const pb=num(pickFirst(b,['copay']))-num(familyHoldback(b,fam));
+      if(ga!==gb) return gb-ga;
+      const pa=num(pickFirst(a,['copay','patient_copay','Patient Copay']))-num(familyHoldback(a,fam));
+      const pb=num(pickFirst(b,['copay','patient_copay','Patient Copay']))-num(familyHoldback(b,fam));
       return pb-pa;
     });
   }
@@ -661,7 +645,6 @@ function computeBundles(){
     return;
   }
 
-  // Left→Right tiers
   const MaxPrice = Math.max(...all.map(b => b.copay));
   function mostProfit(arr){
     let pick=null;
@@ -726,7 +709,6 @@ el('clearCache').onclick =()=>{ clearCacheStorage(); el('status').textContent=' 
   .forEach(id => { const node=el(id); if(node) node.onchange=computeBundles; });
 
 (function boot(){ loadCSV(); })();
-
 </script>
 </body>
 </html>
