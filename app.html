@@ -18,38 +18,31 @@
     }
     *{box-sizing:border-box}
     html,body{height:100%}
-    body{
-      margin:0;
-      background:var(--bg);
-      color:var(--fg);
-      font:var(--fz-15)/1.45 Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-      font-variant-numeric: tabular-nums;
-    }
-    header{
-      position:sticky; top:0; z-index:20; display:flex; justify-content:space-between; align-items:center;
-      padding:16px 20px; background:linear-gradient(180deg, rgba(9,14,22,.95), rgba(9,14,22,.78));
-      border-bottom:1px solid var(--line);
-    }
-    h1{margin:0; font-weight:800; font-size:var(--fz-20)}
-    .sub{color:var(--muted); font-size:var(--fz-12)}
+    body{margin:0;background:var(--bg);color:var(--fg);
+      font:var(--fz-15)/1.45 Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+      font-variant-numeric:tabular-nums;}
+    header{position:sticky;top:0;z-index:20;display:flex;justify-content:space-between;align-items:center;
+      padding:16px 20px;background:linear-gradient(180deg,rgba(9,14,22,.95),rgba(9,14,22,.78));border-bottom:1px solid var(--line);}
+    h1{margin:0;font-weight:800;font-size:var(--fz-20)}
+    .sub{color:var(--muted);font-size:var(--fz-12)}
     .version{color:var(--muted)}
     main{padding:18px}
-    .bar{display:flex; flex-wrap:wrap; gap:10px 14px; background:#0c1320; border:1px solid var(--line); border-radius:var(--radius); padding:12px; box-shadow: var(--shadow-md);}
-    .group{display:flex; gap:10px; align-items:center; padding:6px 10px; border-radius:999px; background:#0b1424}
-    .btn{ background:#121f35; border:1px solid var(--line); color:var(--fg); padding:8px 12px; border-radius:var(--radius-sm); cursor:pointer; font-weight:600; }
-    .btn:hover{ background:#162844; }
-    .switch{display:inline-flex; align-items:center; gap:8px}
-    .switch select, .switch input[type="checkbox"]{ accent-color:var(--accent) }
-    select{ background:#0e1a30; color:var(--fg); border:1px solid var(--line); border-radius:10px; padding:6px 8px }
-    #status{ margin-left:auto; padding:6px 10px; border-radius:999px; border:1px dashed var(--line); background:#0b1422; color:#c7d6ef }
-    .stack{ display:grid; gap:18px; grid-template-columns:repeat(auto-fit, minmax(320px,1fr)); margin-top:16px }
-    .tier{ background:#0f1726; border:1px solid var(--line); border-radius:var(--radius); box-shadow: var(--shadow-lg); padding:16px }
-    .hero{ font-size:var(--fz-36); font-weight:800; color:#cfe6ff }
-    .svc{ font-weight:800; color:var(--accent-2) }
-    table{width:100%; border-collapse:collapse; margin-top:12px}
-    th,td{border-bottom:1px dashed #203043; padding:9px 6px; text-align:left; font-size:var(--fz-13)}
-    th{color:var(--muted); font-weight:700}
-    .code{font-family:monospace; font-size:12px; color:#cfe1ff}
+    .bar{display:flex;flex-wrap:wrap;gap:10px 14px;background:#0c1320;border:1px solid var(--line);border-radius:var(--radius);padding:12px;box-shadow:var(--shadow-md);}
+    .group{display:flex;gap:10px;align-items:center;padding:6px 10px;border-radius:999px;background:#0b1424}
+    .btn{background:#121f35;border:1px solid var(--line);color:var(--fg);padding:8px 12px;border-radius:var(--radius-sm);cursor:pointer;font-weight:600;}
+    .btn:hover{background:#162844;}
+    .switch{display:inline-flex;align-items:center;gap:8px}
+    .switch select,.switch input[type="checkbox"]{accent-color:var(--accent)}
+    select{background:#0e1a30;color:var(--fg);border:1px solid var(--line);border-radius:10px;padding:6px 8px}
+    #status{margin-left:auto;padding:6px 10px;border-radius:999px;border:1px dashed var(--line);background:#0b1422;color:#c7d6ef}
+    .stack{display:grid;gap:18px;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));margin-top:16px}
+    .tier{background:#0f1726;border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow-lg);padding:16px}
+    .hero{font-size:var(--fz-36);font-weight:800;color:#cfe6ff}
+    .svc{font-weight:800;color:var(--accent-2)}
+    table{width:100%;border-collapse:collapse;margin-top:12px}
+    th,td{border-bottom:1px dashed #203043;padding:9px 6px;text-align:left;font-size:var(--fz-13)}
+    th{color:var(--muted);font-weight:700}
+    .code{font-family:monospace;font-size:12px;color:#cfe1ff}
     .money{font-weight:800}
   </style>
 </head>
@@ -99,50 +92,58 @@
   if (!window.__PAYEREDGE_V83__) {
     window.__PAYEREDGE_V83__ = true;
 
-    // === Config ===
-    const CSV_CANDIDATES = ['./vsp_choice_master_v8.3.csv','./data/vsp_choice_master_v8.3.csv'];
+    const CSV_CANDIDATES = [
+      './vsp_choice_master_v8.3.csv',
+      './data/vsp_choice_master_v8.3.csv'
+    ];
+
     const el = id=>document.getElementById(id);
     const sum = a=>a.reduce((x,y)=>x+y,0);
-    const num = v=>{const x=parseFloat(String(v??'').replace(/[^0-9.-]/g,'')); return isFinite(x)?x:0;};
-    const splitCodes = s=>String(s||'').toUpperCase().split(/[\s+&/,\-]+/).filter(Boolean);
+    const num = v=>{const x=parseFloat(String(v??'').replace(/[^0-9.-]/g,''));return isFinite(x)?x:0;};
 
-    // === Parse CSV ===
     function parseCSV(text){
-      const rows=[]; let row=[], field='', q=false;
+      const rows=[];let row=[],field='',q=false;
       for(let i=0;i<text.length;i++){
         const ch=text[i];
-        if(ch==='\"'){ if(q && text[i+1]==='\"'){ field+='\"'; i++; } else { q=!q; } continue; }
-        if(!q && ch===','){ row.push(field); field=''; continue; }
-        if(!q && (ch==='\n'||ch==='\r')){ if(field!==''||row.length){ row.push(field); rows.push(row); row=[]; field=''; } continue; }
+        if(ch==='\"'){if(q&&text[i+1]==='\"'){field+='\"';i++;}else{q=!q;}continue;}
+        if(!q&&ch===','){row.push(field);field='';continue;}
+        if(!q&&(ch==='\n'||ch==='\r')){if(field!==''||row.length){row.push(field);rows.push(row);row=[];field='';}continue;}
         field+=ch;
       }
-      if(field!==''||row.length){ row.push(field); rows.push(row); }
+      if(field!==''||row.length){row.push(field);rows.push(row);}
       const headers=rows.shift().map(h=>h.trim());
-      return rows.map(r=>{const o={}; headers.forEach((h,i)=>o[h]=r[i]||''); return o;});
+      return rows.map(r=>{const o={};headers.forEach((h,i)=>o[h]=r[i]||'');return o;});
     }
 
-    // === Load CSV ===
     async function loadCSV(){
       const status=el('status'); status.textContent=' loading…';
-      for (const url of CSV_CANDIDATES){
+      for(const url of CSV_CANDIDATES){
         try{
           const res=await fetch(url,{cache:'no-store'});
-          if(res.ok){const text=await res.text(); DATA=parseCSV(text); status.textContent=`Loaded ${url} • ${DATA.length} rows`; computeBundles(); return;}
+          if(res.ok){
+            const text=await res.text();
+            DATA=parseCSV(text);
+            status.textContent=`Loaded ${url} • ${DATA.length} rows`;
+            computeBundles();
+            return;
+          }
         }catch(e){}
       }
       status.textContent=' load failed';
     }
 
-    // === Compute bundles (simplified demo) ===
     let DATA=[];
     function line(row){
       const cop=num(row.copay), cb=num(row.chargeback);
-      return { name:row.enhancement||'—', code:row.code||'', copay:cop, chargeback:cb, profit:cop-cb };
+      return {name:row.enhancement||'—',code:row.code||'',copay:cop,chargeback:cb,profit:cop-cb};
     }
-    function makeBundle(base){ const l=line(base); return {label:base.enhancement,copay:l.copay,chargeback:l.chargeback,profit:l.profit,lines:[l]}; }
+    function makeBundle(base){
+      const l=line(base);
+      return {label:base.enhancement,copay:l.copay,chargeback:l.chargeback,profit:l.profit,lines:[l]};
+    }
 
     function computeBundles(){
-      if(!DATA.length){el('stack').innerHTML=''; return;}
+      if(!DATA.length){el('stack').innerHTML='';return;}
       const fam=el('lensFamily').value;
       const base=DATA.filter(r=>r.applies_to.includes(fam));
       const bundles=base.map(r=>makeBundle(r));
@@ -158,6 +159,10 @@
         </div>`).join('');
     }
 
-    // === Wire-up ===
     el('forceRefresh').onclick=loadCSV;
-    el('clearCache').onclick=()=>{
+    el('clearCache').onclick=()=>{localStorage.clear();el('status').textContent='cache cleared';};
+    loadCSV();
+  }
+  </script>
+</body>
+</html>
