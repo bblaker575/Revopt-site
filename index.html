@@ -158,17 +158,21 @@
 
     // CSV priority: newest v8 first, then v7 patched, then originals, both root and ./data/
     const CSV_CANDIDATES = [
-      './vsp_choice_master_v8_full_composites_patched.csv',
-      './vsp_choice_master_v7_full_fixed_patched.csv',
-      './vsp_choice_master_v7_full_fixed.csv',
-      './data/vsp_choice_master_v8_full_composites_patched.csv',
-      './data/vsp_choice_master_v7_full_fixed_patched.csv',
-      './data/vsp_choice_master_v7_full_fixed.csv'
-    ];
+    './vsp_choice_master_v8.3.csv',
+    './vsp_choice_master_v8.2.csv',
+    './vsp_choice_master_v8.1.csv',
+    './vsp_choice_master_v7_full_fixed_patched.csv',
+    './vsp_choice_master_v7_full_fixed.csv',
+    './data/vsp_choice_master_v8.3.csv',
+    './data/vsp_choice_master_v8.2.csv',
+    './data/vsp_choice_master_v8.1.csv',
+    './data/vsp_choice_master_v7_full_fixed_patched.csv',
+    './data/vsp_choice_master_v7_full_fixed.csv'
+  ];
 
-    const BETTER_CAP_OF_MAX = 0.75; // ≤75% of max copay
-    const GOOD_CAP_OF_MAX   = 0.50; // ≤50% of max copay
-    const CAP_RELAX_FACTOR  = 0.90; // fallback relaxer
+  const BETTER_CAP_OF_MAX = 0.75; // ≤75% of max copay
+  const GOOD_CAP_OF_MAX   = 0.50; // ≤50% of max copay
+  const CAP_RELAX_FACTOR  = 0.90; // fallback relaxer
 
     // Optional safety net if some A-base is still missing from CSV (leave empty by default)
     const BASE_OVERRIDES = {
