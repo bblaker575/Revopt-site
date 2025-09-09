@@ -133,7 +133,7 @@
 
   <!-- Error overlay for runtime issues -->
   <script>
-    if (!window.__PAYEREDGE_V16__) {
+    if (!window.__PAYEREDGE_V17__) {
       (function(){
         function showErrorOverlay(err, where){
           const wrap = document.createElement('div');
@@ -149,10 +149,10 @@
   </script>
 
   <script>
-  if (window.__PAYEREDGE_V16__) {
+  if (window.__PAYEREDGE_V17__) {
     console.warn('PayerEdge script already loaded; skipping second init.');
   } else {
-    window.__PAYEREDGE_V16__ = true;
+    window.__PAYEREDGE_V17__ = true;
 
     /* ================== Config & utils ================== */
 
@@ -180,10 +180,17 @@
     const num = (v)=>{ const x=parseFloat(String(v??'').replace(/[^0-9.-]/g,'')); return isFinite(x)?x:0; };
     const quickHash=(s)=>{ let h=2166136261>>>0; for(let i=0;i<s.length;i++){ h^=s.charCodeAt(i); h=Math.imul(h,16777619)>>>0; } return ('00000000'+h.toString(16)).slice(-8); };
     const N = s => String(s||'').toLowerCase();
+    const codeOf = r => String(r?.code||'').trim().toUpperCase();
 
-    const isDCode  = r => /^d/i.test((r.code||'').trim());
-    const isPPhoto = r => /^p(m|r)/i.test((r.code||'').trim());
-    const isGlassBase = row => /glass/i.test(N(row?.enhancement || row?.subtype || ''));
+    const isDCode  = r => /^d/i.test(codeOf(r));
+    const isPPhoto = r => /^p(m|r)/i.test(codeOf(r));
+
+    // === Glass detection: treat AF code as glass even if text doesn't say "glass"
+    const isGlassCode = r => /^AF$/i.test(codeOf(r));
+    const isGlassBase = row =>
+      isGlassCode(row) ||
+      /glass/i.test(N(row?.enhancement || row?.subtype || row?.notes || ''));
+
     const preferPhotoCodeForBase = row => (isGlassBase(row) ? 'PM' : 'PR');
 
     const splitCodes = (s)=> String(s||'')
@@ -211,8 +218,8 @@
       });
     }
 
-    const CACHE_KEY='rev-vsp-choice-csv-v2';
-    const META_KEY='rev-vsp-choice-meta-v2';
+    const CACHE_KEY='rev-vsp-choice-csv-v3';
+    const META_KEY='rev-vsp-choice-meta-v3';
     const setCache=(t,m)=>{ localStorage.setItem(CACHE_KEY,t); localStorage.setItem(META_KEY,JSON.stringify(m)); };
     const getCache=()=>({ text: localStorage.getItem(CACHE_KEY), meta: JSON.parse(localStorage.getItem(META_KEY)||'{}') });
     const clearCacheStorage=()=>{ localStorage.removeItem(CACHE_KEY); localStorage.removeItem(META_KEY); };
@@ -264,7 +271,7 @@
       }
 
       if (loaded){
-        const meta = { plan:'VSP_choice', version:new Date().toISOString().slice(0,10)+'.ui16', source:'network:'+loaded.url, sha:quickHash(loaded.text) };
+        const meta = { plan:'VSP_choice', version:new Date().toISOString().slice(0,10)+'.ui17', source:'network:'+loaded.url, sha:quickHash(loaded.text) };
         setCache(loaded.text, meta);
         DATA = parseCSV(loaded.text);
         buildSimpleIndex();
@@ -314,15 +321,16 @@
       el('version').textContent = `plan=${meta.plan||'VSP_choice'} • rows=${count||0} • version=${meta.version||'—'} • source=${meta.source||'—'} • sha=${meta.sha||'—'}`;
     }
 
-    const byKey=(k)=>DATA.filter(r=>(r.active||'yes').toLowerCase()==='yes' && (r.exclusive_key||'').toLowerCase()===k);
+    // === Stricter applies(): prevent MF from leaking into SV, etc.
     function applies(row, fam){
       const a=(row.applies_to||'ALL').toUpperCase();
-      if(a.includes('ALL')) return true;
-      if(fam==='SV')     return a.includes('SV');
-      if(fam==='LINED')  return a.includes('OCC');
-      if(fam==='PAL')    return a.includes('MF');
-      return true;
+      if (fam==='SV')     return a==='SV' || a==='ALL';
+      if (fam==='LINED')  return a==='OCC' || a==='ALL';
+      if (fam==='PAL')    return a==='MF' || a==='ALL';
+      return false;
     }
+
+    const byKey=(k)=>DATA.filter(r=>(r.active||'yes').toLowerCase()==='yes' && (r.exclusive_key||'').toLowerCase()===k);
 
     /* ===== Per-line math (composites split into base A + add-on(s)) ===== */
     function line(row){
@@ -523,8 +531,7 @@
       if (tintSel==='clear' || tintSel==='polarized') return null;
       const fam = el('lensFamily').value;
       const sunAll = byKey('sun_tech').filter(r=>applies(r,fam)).filter(r=>{
-        const n=N(r.enhancement);
-        if(!el('includeGlass').checked && n.includes('glass')) return false;
+        if(!el('includeGlass').checked && isGlassBase(r)) return false;
         return true;
       });
 
@@ -556,8 +563,7 @@
       const tintSel = el('lensTint').value;
 
       const sunAll = byKey('sun_tech').filter(r=>applies(r,fam)).filter(r=>{
-        const n=N(r.enhancement);
-        if(!wantGlass && n.includes('glass')) return false;
+        if(!wantGlass && isGlassBase(r)) return false;
         return true;
       });
 
@@ -569,10 +575,10 @@
       if (fam === 'PAL') {
         base = byKey('progressive_level').filter(r=>applies(r,fam)).filter(r=>{
           const name=N(r.enhancement);
+          if(!wantGlass && isGlassBase(r)) return false;
           if(!wantAsp && name.includes('aspheric')) return false;
-          if(!wantGlass && name.includes('glass'))  return false;
           if(isCustomMeasure(r)) return false;
-          if (tintSel==='polarized') return /polariz/.test(name); // polarized as material for PAL
+          if (tintSel==='polarized') return /polariz/.test(name); // polarized as material
           return !/(photochrom|polariz|tint|tinted|sunglass|gradient)/.test(name);
         });
       } else {
@@ -582,8 +588,8 @@
           const pool = (fam==='SV' ? byKey('base_material') : byKey('occupational'));
           base = pool.filter(r=>applies(r,fam)).filter(r=>{
             const name=N(r.enhancement);
+            if(!wantGlass && isGlassBase(r)) return false;  // <= blocks AF unless checkbox on
             if(!wantAsp && name.includes('aspheric')) return false;
-            if(!wantGlass && name.includes('glass'))  return false;
             if(/photochrom|polariz|tint|tinted|sunglass|gradient/.test(name)) return false;
             return true;
           });
