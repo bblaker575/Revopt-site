@@ -133,7 +133,7 @@
 
   <!-- Error overlay for runtime issues -->
   <script>
-    if (!window.__PAYEREDGE_V15__) {
+    if (!window.__PAYEREDGE_V16__) {
       (function(){
         function showErrorOverlay(err, where){
           const wrap = document.createElement('div');
@@ -149,17 +149,19 @@
   </script>
 
   <script>
-  if (window.__PAYEREDGE_V15__) {
+  if (window.__PAYEREDGE_V16__) {
     console.warn('PayerEdge script already loaded; skipping second init.');
   } else {
-    window.__PAYEREDGE_V15__ = true;
+    window.__PAYEREDGE_V16__ = true;
 
     /* ================== Config & utils ================== */
 
-    // Tries both filenames in both locations. First one that loads wins.
+    // CSV priority: newest v8 first, then v7 patched, then originals, both root and ./data/
     const CSV_CANDIDATES = [
+      './vsp_choice_master_v8_full_composites_patched.csv',
       './vsp_choice_master_v7_full_fixed_patched.csv',
       './vsp_choice_master_v7_full_fixed.csv',
+      './data/vsp_choice_master_v8_full_composites_patched.csv',
       './data/vsp_choice_master_v7_full_fixed_patched.csv',
       './data/vsp_choice_master_v7_full_fixed.csv'
     ];
@@ -168,7 +170,7 @@
     const GOOD_CAP_OF_MAX   = 0.50; // ≤50% of max copay
     const CAP_RELAX_FACTOR  = 0.90; // fallback relaxer
 
-    // Optional safety net if some A-base is still missing from CSV (leave empty now)
+    // Optional safety net if some A-base is still missing from CSV (leave empty by default)
     const BASE_OVERRIDES = {
       // Example: NA: { copay: 175, chargeback: 95 }
     };
@@ -209,8 +211,8 @@
       });
     }
 
-    const CACHE_KEY='rev-vsp-choice-csv-v1';
-    const META_KEY='rev-vsp-choice-meta-v1';
+    const CACHE_KEY='rev-vsp-choice-csv-v2';
+    const META_KEY='rev-vsp-choice-meta-v2';
     const setCache=(t,m)=>{ localStorage.setItem(CACHE_KEY,t); localStorage.setItem(META_KEY,JSON.stringify(m)); };
     const getCache=()=>({ text: localStorage.getItem(CACHE_KEY), meta: JSON.parse(localStorage.getItem(META_KEY)||'{}') });
     const clearCacheStorage=()=>{ localStorage.removeItem(CACHE_KEY); localStorage.removeItem(META_KEY); };
@@ -262,7 +264,7 @@
       }
 
       if (loaded){
-        const meta = { plan:'VSP_choice', version:new Date().toISOString().slice(0,10)+'.ui15', source:'network:'+loaded.url, sha:quickHash(loaded.text) };
+        const meta = { plan:'VSP_choice', version:new Date().toISOString().slice(0,10)+'.ui16', source:'network:'+loaded.url, sha:quickHash(loaded.text) };
         setCache(loaded.text, meta);
         DATA = parseCSV(loaded.text);
         buildSimpleIndex();
@@ -299,7 +301,7 @@
         <ul>${errs}</ul>
         <div style="margin-top:6px"><b>Fix it fast:</b>
           <ol>
-            <li>Place <code>vsp_choice_master_v7_full_fixed_patched.csv</code> in the <i>same folder</i> as this HTML (or under <code>./data/</code>).</li>
+            <li>Place <code>vsp_choice_master_v8_full_composites_patched.csv</code> in the <i>same folder</i> as this HTML (or under <code>./data/</code>).</li>
             <li>Open this page via a local server (not <code>file://</code>).</li>
             <li>Click <b>Clear Cache</b> then <b>Force Refresh</b>.</li>
           </ol>
@@ -335,7 +337,7 @@
       }
 
       // Composite
-      const compositeCopayNums = parseCopayNumbers(row.copay); // e.g., [175,35] or [210]
+      const compositeCopayNums = parseCopayNumbers(row.copay); // e.g., [45,58]
       const compositeTotalCopay = num(row.copay);
       const compositeAddOnCB = num(row.chargeback);
 
@@ -570,7 +572,7 @@
           if(!wantAsp && name.includes('aspheric')) return false;
           if(!wantGlass && name.includes('glass'))  return false;
           if(isCustomMeasure(r)) return false;
-          if (tintSel==='polarized') return /polariz/.test(name); // polarized as material
+          if (tintSel==='polarized') return /polariz/.test(name); // polarized as material for PAL
           return !/(photochrom|polariz|tint|tinted|sunglass|gradient)/.test(name);
         });
       } else {
