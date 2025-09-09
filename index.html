@@ -1,531 +1,619 @@
-<!-- Error overlay for runtime issues (improved details) -->
-<script>
-  if (!window.__PAYEREDGE_V19__) {
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>PayerEdge — VSP Bundles</title>
+
+  <!-- Typography -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+
+  <style>
+    :root{
+      --bg:#090e16; --bg-elev:#0c1320; --fg:#eaf1ff; --muted:#9fb0c9; --line:#263448;
+      --accent:#72a8ff; --accent-2:#7be0c3;
+      --tier-best:#ffd166; --tier-better:#a9c2ff; --tier-good:#7be0c3;
+      --shadow-lg:0 18px 40px rgba(0,0,0,.35); --shadow-md:0 10px 26px rgba(0,0,0,.28);
+      --radius:18px; --radius-sm:12px;
+      --fz-12:12px; --fz-13:13px; --fz-15:15px; --fz-18:18px; --fz-20:20px; --fz-36:36px;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      background:
+        radial-gradient(1200px 600px at 20% -10%, rgba(90,168,255,.12), transparent 60%),
+        radial-gradient(900px 500px at 110% 10%, rgba(123,224,195,.10), transparent 60%),
+        var(--bg);
+      color:var(--fg);
+      font:var(--fz-15)/1.45 Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
+      font-variant-numeric: tabular-nums;
+    }
+
+    header{
+      position:sticky; top:0; z-index:20; display:flex; justify-content:space-between; align-items:center; gap:14px;
+      padding:16px 20px; background:linear-gradient(180deg, rgba(9,14,22,.95), rgba(9,14,22,.78));
+      border-bottom:1px solid var(--line); backdrop-filter: blur(10px);
+    }
+    h1{margin:0; font-weight:800; font-size:var(--fz-20); letter-spacing:.2px}
+    .sub{color:var(--muted); font-size:var(--fz-12)}
+    .version{color:var(--muted)}
+    main{padding:18px}
+
+    .bar{
+      display:flex; align-items:center; flex-wrap:wrap; gap:10px 14px;
+      background:linear-gradient(180deg, var(--bg-elev), #0b1220);
+      border:1px solid var(--line); border-radius:var(--radius); padding:12px 12px;
+      box-shadow: var(--shadow-md);
+    }
+    .group{display:flex; gap:10px; align-items:center; padding:6px 10px; border-radius:999px; background:#0b1424}
+    .btn{ background:#121f35; border:1px solid var(--line); color:var(--fg); padding:8px 12px; border-radius:var(--radius-sm); cursor:pointer; font-weight:600; transition:.15s }
+    .btn:hover{ background:#162844; border-color:#2e4260 }
+    .switch{display:inline-flex; align-items:center; gap:8px}
+    .switch select, .switch input[type="checkbox"]{ accent-color:var(--accent) }
+    select{ background:#0e1a30; color:var(--fg); border:1px solid var(--line); border-radius:10px; padding:6px 8px; outline:none }
+    select:focus{ box-shadow:0 0 0 3px rgba(114,168,255,.25) }
+    #status{ margin-left:auto; padding:6px 10px; border-radius:999px; border:1px dashed var(--line); background:#0b1422; color:#c7d6ef }
+
+    .stack{ display:grid; gap:18px; grid-template-columns:repeat(auto-fit, minmax(320px,1fr)); align-items:stretch; margin-top:16px }
+    .tier{ background:linear-gradient(180deg, #0f1726, #0c1422); border:1px solid var(--line); border-radius:var(--radius); box-shadow: var(--shadow-lg); padding:16px; transition:.25s }
+    .tierHead{display:grid; grid-template-columns:1fr auto; align-items:center; gap:10px; margin-bottom:12px}
+    .stars{font-weight:800; display:flex; align-items:center; gap:8px}
+    .stars .tag{font-size:var(--fz-12); color:var(--muted); padding:2px 8px; border:1px solid var(--line); border-radius:999px; background:#0c1424}
+    .stars.best{color:var(--tier-best)} .stars.better{color:var(--tier-better)} .stars.good{color:var(--tier-good)}
+
+    .figures{ text-align:right; display:grid; gap:2px }
+    .hero{ font-size:var(--fz-36); font-weight:800; line-height:1.0; letter-spacing:.2px; color:#cfe6ff; text-shadow: 0 6px 18px rgba(114,168,255,.18) }
+    .caption{ color:var(--muted); font-size:var(--fz-12) }
+    .svc{ font-weight:800; color:var(--accent-2) }
+
+    table{width:100%; border-collapse:collapse; margin-top:12px}
+    th,td{border-bottom:1px dashed #203043; padding:9px 6px; text-align:left; font-size:var(--fz-13)}
+    th{color:var(--muted); font-weight:700}
+    .code{font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size:12px; color:#cfe1ff}
+    .money{font-weight:800}
+
+    .break { margin:6px 0 10px; background:#0b1424; border:1px solid var(--line); border-radius:10px; }
+    .break table{ width:100%; border-collapse:collapse; }
+    .break th,.break td{ border:0; padding:6px 8px; text-align:left; font-size:12px; }
+    .break .codepill{ display:inline-block; padding:2px 8px; border:1px solid var(--line); border-radius:999px; font-family:ui-monospace,Menlo,Consolas,monospace; font-size:12px; color:#cfe1ff; background:#0e1a30; }
+    .break .colhed{ color:var(--muted); font-weight:600; }
+
+    :focus-visible{ outline:2px solid var(--accent); outline-offset:2px; border-radius:8px }
+    @media print{ header,.bar{display:none} body{background:#fff; color:#000} .tier{break-inside:avoid; border:1px solid #000; box-shadow:none} table, th, td{border-color:#000} }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <h1>PayerEdge — VSP Bundles</h1>
+      <div class="sub">Scoreboard shows <b>patient copay</b> and <b>service fee</b> (Copay − Holdback). Sun choices are exclusive.</div>
+    </div>
+    <div class="version sub" id="version">loading…</div>
+  </header>
+
+  <main>
+    <div class="bar" role="toolbar" aria-label="Bundle controls">
+      <div class="group">
+        <button class="btn" id="forceRefresh" title="Reload CSV and recompute">Force Refresh</button>
+        <button class="btn" id="clearCache" title="Clear local CSV cache">Clear Cache</button>
+      </div>
+      <div class="group">
+        <label class="switch">Lens family
+          <select id="lensFamily" aria-label="Lens family">
+            <option value="SV" selected>Single Vision</option>
+            <option value="LINED">Lined Bi/Tri</option>
+            <option value="PAL">Progressive</option>
+          </select>
+        </label>
+        <label class="switch">Lens tint
+          <select id="lensTint" aria-label="Lens tint">
+            <option value="clear" selected>Clear</option>
+            <option value="tinted">Tinted</option>
+            <option value="polarized">Polarized</option>
+            <option value="transitions">Transitions®</option>
+          </select>
+        </label>
+      </div>
+      <div class="group">
+        <label class="switch"><input type="checkbox" id="includeAR" checked> Include AR (tiered)</label>
+        <label class="switch"><input type="checkbox" id="includeAspheric"> Aspheric</label>
+        <label class="switch"><input type="checkbox" id="includeOversize"> Oversize</label>
+        <label class="switch"><input type="checkbox" id="includeGlass"> Glass</label>
+        <label class="switch"><input type="checkbox" id="includeCM"> Custom measurements (N/O only)</label>
+      </div>
+      <span id="status" aria-live="polite"></span>
+    </div>
+
+    <div id="stack" class="stack"></div>
+  </main>
+
+  <!-- Early error overlay (so even parse/runtime errors show up) -->
+  <script>
     (function(){
       function showErrorOverlay(err, where){
         const wrap = document.createElement('div');
         wrap.style.cssText = 'position:fixed;inset:12px;z-index:99999;background:#0b1220;border:1px solid #f44;box-shadow:0 8px 24px rgba(0,0,0,.5);color:#fff;border-radius:12px;padding:12px;overflow:auto;max-height:90vh;font:12px/1.4 ui-monospace,Menlo,Consolas,monospace';
         const reason = err && err.reason ? err.reason : err;
-        const msg = (() => {
-          try {
-            if (reason && typeof reason === 'object') {
-              if (reason.stack) return reason.stack;
-              if (reason.message) return reason.message;
-              return JSON.stringify(reason, null, 2);
-            }
-            return String(reason);
-          } catch {
-            return String(reason);
-          }
-        })();
+        let msg;
+        try {
+          msg = (reason && typeof reason==='object')
+            ? (reason.stack || reason.message || JSON.stringify(reason, null, 2))
+            : String(reason);
+        } catch { msg = String(reason); }
         wrap.innerHTML = '<b>JS Error @ '+where+':</b><pre style="white-space:pre-wrap;margin:8px 0 0">'+ msg + '</pre>';
         document.body.appendChild(wrap);
       }
       window.addEventListener('error', e=>showErrorOverlay(e.error||e,'window.error'));
       window.addEventListener('unhandledrejection', e=>{ e.preventDefault?.(); showErrorOverlay(e,'unhandledrejection'); });
     })();
-  }
-</script>
+  </script>
 
-<script>
-if (window.__PAYEREDGE_V19__) {
-  console.warn('PayerEdge script already loaded; skipping second init.');
-} else {
-  window.__PAYEREDGE_V19__ = true;
+  <!-- v9-strict compatible app logic -->
+  <script>
+  (function(){
+    'use strict';
+    if (window.__PAYEREDGE_V19__) { console.warn('Already loaded'); return; }
+    window.__PAYEREDGE_V19__ = true;
 
-  /* ================== Config & utils (v9-strict adapter) ================== */
+    /* ================== Config & utils (v9-strict adapter) ================== */
 
-  // Prefer the user file with parentheses; fall back to canonical names.
-  const CSV_CANDIDATES = [
-    './data/vsp_choice_master_v9_strict (1).csv',
-    './vsp_choice_master_v9_strict (1).csv',
-    './data/vsp_choice_master_v9_strict.csv',
-    './vsp_choice_master_v9_strict.csv',
-    './data/vsp_choice_master_v8_from_patched.csv',
-    './data/vsp_choice_master_v7_full_fixed_patched.csv',
-    './data/vsp_choice_master_v7_full_fixed.csv'
-  ];
+    const CSV_CANDIDATES = [
+      './data/vsp_choice_master_v9_strict (1).csv',
+      './vsp_choice_master_v9_strict (1).csv',
+      './data/vsp_choice_master_v9_strict.csv',
+      './vsp_choice_master_v9_strict.csv',
+      './data/vsp_choice_master_v8_from_patched.csv',
+      './data/vsp_choice_master_v7_full_fixed_patched.csv',
+      './data/vsp_choice_master_v7_full_fixed.csv'
+    ];
 
-  const BETTER_CAP_OF_MAX = 0.75;
-  const GOOD_CAP_OF_MAX   = 0.50;
-  const CAP_RELAX_FACTOR  = 0.90;
+    const BETTER_CAP_OF_MAX = 0.75;
+    const GOOD_CAP_OF_MAX   = 0.50;
+    const CAP_RELAX_FACTOR  = 0.90;
 
-  const el = (id)=>document.getElementById(id);
-  const sum = (a)=>a.reduce((x,y)=>x+y,0);
-  const num = (v)=>{ const x=parseFloat(String(v??'').replace(/[^0-9.-]/g,'')); return isFinite(x)?x:0; };
-  const quickHash=(s)=>{ let h=2166136261>>>0; for(let i=0;i<s.length;i++){ h^=s.charCodeAt(i); h=Math.imul(h,16777619)>>>0; } return ('00000000'+h.toString(16)).slice(-8); };
-  const N = s => String(s||'').toLowerCase();
+    const el = (id)=>document.getElementById(id);
+    const sum = (a)=>a.reduce((x,y)=>x+y,0);
+    const num = (v)=>{ const x=parseFloat(String(v??'').replace(/[^0-9.-]/g,'')); return isFinite(x)?x:0; };
+    const quickHash=(s)=>{ let h=2166136261>>>0; for(let i=0;i<s.length;i++){ h^=s.charCodeAt(i); h=Math.imul(h,16777619)>>>0; } return ('00000000'+h.toString(16)).slice(-8); };
+    const N = s => String(s||'').toLowerCase();
+    const splitCodes = (s)=> String(s||'')
+      .toUpperCase().replace(/[^\w+&/,\s-]/g,'')
+      .split(/[\s+&/,\-]+/).map(t=>t.trim()).filter(Boolean);
 
-  const splitCodes = (s)=> String(s||'')
-    .toUpperCase().replace(/[^\w+&/,\s-]/g,'')
-    .split(/[\s+&/,\-]+/).map(t=>t.trim()).filter(Boolean);
-
-  function parseCSV(text){
-    // tolerant single-pass parser for unquoted or "double-quoted" CSV
-    const rows=[]; let row=[], field='', q=false;
-    for(let i=0;i<text.length;i++){
-      const ch=text[i];
-      if(ch==='\"'){ if(q && text[i+1]==='\"'){ field+='\"'; i++; } else { q=!q; } continue; }
-      if(!q && ch===','){ row.push(field); field=''; continue; }
-      if(!q && (ch==='\n' || ch==='\r')){ if(field!==''||row.length){ row.push(field); rows.push(row); row=[]; field=''; } continue; }
-      field+=ch;
+    function parseCSV(text){
+      const rows=[]; let row=[], field='', q=false;
+      for(let i=0;i<text.length;i++){
+        const ch=text[i];
+        if(ch==='\"'){ if(q && text[i+1]==='\"'){ field+='\"'; i++; } else { q=!q; } continue; }
+        if(!q && ch===','){ row.push(field); field=''; continue; }
+        if(!q && (ch==='\n' || ch==='\r')){ if(field!==''||row.length){ row.push(field); rows.push(row); row=[]; field=''; } continue; }
+        field+=ch;
+      }
+      if(field!==''||row.length){ row.push(field); rows.push(row); }
+      const headers = rows.shift().map(h=>h.replace(/^\"|\"$/g,'').trim());
+      return rows.filter(r=>r.length>=headers.length).map(r=>{
+        const o={}; headers.forEach((h,i)=>o[h]=(r[i]||'').replace(/^\"|\"$/g,'').trim()); return o;
+      });
     }
-    if(field!==''||row.length){ row.push(field); rows.push(row); }
-    const headers = rows.shift().map(h=>h.replace(/^\"|\"$/g,'').trim());
-    return rows.filter(r=>r.length>=headers.length).map(r=>{
-      const o={}; headers.forEach((h,i)=>o[h]=(r[i]||'').replace(/^\"|\"$/g,'').trim()); return o;
-    });
-  }
 
-  async function tryFetch(url){
-    // 1st try as-is
-    try{
-      const res = await fetch(url, { cache:'no-store' });
-      if(res.ok) return { ok:true, text:await res.text(), url };
-    }catch(e){}
-    // 2nd try encoded (handles spaces/parentheses)
-    try{
-      const enc = encodeURI(url);
-      const res2 = await fetch(enc, { cache:'no-store' });
-      if(res2.ok) return { ok:true, text:await res2.text(), url:enc };
-      return { ok:false, err:'HTTP '+res2.status, url:enc };
-    }catch(e2){
-      return { ok:false, err:String(e2), url };
-    }
-  }
-
-  const CACHE_KEY='rev-vsp-choice-csv-v9';
-  const META_KEY='rev-vsp-choice-meta-v9';
-  const setCache=(t,m)=>{ localStorage.setItem(CACHE_KEY,t); localStorage.setItem(META_KEY,JSON.stringify(m)); };
-  const getCache=()=>({ text: localStorage.getItem(CACHE_KEY), meta: JSON.parse(localStorage.getItem(META_KEY)||'{}') });
-  const clearCacheStorage=()=>{ localStorage.removeItem(CACHE_KEY); localStorage.removeItem(META_KEY); };
-
-  let RAW=[];        // raw rows from CSV
-  let DATA=[];       // normalized rows (v9 → internal)
-  let SIMPLE_BY_CODE = new Map(); // code -> array of single-code rows (not composites)
-
-  /* ================== v9-strict → internal normalization ================== */
-  function normalizeRows(rows){
-    return rows.map(r=>{
-      const lower = (x)=>String(x||'').toLowerCase();
-      const fam = lower(r.family||'both');              // 'sv' | 'mf' | 'both'
-      const g   = lower(r.exclusive_group||'');         // e.g., 'material', 'sun', 'ar', 'oversize'
-      const ek  = g || lower(r.exclusive_key||'');      // compat for old code
-      const item = r.item || r.material_level || r.code || '—';
-
-      // unify numeric fields per family
-      const cop_sv = r.copay_sv ?? r.copay ?? '';
-      const hb_sv  = r.holdback_sv ?? r.chargeback ?? r.holdback ?? '';
-      const cop_mf = r.copay_mf ?? '';
-      const hb_mf  = r.holdback_mf ?? '';
-
-      return {
-        ...r,
-        item,
-        family_norm: fam,          // 'sv' | 'mf' | 'both'
-        exclusive_key: ek,
-        copay_sv: cop_sv, holdback_sv: hb_sv,
-        copay_mf: cop_mf, holdback_mf: hb_mf,
-        kind: r.kind || '',        // 'base' | 'addon' | 'pair'
-        sun: r.sun || '',
-        material_level: r.material_level || '',
-        applies_to: r.applies_to || 'all',
-        requires_flags: r.requires_flags || '',
-        forbids_flags: r.forbids_flags || '',
-      };
-    });
-  }
-
-  function buildSimpleIndex(){
-    SIMPLE_BY_CODE = new Map();
-    for (const r of DATA){
-      const parts = splitCodes(r.code);
-      if (parts.length === 1){
-        const code = parts[0];
-        if (!SIMPLE_BY_CODE.has(code)) SIMPLE_BY_CODE.set(code, []);
-        SIMPLE_BY_CODE.get(code).push(r);
+    async function tryFetch(url){
+      try{
+        const res = await fetch(url, { cache:'no-store' });
+        if(res.ok) return { ok:true, text:await res.text(), url };
+      }catch(e){}
+      try{
+        const enc = encodeURI(url);
+        const res2 = await fetch(enc, { cache:'no-store' });
+        if(res2.ok) return { ok:true, text:await res2.text(), url:enc };
+        return { ok:false, err:'HTTP '+res2.status, url:enc };
+      }catch(e2){
+        return { ok:false, err:String(e2), url };
       }
     }
-  }
 
-  function pickSimple(code, fam){
-    const list = SIMPLE_BY_CODE.get(code) || [];
-    if (!list.length) return null;
-    // Prefer rows whose 'family' matches our selection; else any.
-    const famKey = (fam==='SV' ? 'sv' : 'mf');
-    const best = list.find(r => r.family_norm===famKey) ||
-                 list.find(r => r.family_norm==='both') || list[0];
-    return best || null;
-  }
+    const CACHE_KEY='rev-vsp-choice-csv-v9';
+    const META_KEY='rev-vsp-choice-meta-v9';
+    const setCache=(t,m)=>{ localStorage.setItem(CACHE_KEY,t); localStorage.setItem(META_KEY,JSON.stringify(m)); };
+    const getCache=()=>({ text: localStorage.getItem(CACHE_KEY), meta: JSON.parse(localStorage.getItem(META_KEY)||'{}') });
+    const clearCacheStorage=()=>{ localStorage.removeItem(CACHE_KEY); localStorage.removeItem(META_KEY); };
 
-  function applies(row, fam){
-    const f = row.family_norm || 'both';
-    if (fam==='SV')    return (f==='sv' || f==='both');
-    if (fam==='PAL')   return (f==='mf' || f==='both'); // progressives count as MF
-    if (fam==='LINED') return (f==='mf' || f==='both'); // lined bi/tri map to MF side
-    return true;
-  }
+    let RAW=[]; let DATA=[]; let SIMPLE_BY_CODE = new Map();
 
-  const copayOf     = (row, fam)=> fam==='SV' ? num(row.copay_sv)    : num(row.copay_mf || row.copay_sv);
-  const holdbackOf  = (row, fam)=> fam==='SV' ? num(row.holdback_sv) : num(row.holdback_mf || row.holdback_sv);
-
-  /* ================== Load CSV ================== */
-  async function loadCSV(){
-    const status=el('status'); status.textContent=' loading…';
-    const tried = [];
-    let loaded = null;
-
-    for (const url of CSV_CANDIDATES){
-      const r = await tryFetch(url);
-      tried.push(r);
-      if (r.ok){ loaded = r; break; }
+    function normalizeRows(rows){
+      return rows.map(r=>{
+        const lower = (x)=>String(x||'').toLowerCase();
+        const fam = lower(r.family||'both');
+        const ek  = lower(r.exclusive_group||r.exclusive_key||'');
+        const item = r.item || r.material_level || r.code || '—';
+        const cop_sv = r.copay_sv ?? r.copay ?? '';
+        const hb_sv  = r.holdback_sv ?? r.chargeback ?? r.holdback ?? '';
+        const cop_mf = r.copay_mf ?? '';
+        const hb_mf  = r.holdback_mf ?? '';
+        return {
+          ...r,
+          item,
+          family_norm: fam, exclusive_key: ek,
+          copay_sv: cop_sv, holdback_sv: hb_sv,
+          copay_mf: cop_mf, holdback_mf: hb_mf,
+          kind: r.kind || '',
+          sun: r.sun || '',
+          material_level: r.material_level || '',
+          applies_to: r.applies_to || 'all',
+          requires_flags: r.requires_flags || '',
+          forbids_flags: r.forbids_flags || '',
+        };
+      });
     }
 
-    if (loaded){
-      const meta = { plan:'VSP_choice', version:new Date().toISOString().slice(0,10)+'.ui19-alamo', source:'network:'+loaded.url, sha:quickHash(loaded.text) };
-      setCache(loaded.text, meta);
-      RAW  = parseCSV(loaded.text);
-      DATA = normalizeRows(RAW);
-      buildSimpleIndex();
-      renderMeta(DATA.length, meta);
-      status.textContent = ` [ok] ${loaded.url} • ${DATA.length} rows`;
-      computeBundles();
-      return;
+    function buildSimpleIndex(){
+      SIMPLE_BY_CODE = new Map();
+      for (const r of DATA){
+        const parts = splitCodes(r.code);
+        if (parts.length === 1){
+          const code = parts[0];
+          if (!SIMPLE_BY_CODE.has(code)) SIMPLE_BY_CODE.set(code, []);
+          SIMPLE_BY_CODE.get(code).push(r);
+        }
+      }
     }
 
-    const {text, meta} = getCache();
-    if(text){
-      RAW  = parseCSV(text);
-      DATA = normalizeRows(RAW);
-      buildSimpleIndex();
-      renderMeta(DATA.length, {...meta, source:'cache'});
-      status.textContent = ` Network failed. Using cached data (${DATA.length} rows).`;
-      computeBundles();
-      return;
+    function pickSimple(code, fam){
+      const list = SIMPLE_BY_CODE.get(code) || [];
+      if (!list.length) return null;
+      const famKey = (fam==='SV' ? 'sv' : 'mf');
+      const best = list.find(r => r.family_norm===famKey) ||
+                   list.find(r => r.family_norm==='both') || list[0];
+      return best || null;
     }
 
-    // diagnostics if nothing worked
-    const diag = document.createElement('div');
-    diag.style.cssText = 'margin-top:12px; padding:10px; border:1px solid #843; background:#1a0f16; color:#f8cdd5; border-radius:10px; font-size:13px';
-    const urls = CSV_CANDIDATES.map(u => `<li><code>${u}</code></li>`).join('');
-    const errs = tried.map(t => `<li><code>${t.url}</code> → ${t.ok ? 'OK' : t.err}</li>`).join('');
-    let hint = '';
-    if (location.protocol === 'file:') {
-      hint = `<div style="margin-top:6px">You opened this file via <code>file://</code>. Start a tiny local server instead:
-              <br/><code>python -m http.server 8080</code> → open <code>http://localhost:8080/</code></div>`;
-    }
-    diag.innerHTML = `
-      <b>Load failed — no cache available.</b>
-      <div style="margin-top:6px">I tried these paths (first wins):</div>
-      <ul>${urls}</ul>
-      <div style="margin-top:6px">Results:</div>
-      <ul>${errs}</ul>
-      ${hint}`;
-    el('status').textContent = ' load failed (see diagnostics below)';
-    document.querySelector('main').appendChild(diag);
-  }
-
-  function renderMeta(count, meta){
-    el('version').textContent =
-      `plan=${meta.plan||'VSP_choice'} • rows=${count||0} • version=${meta.version||'—'} • source=${meta.source||'—'} • sha=${meta.sha||'—'}`;
-  }
-
-  /* ================== v9 helpers ================== */
-
-  function byGroup(group, fam){
-    const key = N(group);
-    return DATA.filter(r => applies(r, fam) && N(r.exclusive_key)===key);
-  }
-
-  // choose sun add-on for tinted/transitions/polarized
-  function chooseSunFor(baseRow, fam){
-    const tintSel = el('lensTint').value; // 'clear' | 'tinted' | 'polarized' | 'transitions'
-    if (tintSel==='clear') return null;
-
-    const allSun = DATA.filter(r => applies(r, fam) && N(r.exclusive_key)==='sun');
-
-    if (tintSel==='transitions'){
-      // PM for glass, otherwise PR
-      const isGlassBase = /glass/i.test(baseRow.item || baseRow.material_level || '');
-      const pref = isGlassBase ? 'PM' : 'PR';
-      return allSun.find(r => (r.code||'').toUpperCase().startsWith(pref)) || null;
-    }
-    if (tintSel==='tinted'){
-      // prefer classic solid/gradient tint add-ons
-      const pool = allSun.filter(r => /tint|gradient/i.test(r.item || r.sun || ''));
-      return pool[0] || null;
-    }
-    if (tintSel==='polarized'){
-      // Map base material → D-combo family for both SV & MF
-      const m = N(baseRow.material_level || baseRow.item || '');
-      const code =
-        /cr|plastic/.test(m) ? 'DA' :
-        /poly/.test(m)       ? 'DA+DD' :
-        /hi\s*66|hi\s*67|67/.test(m) ? 'DA+DH' :
-        /hi\s*70|70/.test(m) ? 'DA+DJ' :
-        /mid/.test(m)        ? 'DA+DB' :
-        'DA'; // default plastic-A
-      const pick = allSun.find(r => (r.code||'').toUpperCase()===code);
-      return pick || null;
-    }
-    return null;
-  }
-
-  /* ================== Per-line math (v9) ================== */
-  function line(row, fam){
-    const codeStr = String(row.code||'').trim().toUpperCase();
-    const name    = row.item || row.material_level || row.code || '—';
-    const partsCodes = splitCodes(codeStr);
-
-    if (partsCodes.length === 1){
-      const cop = copayOf(row,fam), hb = holdbackOf(row,fam);
-      return { name, code:codeStr, copay:cop, chargeback:hb, profit:cop-hb, parts:[] };
+    function applies(row, fam){
+      const f = row.family_norm || 'both';
+      if (fam==='SV')    return (f==='sv' || f==='both');
+      if (fam==='PAL')   return (f==='mf' || f==='both');
+      if (fam==='LINED') return (f==='mf' || f==='both');
+      return true;
     }
 
-    // Composite: derive remainder from base 'A' if we can
-    const totalCop = copayOf(row,fam), totalHB = holdbackOf(row,fam);
-    const baseCode = partsCodes[0];
-    const baseRow  = pickSimple(baseCode, fam);
+    const copayOf     = (row, fam)=> fam==='SV' ? num(row.copay_sv)    : num(row.copay_mf || row.copay_sv);
+    const holdbackOf  = (row, fam)=> fam==='SV' ? num(row.holdback_sv) : num(row.holdback_mf || row.holdback_sv);
 
-    if (!baseRow){
-      // no base to split — return as a single aggregated line
-      const cop = totalCop, hb = totalHB;
-      return { name, code:codeStr, copay:cop, chargeback:hb, profit:cop-hb, parts:[] };
+    async function loadCSV(){
+      const status=el('status'); status.textContent=' loading…';
+      const tried = [];
+      let loaded = null;
+
+      const cand = CSV_CANDIDATES;
+      for (const url of cand){
+        const r = await tryFetch(url);
+        tried.push(r);
+        if (r.ok){ loaded = r; break; }
+      }
+
+      if (loaded){
+        const meta = { plan:'VSP_choice', version:new Date().toISOString().slice(0,10)+'.ui19-alamo', source:'network:'+loaded.url, sha:quickHash(loaded.text) };
+        setCache(loaded.text, meta);
+        RAW  = parseCSV(loaded.text);
+        DATA = normalizeRows(RAW);
+        buildSimpleIndex();
+        renderMeta(DATA.length, meta);
+        status.textContent = ` [ok] ${loaded.url} • ${DATA.length} rows`;
+        computeBundles();
+        return;
+      }
+
+      const {text, meta} = getCache();
+      if(text){
+        RAW  = parseCSV(text);
+        DATA = normalizeRows(RAW);
+        buildSimpleIndex();
+        renderMeta(DATA.length, {...meta, source:'cache'});
+        status.textContent = ` Network failed. Using cached data (${DATA.length} rows).`;
+        computeBundles();
+        return;
+      }
+
+      const diag = document.createElement('div');
+      diag.style.cssText = 'margin-top:12px; padding:10px; border:1px solid #843; background:#1a0f16; color:#f8cdd5; border-radius:10px; font-size:13px';
+      const urls = cand.map(u => `<li><code>${u}</code></li>`).join('');
+      const errs = tried.map(t => `<li><code>${t.url}</code> → ${t.ok ? 'OK' : t.err}</li>`).join('');
+      let hint = '';
+      if (location.protocol === 'file:') {
+        hint = `<div style="margin-top:6px">Open via a local server (not <code>file://</code>):
+                <br/><code>python -m http.server 8080</code> → <code>http://localhost:8080/</code></div>`;
+      }
+      diag.innerHTML = `<b>Load failed — no cache available.</b>
+        <div style="margin-top:6px">Tried:</div><ul>${urls}</ul>
+        <div style="margin-top:6px">Results:</div><ul>${errs}</ul>${hint}`;
+      el('status').textContent = ' load failed (see diagnostics below)';
+      document.querySelector('main').appendChild(diag);
     }
 
-    const baseCop = copayOf(baseRow,fam), baseHB = holdbackOf(baseRow,fam);
-    const remCop  = Math.max(totalCop - baseCop, 0);
-    const remHB   = Math.max(totalHB  - baseHB,  0);
+    function renderMeta(count, meta){
+      el('version').textContent =
+        `plan=${meta.plan||'VSP_choice'} • rows=${count||0} • version=${meta.version||'—'} • source=${meta.source||'—'} • sha=${meta.sha||'—'}`;
+    }
 
-    const parts = [
-      { code:baseCode, copay:baseCop, chargeback:baseHB, profit:baseCop-baseHB },
-      { code:partsCodes.slice(1).join('+') || '—', copay:remCop, chargeback:remHB, profit:remCop-remHB }
-    ];
-    return {
-      name, code:codeStr,
-      copay: baseCop + remCop,
-      chargeback: baseHB + remHB,
-      profit: (baseCop + remCop) - (baseHB + remHB),
-      parts
-    };
-  }
+    function chooseSunFor(baseRow, fam){
+      const tintSel = el('lensTint').value;
+      if (tintSel==='clear') return null;
 
-  function makeBundle(base, addOns, fam){
-    const rows   = [base, ...addOns.filter(Boolean)];
-    const lines  = rows.map(r => line(r, fam));
-    const cop    = sum(lines.map(x=>x.copay));
-    const cb     = sum(lines.map(x=>x.chargeback));
-    const pr     = cop - cb;
-    const ratio  = cop>0 ? (pr/cop) : 0;
-    const label  = base.item || base.code || 'Base';
-    return { label, lines, copay:cop, chargeback:cb, profit:pr, ratio };
-  }
+      const allSun = DATA.filter(r => applies(r, fam) && N(r.exclusive_key)==='sun');
 
-  /* ================== UI bits (unchanged visuals) ================== */
-  function animateNumber(el,to){
-    const from=parseFloat(el.getAttribute('data-prev')||'0'); const start=performance.now(); const dur=380;
-    function step(t){ const k=Math.min(1,(t-start)/dur); const v=from+(to-from)*(0.5-Math.cos(Math.PI*k)/2); el.textContent=`$${v.toFixed(2)}`; if(k<1)requestAnimationFrame(step); else el.setAttribute('data-prev',to); }
-    requestAnimationFrame(step);
-  }
-  const tdMoney = v => `<td class="money">$${v.toFixed(2)}</td>`;
+      if (tintSel==='transitions'){
+        const isGlassBase = /glass/i.test(baseRow.item || baseRow.material_level || '');
+        const pref = isGlassBase ? 'PM' : 'PR';
+        return allSun.find(r => (r.code||'').toUpperCase().startsWith(pref)) || null;
+      }
+      if (tintSel==='tinted'){
+        const pool = allSun.filter(r => /tint|gradient/i.test(r.item || r.sun || ''));
+        return pool[0] || null;
+      }
+      if (tintSel==='polarized'){
+        const m = N(baseRow.material_level || baseRow.item || '');
+        const code =
+          /cr|plastic/.test(m) ? 'DA' :
+          /poly/.test(m)       ? 'DA+DD' :
+          /hi\s*66|hi\s*67|67/.test(m) ? 'DA+DH' :
+          /hi\s*70|70/.test(m) ? 'DA+DJ' :
+          /mid/.test(m)        ? 'DA+DB' :
+          'DA';
+        const pick = allSun.find(r => (r.code||'').toUpperCase()===code);
+        return pick || null;
+      }
+      return null;
+    }
 
-  function renderTier({name, cls, b}){
-    const div=document.createElement('div'); div.className='tier';
-    if(!b){
-      div.innerHTML=`<div class="tierHead"><div class="stars ${cls}"><span class="tag">${name}</span></div><div class="figures"><div class="hero">—</div><div class="caption">Patient Copay</div></div></div><div class="sub">No viable bundle</div>`;
+    function line(row, fam){
+      const codeStr = String(row.code||'').trim().toUpperCase();
+      const name    = row.item || row.material_level || row.code || '—';
+      const partsCodes = splitCodes(codeStr);
+
+      if (partsCodes.length === 1){
+        const cop = copayOf(row,fam), hb = holdbackOf(row,fam);
+        return { name, code:codeStr, copay:cop, chargeback:hb, profit:cop-hb, parts:[] };
+      }
+
+      const totalCop = copayOf(row,fam), totalHB = holdbackOf(row,fam);
+      const baseCode = partsCodes[0];
+      const baseRow  = pickSimple(baseCode, fam);
+
+      if (!baseRow){
+        const cop = totalCop, hb = totalHB;
+        return { name, code:codeStr, copay:cop, chargeback:hb, profit:cop-hb, parts:[] };
+      }
+
+      const baseCop = copayOf(baseRow,fam), baseHB = holdbackOf(baseRow,fam);
+      const remCop  = Math.max(totalCop - baseCop, 0);
+      const remHB   = Math.max(totalHB  - baseHB,  0);
+
+      const parts = [
+        { code:baseCode, copay:baseCop, chargeback:baseHB, profit:baseCop-baseHB },
+        { code:partsCodes.slice(1).join('+') || '—', copay:remCop, chargeback:remHB, profit:remCop-remHB }
+      ];
+      return {
+        name, code:codeStr,
+        copay: baseCop + remCop,
+        chargeback: baseHB + remHB,
+        profit: (baseCop + remCop) - (baseHB + remHB),
+        parts
+      };
+    }
+
+    function makeBundle(base, addOns, fam){
+      const rows   = [base, ...addOns.filter(Boolean)];
+      const lines  = rows.map(r => line(r, fam));
+      const cop    = sum(lines.map(x=>x.copay));
+      const cb     = sum(lines.map(x=>x.chargeback));
+      const pr     = cop - cb;
+      const ratio  = cop>0 ? (pr/cop) : 0;
+      const label  = base.item || base.code || 'Base';
+      return { label, lines, copay:cop, chargeback:cb, profit:pr, ratio };
+    }
+
+    function animateNumber(el,to){
+      const from=parseFloat(el.getAttribute('data-prev')||'0'); const start=performance.now(); const dur=380;
+      function step(t){ const k=Math.min(1,(t-start)/dur); const v=from+(to-from)*(0.5-Math.cos(Math.PI*k)/2); el.textContent=`$${v.toFixed(2)}`; if(k<1)requestAnimationFrame(step); else el.setAttribute('data-prev',to); }
+      requestAnimationFrame(step);
+    }
+    const tdMoney = v => `<td class="money">$${v.toFixed(2)}</td>`;
+
+    function renderTier({name, cls, b}){
+      const div=document.createElement('div'); div.className='tier';
+      if(!b){
+        div.innerHTML=`<div class="tierHead"><div class="stars ${cls}"><span class="tag">${name}</span></div><div class="figures"><div class="hero">—</div><div class="caption">Patient Copay</div></div></div><div class="sub">No viable bundle</div>`;
+        return div;
+      }
+      const stars = name==='Best' ? '★★★' : name==='Better' ? '★★' : name==='Good' ? '★' : '◎';
+      const head = `
+        <div class="tierHead">
+          <div class="stars ${cls}">
+            <div aria-label="${name}" title="${name}" style="font-size:18px">${stars}</div>
+            <span class="tag">${b.label}</span>
+          </div>
+          <div class="figures">
+            <div class="hero" aria-label="Patient Copay" data-prev="0">$${b.copay.toFixed(2)}</div>
+            <div class="caption">Patient Copay</div>
+            <div class="caption">Service Fee (Practice Profit): <span class="svc">$${b.profit.toFixed(2)}</span></div>
+          </div>
+        </div>`;
+
+      const lines = b.lines.map(li=>{
+        const main = `
+          <tr>
+            <td>${li.name}</td>
+            <td class="code">${li.code || '—'}</td>
+            ${tdMoney(li.copay)}
+            ${tdMoney(li.chargeback)}
+            ${tdMoney(li.profit)}
+          </tr>`;
+
+        const parts = (li.parts && li.parts.length)
+          ? `
+            <tr>
+              <td colspan="5">
+                <div class="break">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th class="colhed" style="width:120px">Code</th>
+                        <th class="colhed">Copay</th>
+                        <th class="colhed">Holdback</th>
+                        <th class="colhed">Service Fee</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      ${li.parts.map(p=>`
+                        <tr>
+                          <td><span class="codepill">${p.code}</span></td>
+                          ${tdMoney(p.copay)}
+                          ${tdMoney(p.chargeback)}
+                          ${tdMoney(p.profit)}
+                        </tr>`).join('')}
+                    </tbody>
+                  </table>
+                </div>
+              </td>
+            </tr>`
+          : '';
+
+        return main + parts;
+      }).join('');
+
+      div.innerHTML = head + `
+        <table>
+          <thead>
+            <tr>
+              <th>Item</th>
+              <th>Code</th>
+              <th class="nowrap">Copay</th>
+              <th class="nowrap">Holdback</th>
+              <th class="nowrap">Service Fee</th>
+            </tr>
+          </thead>
+          <tbody>${lines}</tbody>
+          <tfoot>
+            <tr>
+              <th colspan="2" style="text-align:right">Totals</th>
+              ${tdMoney(b.copay)}${tdMoney(b.chargeback)}${tdMoney(b.profit)}
+            </tr>
+          </tfoot>
+        </table>`;
+      const hero = div.querySelector('.hero'); animateNumber(hero, b.copay);
       return div;
     }
-    const stars = name==='Best' ? '★★★' : name==='Better' ? '★★' : name==='Good' ? '★' : '◎';
-    const head = `
-      <div class="tierHead">
-        <div class="stars ${cls}">
-          <div aria-label="${name}" title="${name}" style="font-size:18px">${stars}</div>
-          <span class="tag">${b.label}</span>
-        </div>
-        <div class="figures">
-          <div class="hero" aria-label="Patient Copay" data-prev="0">$${b.copay.toFixed(2)}</div>
-          <div class="caption">Patient Copay</div>
-          <div class="caption">Service Fee (Practice Profit): <span class="svc">$${b.profit.toFixed(2)}</span></div>
-        </div>
-      </div>`;
-
-    const lines = b.lines.map(li=>{
-      const main = `
-        <tr>
-          <td>${li.name}</td>
-          <td class="code">${li.code || '—'}</td>
-          ${tdMoney(li.copay)}
-          ${tdMoney(li.chargeback)}
-          ${tdMoney(li.profit)}
-        </tr>`;
-
-      const parts = (li.parts && li.parts.length)
-        ? `
-          <tr>
-            <td colspan="5">
-              <div class="break">
-                <table>
-                  <thead>
-                    <tr>
-                      <th class="colhed" style="width:120px">Code</th>
-                      <th class="colhed">Copay</th>
-                      <th class="colhed">Holdback</th>
-                      <th class="colhed">Service Fee</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    ${li.parts.map(p=>`
-                      <tr>
-                        <td><span class="codepill">${p.code}</span></td>
-                        ${tdMoney(p.copay)}
-                        ${tdMoney(p.chargeback)}
-                        ${tdMoney(p.profit)}
-                      </tr>`).join('')}
-                  </tbody>
-                </table>
-              </div>
-            </td>
-          </tr>`
-        : '';
-
-      return main + parts;
-    }).join('');
-
-    div.innerHTML = head + `
-      <table>
-        <thead>
-          <tr>
-            <th>Item</th>
-            <th>Code</th>
-            <th class="nowrap">Copay</th>
-            <th class="nowrap">Holdback</th>
-            <th class="nowrap">Service Fee</th>
-          </tr>
-        </thead>
-        <tbody>${lines}</tbody>
-        <tfoot>
-          <tr>
-            <th colspan="2" style="text-align:right">Totals</th>
-            ${tdMoney(b.copay)}${tdMoney(b.chargeback)}${tdMoney(b.profit)}
-          </tr>
-        </tfoot>
-      </table>`;
-    const hero = div.querySelector('.hero'); animateNumber(hero, b.copay);
-    return div;
-  }
-  function renderStack(rows){
-    const stack = el('stack'); stack.innerHTML='';
-    for(const row of rows){ stack.appendChild(renderTier(row)); }
-  }
-
-  /* ================== Bundle computation (v9) ================== */
-  function computeBundles(){
-    if(!DATA.length){ el('stack').innerHTML=''; return; }
-
-    const fam = el('lensFamily').value;     // 'SV' | 'LINED' | 'PAL'
-    const wantAR = el('includeAR').checked;
-    const wantOS = el('includeOversize').checked;
-    const tintSel = el('lensTint').value;
-
-    // base pool (material group), unless polarized is selected for SV/LINED then base is the D-family rows
-    let base = [];
-    if (tintSel==='polarized' && fam!=='PAL'){
-      base = DATA.filter(r => applies(r,fam) && N(r.exclusive_key)==='sun' && /^D/i.test(r.code||''));
-    } else {
-      base = DATA.filter(r => applies(r,fam) && r.kind==='base' && N(r.exclusive_key)==='material');
+    function renderStack(rows){
+      const stack = el('stack'); stack.innerHTML='';
+      for(const row of rows){ stack.appendChild(renderTier(row)); }
     }
 
-    // AR options
-    const arPool = wantAR ? DATA.filter(r => applies(r,fam) && /(^|,)ar(,|$)/i.test(r.requires_flags||'')) : [];
-    const arOptions = wantAR && arPool.length ? arPool : [null];
+    function computeBundles(){
+      if(!DATA.length){ el('stack').innerHTML=''; return; }
 
-    // oversize (any oversize flag)
-    const overs = wantOS ? (DATA.find(r => applies(r,fam) && /(^|,)oversize(,|$)/i.test(r.requires_flags||'')) || null) : null;
+      const fam = el('lensFamily').value;
+      const wantAR = el('includeAR').checked;
+      const wantOS = el('includeOversize').checked;
+      const tintSel = el('lensTint').value;
 
-    function buildBundle(m, arRow){
-      const sunRow = chooseSunFor(m, fam);
-      const cmRow = (el('includeCM')?.checked && fam==='PAL')
-        ? DATA.find(r => (r.code||'').toUpperCase()==='CM' && applies(r,fam)) || null
-        : null;
-      return makeBundle(m, [arRow, sunRow, cmRow, overs], fam);
-    }
+      let base = [];
+      if (tintSel==='polarized' && fam!=='PAL'){
+        base = DATA.filter(r => applies(r,fam) && N(r.exclusive_key)==='sun' && /^D/i.test(r.code||''));
+      } else {
+        base = DATA.filter(r => applies(r,fam) && r.kind==='base' && N(r.exclusive_key)==='material');
+      }
 
-    const all = [];
-    for(const m of base){ for(const ar of arOptions){ all.push(buildBundle(m, ar)); } }
+      const arPool = wantAR ? DATA.filter(r => applies(r,fam) && /(^|,)ar(,|$)/i.test(r.requires_flags||'')) : [];
+      const arOptions = wantAR && arPool.length ? arPool : [null];
+      const overs = wantOS ? (DATA.find(r => applies(r,fam) && /(^|,)oversize(,|$)/i.test(r.requires_flags||'')) || null) : null;
 
-    if (!all.length){
-      renderStack([
-        {name:'Best',cls:'best',b:null},
-        {name:'Better',cls:'better',b:null},
-        {name:'Good',cls:'good',b:null},
-        {name:'Cheapest',cls:'good',b:null}
-      ]);
-      return;
-    }
+      function buildBundle(m, arRow){
+        const sunRow = chooseSunFor(m, fam);
+        const cmRow = (el('includeCM')?.checked && fam==='PAL')
+          ? DATA.find(r => (r.code||'').toUpperCase()==='CM' && applies(r,fam)) || null
+          : null;
+        return makeBundle(m, [arRow, sunRow, cmRow, overs], fam);
+      }
 
-    const MaxPrice = Math.max(...all.map(b => b.copay));
-    function mostProfit(arr){
-      let pick=null;
-      for(const b of arr){ if(!pick || b.profit>pick.profit || (b.profit===pick.profit && b.copay<pick.copay)) pick=b; }
-      return pick;
-    }
-    function mostProfitUnderCap(cap, exclude=new Set()){
-      let pick=null, bestProfit=-Infinity;
-      for(const b of all){
-        if (b.copay <= cap){
-          const lbl=b.label;
-          if (exclude.has(lbl)) continue;
-          if (b.profit>bestProfit || (b.profit===bestProfit && b.copay<(pick?.copay??Infinity))){
-            bestProfit=b.profit; pick=b;
+      const all = [];
+      for(const m of base){ for(const ar of arOptions){ all.push(buildBundle(m, ar)); } }
+
+      if (!all.length){
+        renderStack([
+          {name:'Best',cls:'best',b:null},
+          {name:'Better',cls:'better',b:null},
+          {name:'Good',cls:'good',b:null},
+          {name:'Cheapest',cls:'good',b:null}
+        ]);
+        return;
+      }
+
+      const MaxPrice = Math.max(...all.map(b => b.copay));
+      function mostProfit(arr){
+        let pick=null;
+        for(const b of arr){ if(!pick || b.profit>pick.profit || (b.profit===pick.profit && b.copay<pick.copay)) pick=b; }
+        return pick;
+      }
+      function mostProfitUnderCap(cap, exclude=new Set()){
+        let pick=null, bestProfit=-Infinity;
+        for(const b of all){
+          if (b.copay <= cap){
+            const lbl=b.label;
+            if (exclude.has(lbl)) continue;
+            if (b.profit>bestProfit || (b.profit===bestProfit && b.copay<(pick?.copay??Infinity))){
+              bestProfit=b.profit; pick=b;
+            }
           }
         }
-      }
-      if (pick) return pick;
-      const looser = cap / CAP_RELAX_FACTOR;
-      for(const b of all){
-        if (b.copay <= looser){
-          const lbl=b.label; if (exclude.has(lbl)) continue;
-          if (!pick || b.profit>pick.profit || (b.profit===pick.profit && b.copay<pick.copay)) pick=b;
+        if (pick) return pick;
+        const looser = cap / CAP_RELAX_FACTOR;
+        for(const b of all){
+          if (b.copay <= looser){
+            const lbl=b.label; if (exclude.has(lbl)) continue;
+            if (!pick || b.profit>pick.profit || (b.profit===pick.profit && b.copay<pick.copay)) pick=b;
+          }
         }
+        return pick;
       }
-      return pick;
+      function cheapest(exclude=new Set()){
+        let pick=null;
+        for(const b of all){
+          const lbl=b.label; if (exclude.has(lbl)) continue;
+          if (!pick || b.copay < pick.copay || (b.copay===pick.copay && b.profit>(pick.profit))) pick=b;
+        }
+        if (pick) return pick;
+        for(const b of all){
+          if (!pick || b.copay < pick.copay || (b.copay===pick.copay && b.profit>(pick.profit))) pick=b;
+        }
+        return pick;
+      }
+
+      const best   = mostProfit(all);
+      const used   = new Set(best ? [best.label] : []);
+      const better = mostProfitUnderCap(MaxPrice*BETTER_CAP_OF_MAX, used);
+      if (better) used.add(better.label);
+      let good     = mostProfitUnderCap(MaxPrice*GOOD_CAP_OF_MAX, used);
+      if (!good)   good = cheapest(used);
+      if (good)    used.add(good.label);
+      const cheap  = cheapest(used);
+
+      renderStack([
+        {name:'Best',     cls:'best',    b:best},
+        {name:'Better',   cls:'better',  b:better},
+        {name:'Good',     cls:'good',    b:good},
+        {name:'Cheapest', cls:'good',    b:cheap}
+      ]);
     }
-    function cheapest(exclude=new Set()){
-      let pick=null;
-      for(const b of all){
-        const lbl=b.label; if (exclude.has(lbl)) continue;
-        if (!pick || b.copay < pick.copay || (b.copay===pick.copay && b.profit>(pick.profit))) pick=b;
-      }
-      if (pick) return pick;
-      for(const b of all){
-        if (!pick || b.copay < pick.copay || (b.copay===pick.copay && b.profit>(pick.profit))) pick=b;
-      }
-      return pick;
-    }
 
-    const best   = mostProfit(all);
-    const used   = new Set(best ? [best.label] : []);
-    const better = mostProfitUnderCap(MaxPrice*BETTER_CAP_OF_MAX, used);
-    if (better) used.add(better.label);
-    let good     = mostProfitUnderCap(MaxPrice*GOOD_CAP_OF_MAX, used);
-    if (!good)   good = cheapest(used);
-    if (good)    used.add(good.label);
-    const cheap  = cheapest(used);
+    el('forceRefresh').onclick=()=>{ clearCacheStorage(); loadCSV(); };
+    el('clearCache').onclick =()=>{ clearCacheStorage(); el('status').textContent=' cache cleared — click Force Refresh to reload'; };
+    ['lensFamily','lensTint','includeAR','includeOversize','includeCM']
+      .forEach(id => { const node=el(id); if(node) node.onchange=computeBundles; });
 
-    renderStack([
-      {name:'Best',     cls:'best',    b:best},
-      {name:'Better',   cls:'better',  b:better},
-      {name:'Good',     cls:'good',    b:good},
-      {name:'Cheapest', cls:'good',    b:cheap}
-    ]);
-  }
-
-  /* Wire-up */
-  el('forceRefresh').onclick=()=>{ clearCacheStorage(); loadCSV(); };
-  el('clearCache').onclick =()=>{ clearCacheStorage(); el('status').textContent=' cache cleared — click Force Refresh to reload'; };
-  ['lensFamily','lensTint','includeAR','includeOversize','includeCM']
-    .forEach(id => { const node=el(id); if(node) node.onchange=computeBundles; });
-
-  (function boot(){ loadCSV(); })();
-}
-</script>
+    (function boot(){ loadCSV(); })();
+  })();
+  </script>
+</body>
+</html>
