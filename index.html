@@ -37,7 +37,7 @@
       padding:16px 20px; background:linear-gradient(180deg, rgba(9,14,22,.95), rgba(9,14,22,.78));
       border-bottom:1px solid var(--line); backdrop-filter: blur(10px);
     }
-    h1{margin:0; font-weight:800; font-size:var(--fz-20); letter-spacing:.2px}
+    h1{margin:0; font-weight:800; font-size:var(--fz-20)}
     .sub{color:var(--muted); font-size:var(--fz-12)}
     .version{color:var(--muted)}
     main{padding:18px}
@@ -74,6 +74,7 @@
     th{color:var(--muted); font-weight:700}
     .code{font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size:12px; color:#cfe1ff}
     .money{font-weight:800}
+    .nowrap{white-space:nowrap}
 
     .break { margin:6px 0 10px; background:#0b1424; border:1px solid var(--line); border-radius:10px; }
     .break table{ width:100%; border-collapse:collapse; }
@@ -82,8 +83,6 @@
     .break .colhed{ color:var(--muted); font-weight:600; }
 
     .diag{ margin-top:12px; padding:10px; border:1px dashed #3e7c58; background:#0a1b14; color:#bff5d1; border-radius:10px; font:12px/1.5 ui-monospace,Menlo,Consolas,monospace }
-    .nowrap{white-space:nowrap}
-    :focus-visible{ outline:2px solid var(--accent); outline-offset:2px; border-radius:8px }
     @media print{ header,.bar{display:none} body{background:#fff; color:#000} .tier{break-inside:avoid; border:1px solid #000; box-shadow:none} table, th, td{border-color:#000} }
   </style>
 </head>
@@ -134,9 +133,9 @@
 </main>
 
 <script>
-/* ================ safety overlay ================ */
-if (!window.__PAYEREDGE_ALAMO__) {
-  window.__PAYEREDGE_ALAMO__ = true;
+/* ---------------- Error overlay ---------------- */
+if (!window.__PAYEREDGE_V9_ALAMO__) {
+  window.__PAYEREDGE_V9_ALAMO__ = true;
   window.addEventListener('unhandledrejection', e=>{
     if(String(e?.reason||'').includes('User rejected')) return;
     const wrap = document.createElement('div');
@@ -147,7 +146,7 @@ if (!window.__PAYEREDGE_ALAMO__) {
   });
 }
 
-/* ================== Config & utils ================== */
+/* ---------------- Config & utils ---------------- */
 const CSV_CANDIDATES = [
   './data/vsp_choice_master_v9_strict.csv',
   './vsp_choice_master_v9_strict.csv',
@@ -166,22 +165,13 @@ const num = (v)=>{ const x=parseFloat(String(v??'').replace(/[^0-9.-]/g,'')); re
 const quickHash=(s)=>{ let h=2166136261>>>0; for(let i=0;i<s.length;i++){ h^=s.charCodeAt(i); h=Math.imul(h,16777619)>>>0; } return ('00000000'+h.toString(16)).slice(-8); };
 const N = s => String(s||'').toLowerCase();
 
-const isDCode  = r => /^d/i.test((r.code||'').trim());
-const isPPhoto = r => /^p(m|r)/i.test((r.code||'').trim());
-const isGlassBase = row => /glass/i.test(N(row?.enhancement || row?.subtype || ''));
-const preferPhotoCodeForBase = row => (isGlassBase(row) ? 'PM' : 'PR');
-const splitCodes = (s)=> String(s||'')
-  .toUpperCase().replace(/[^\w+&/,\s-]/g,'')
-  .split(/[\s+&/,\-]+/).map(t=>t.trim()).filter(Boolean);
-
-/* ---- header normalization ---- */
+/* header normalization */
 function normalizeKey(k){ return String(k||'').toLowerCase().replace(/[^a-z0-9]+/g,'_'); }
 function buildNormMap(row){
   const m={};
   for(const k of Object.keys(row)){
     const nk = normalizeKey(k);
     if (!(nk in m)) m[nk] = row[k];
-    // preserve exact too
     if (!(k in m)) m[k]=row[k];
   }
   return m;
@@ -192,6 +182,16 @@ function pickFirst(row, candidates){
     const nk = normalizeKey(k);
     if (R[nk]!=null && String(R[nk]).trim()!=='') return R[nk];
     if (row[k]!=null && String(row[k]).trim()!=='') return row[k];
+  }
+  return '';
+}
+function pickByPrefix(row, prefixes){
+  const R=row.__||{};
+  const keys=Object.keys(R);
+  for(const p of prefixes){
+    const pn=normalizeKey(p);
+    const hit=keys.find(k=>k.startsWith(pn));
+    if(hit && String(R[hit]||'').trim()!=='') return R[hit];
   }
   return '';
 }
@@ -217,15 +217,15 @@ function parseCSV(text){
   });
 }
 
-const CACHE_KEY='rev-vsp-choice-csv-v9alamo';
-const META_KEY='rev-vsp-choice-meta-v9alamo';
+const CACHE_KEY='rev-vsp-choice-csv-v9alamo-2';
+const META_KEY='rev-vsp-choice-meta-v9alamo-2';
 const setCache=(t,m)=>{ localStorage.setItem(CACHE_KEY,t); localStorage.setItem(META_KEY,JSON.stringify(m)); };
 const getCache=()=>({ text: localStorage.getItem(CACHE_KEY), meta: JSON.parse(localStorage.getItem(META_KEY)||'{}') });
 const clearCacheStorage=()=>{ localStorage.removeItem(CACHE_KEY); localStorage.removeItem(META_KEY); };
 
 let DATA=[];
 
-/* ---------- bucket + header logic ---------- */
+/* --------- bucket & applies ---------- */
 function canonicalBucket(row){
   const raw = (pickFirst(row, ['exclusive_key','bucket','group','category'])||'').toLowerCase();
   if (raw){
@@ -249,7 +249,6 @@ function canonicalBucket(row){
   if (/^D[A-Z]/.test(c)) return 'sun';
   return 'base';
 }
-
 function applies(row, fam){
   const a=(pickFirst(row,['applies_to','applies','family'])||'ALL').toUpperCase();
   if(a.includes('ALL')) return true;
@@ -259,6 +258,7 @@ function applies(row, fam){
   return true;
 }
 
+/* --------- money readers ---------- */
 function familyHoldback(row, fam){
   const lookup = {
     SV: ['holdback_sv','cb_sv','chargeback_sv','hold_back_sv','charge_back_sv'],
@@ -270,26 +270,43 @@ function familyHoldback(row, fam){
   if (String(v||'').trim()!=='') return v;
   return pickFirst(row, [
     'holdback','chargeback','hb','cb',
-    'hold_back','charge_back'          // << v9 Title-Case with space
+    'hold_back','charge_back',
+    'holdback_split','chargeback_split','cb_split','hb_split'
   ]);
 }
+function readServiceFee(row){
+  // catch Service Fee, Service Fee¹, etc.
+  const s1 = pickByPrefix(row, ['service_fee','servicefee','svc_fee','practice_profit','profit']);
+  return s1;
+}
+function readCopay(row){
+  return pickFirst(row, ['copay','patient_copay','Patient Copay']);
+}
+function readMoney(row,fam){
+  let cop = num(readCopay(row));
+  const hb  = num(familyHoldback(row,fam));
+  const svc = num(readServiceFee(row));
+  if (cop===0 && (hb>0 || svc>0)){
+    // derive copay when CSV provides service fee + holdback only
+    cop = svc + hb;
+  }
+  return {copay:cop, holdback:hb, service:svc};
+}
 
-/* ---------- per-line math ---------- */
+/* -------- per-line math (with composite support) -------- */
 function line(row, fam){
   const desc = row.enhancement || row.subtype || row.desc || '—';
   const codeStr = String(row.code||'').trim().toUpperCase();
   const partsCodes = splitCodes(codeStr);
 
-  const copayVal = num(pickFirst(row, ['copay','patient_copay','Patient Copay']));
-  const hbVal    = num(familyHoldback(row, fam));
-
+  const money = readMoney(row,fam);
   if (partsCodes.length <= 1){
-    return { name:desc, code:codeStr, copay:copayVal, chargeback:hbVal, profit:copayVal-hbVal, parts:[] };
+    return { name:desc, code:codeStr, copay:money.copay, chargeback:money.holdback, profit:money.copay-money.holdback, parts:[] };
   }
 
-  const compositeCopayNums = parseCopayNumbers(pickFirst(row,['copay','patient_copay','Patient Copay']));
-  const compositeTotalCopay = copayVal;
-  const compositeAddOnHB = hbVal;
+  const compositeCopayNums = parseCopayNumbers(readCopay(row));
+  const compositeTotalCopay = money.copay;
+  const compositeAddOnHB = money.holdback;
 
   const parts = [];
   const baseCode = partsCodes[0];
@@ -329,7 +346,7 @@ function makeBundle(baseRow, addOns, fam){
   return { label, lines, copay:cop, chargeback:cb, profit:pr, ratio };
 }
 
-/* ---------- UI rendering ---------- */
+/* -------- UI rendering -------- */
 function animateNumber(el,to){
   const from=parseFloat(el.getAttribute('data-prev')||'0'); const start=performance.now(); const dur=380;
   function step(t){ const k=Math.min(1,(t-start)/dur); const v=from+(to-from)*(0.5-Math.cos(Math.PI*k)/2); el.textContent=`$${v.toFixed(2)}`; if(k<1)requestAnimationFrame(step); else el.setAttribute('data-prev',to); }
@@ -424,7 +441,7 @@ function renderStack(rows){
   for(const row of rows){ stack.appendChild(renderTier(row)); }
 }
 
-/* ---------- material & sun helpers ---------- */
+/* -------- sun helpers -------- */
 function materialKey(label) {
   const s = N(label);
   if (s.includes('polycarb')) return 'poly';
@@ -448,13 +465,18 @@ function sunMatchesBase(sunRow, baseRow) {
     default:       return true;
   }
 }
+function isDCode(r){ return /^d/i.test((r.code||'').trim()); }
+function isPPhoto(r){ return /^p(m|r)/i.test((r.code||'').trim()); }
+function isGlassBase(row){ return /glass/i.test(N(row?.enhancement || row?.subtype || '')); }
+function preferPhotoCodeForBase(row){ return (isGlassBase(row) ? 'PM' : 'PR'); }
+
 function chooseSunFor(baseRow, fam) {
   const tintSel = el('lensTint').value;
   if (tintSel==='clear' || tintSel==='polarized') return null;
   const sunAll = DATA.filter(r=>canonicalBucket(r)==='sun' && applies(r,fam))
     .filter(r=> el('includeGlass').checked ? true : !/glass/i.test(N(r.enhancement||r.subtype||'')));
   if (tintSel==='transitions') {
-    const want = preferPhotoCodeForBase(baseRow); // PM for glass, else PR
+    const want = preferPhotoCodeForBase(baseRow);
     let pool = sunAll.filter(r => /photochrom/.test(N(r.enhancement)));
     let choice = pool.find(r => new RegExp('^' + want, 'i').test((r.code || '').trim())) || pool.find(r=>isPPhoto(r));
     return choice || null;
@@ -469,7 +491,7 @@ function chooseSunFor(baseRow, fam) {
   return null;
 }
 
-/* ---------- load & compute ---------- */
+/* -------- loader & compute -------- */
 async function tryFetch(url){
   try{
     const res = await fetch(url, { cache:'no-store' });
@@ -486,9 +508,7 @@ function renderMeta(count, meta){
 function showDiag(counts){
   const d = el('diag');
   d.style.display = 'block';
-  d.innerHTML = [
-    `<b>Diagnostics:</b> Bucket counts — base:${counts.base||0} • occ:${counts.occ||0} • pal:${counts.pal||0} • ar:${counts.ar||0} • sun:${counts.sun||0} • oversize:${counts.oversize||0}`
-  ].join('<br/>');
+  d.innerHTML = `<b>Diagnostics:</b> Bucket counts — base:${counts.base||0} • occ:${counts.occ||0} • pal:${counts.pal||0} • ar:${counts.ar||0} • sun:${counts.sun||0} • oversize:${counts.oversize||0}`;
 }
 
 async function loadCSV(){
@@ -503,7 +523,7 @@ async function loadCSV(){
   }
 
   if (loaded){
-    const meta = { plan:'VSP_choice', version:new Date().toISOString().slice(0,10)+'.ui18.6-alamo', source:'network:'+loaded.url, sha:quickHash(loaded.text) };
+    const meta = { plan:'VSP_choice', version:new Date().toISOString().slice(0,10)+'.ui18.6-alamo-2', source:'network:'+loaded.url, sha:quickHash(loaded.text) };
     setCache(loaded.text, meta);
 
     DATA = parseCSV(loaded.text).map(r=>{
@@ -553,14 +573,8 @@ function computeBundles(){
   const tintSel = el('lensTint').value;
 
   const buckets = {base:[],occ:[],pal:[],ar:[],sun:[],oversize:[],cm:[]};
-  for (const r of DATA){
-    const b = canonicalBucket(r);
-    buckets[b]?.push(r);
-  }
-  showDiag({
-    base:buckets.base.length, occ:buckets.occ.length, pal:buckets.pal.length,
-    ar:buckets.ar.length, sun:buckets.sun.length, oversize:buckets.oversize.length
-  });
+  for (const r of DATA){ const b = canonicalBucket(r); buckets[b]?.push(r); }
+  showDiag({ base:buckets.base.length, occ:buckets.occ.length, pal:buckets.pal.length, ar:buckets.ar.length, sun:buckets.sun.length, oversize:buckets.oversize.length });
 
   // Base candidates
   let base = [];
@@ -620,8 +634,8 @@ function computeBundles(){
     return [...ars].sort((a,b)=>{
       const ga=gradeVal(a.enhancement)||-1, gb=gradeVal(b.enhancement)||-1;
       if(ga!==gb) return gb-ga;
-      const pa=num(pickFirst(a,['copay','patient_copay','Patient Copay']))-num(familyHoldback(a,fam));
-      const pb=num(pickFirst(b,['copay','patient_copay','Patient Copay']))-num(familyHoldback(b,fam));
+      const pa=num(readCopay(a)) - num(familyHoldback(a,fam));
+      const pb=num(readCopay(b)) - num(familyHoldback(b,fam));
       return pb-pa;
     });
   }
