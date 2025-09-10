@@ -534,7 +534,6 @@
       const tintSel = el('lensTint').value;
       if (tintSel==='clear' || tintSel==='polarized') return null;
 
-      // Respect Glass exclusivity for sun too: if base is glass, only allow glass-photochromic if such codes exist.
       const fam = el('lensFamily').value;
       const wantGlass = el('includeGlass').checked;
 
@@ -605,7 +604,6 @@
       } else {
         // Non-PAL: SV or LINED
         if (tintSel==='polarized') {
-          // If Glass is required, keep only glass-polarized bases (usually none)
           if (wantGlass) {
             base = byKey('sun_tech').filter(r=>{
               const n=N(r.enhancement);
@@ -663,7 +661,7 @@
       }
       const arPool = wantAR ? byKey('ar_level').filter(r=>{
         const name=N(r.enhancement);
-        if (wantGlass && !isGlassBaseName(name)) return false; // AR options that are glass-only (rare); otherwise AR is independent, so allow all
+        if (wantGlass && !isGlassBaseName(name)) return false;
         return applies(r,fam);
       }) : [];
       const arRanked = wantAR ? rankAR(arPool) : [];
@@ -672,8 +670,7 @@
       const overs = wantOS ? (byKey('oversize').filter(r=>applies(r,fam))[0] || null) : null;
 
       function buildBundle(m, arRow){
-        // Sun add-ons respect Glass exclusivity inside chooseSunFor()
-        const cm = (el('includeCM')?.checked && fam==='PAL') ? (DATA.filter(r => applies(r, 'PAL')).find(isCustomMeasure) || null) : null;
+        const cm = (el('includeCM')?.checked && fam==='PAL') ? (DATA.filter(r => applies(r, 'PAL')).find(row => /custom\s*measure/i.test(N(row.enhancement||row.subtype||''))) || null) : null;
         return makeBundle(m, [arRow, chooseSunFor(m), cm, overs]);
       }
 
@@ -739,11 +736,23 @@
       if (good) used.add(good.label);
       const cheap = cheapest(used);
 
+      // ---- NEW: de-duplicate identical bundles & hide empty slots ----
+      const picked = [best, better, good, cheap].filter(Boolean);
+      const uniq = [];
+      const seen = new Set();
+      for (const b of picked){
+        const sig = [b.label, b.copay.toFixed(2), b.chargeback.toFixed(2), b.profit.toFixed(2)]
+          .join('|');
+        if (!seen.has(sig)){ seen.add(sig); uniq.push(b); }
+      }
+      // If Glass is required and only one distinct bundle exists, just show one card.
+      const rowsToShow = uniq.length ? uniq : [];
+
       renderStack([
-        {name:'Best',     cls:'best',    b:best},
-        {name:'Better',   cls:'better',  b:better},
-        {name:'Good',     cls:'good',    b:good},
-        {name:'Cheapest', cls:'good',    b:cheap}
+        {name:'Best',     cls:'best',    b:rowsToShow[0]||null},
+        {name:'Better',   cls:'better',  b:rowsToShow[1]||null},
+        {name:'Good',     cls:'good',    b:rowsToShow[2]||null},
+        {name:'Cheapest', cls:'good',    b:rowsToShow[3]||null}
       ]);
     }
 
