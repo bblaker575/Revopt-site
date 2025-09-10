@@ -175,8 +175,10 @@
 
     const isDCode  = r => /^d/i.test((r.code||'').trim());
     const isPPhoto = r => /^p(m|r)/i.test((r.code||'').trim());
-    const isGlassBase = row => /glass/i.test(N(row?.enhancement || row?.subtype || ''));
-    const preferPhotoCodeForBase = row => (isGlassBase(row) ? 'PM' : 'PR');
+    const isGlassBaseName = name => /glass/.test(N(name||''));
+    const isGlassRow = r => isGlassBaseName(r.enhancement || r.subtype || '');
+
+    const preferPhotoCodeForBase = row => (isGlassRow(row) ? 'PM' : 'PR');
 
     const splitCodes = (s)=> String(s||'')
       .toUpperCase().replace(/[^\w+&/,\s-]/g,'')
@@ -365,9 +367,8 @@
 
       // Add-ons
       const addonCount = partsCodes.length - 1;
-
-      // Copays for add-ons
       let addonCopays = [];
+
       let explicitAdd = (fam !== 'PAL') ? split.svAdd : split.mfAdd;
       if (explicitAdd != null) {
         addonCopays = [explicitAdd, ...Array(Math.max(0, addonCount-1)).fill(0)];
@@ -532,15 +533,19 @@
     function chooseSunFor(baseRow) {
       const tintSel = el('lensTint').value;
       if (tintSel==='clear' || tintSel==='polarized') return null;
+
+      // Respect Glass exclusivity for sun too: if base is glass, only allow glass-photochromic if such codes exist.
       const fam = el('lensFamily').value;
+      const wantGlass = el('includeGlass').checked;
+
       const sunAll = byKey('sun_tech').filter(r=>applies(r,fam)).filter(r=>{
         const n=N(r.enhancement);
-        if(!el('includeGlass').checked && n.includes('glass')) return false;
-        return true;
+        if (wantGlass) return /glass/.test(n);
+        return !/glass/.test(n);
       });
 
       if (tintSel==='transitions') {
-        const want = preferPhotoCodeForBase(baseRow);
+        const want = preferPhotoCodeForBase(baseRow); // PM for glass, else PR
         let pool = sunAll.filter(r => /photochrom/.test(N(r.enhancement)));
         let choice = pool.find(r => new RegExp('^' + want, 'i').test((r.code || '').trim())) || pool.find(r=>isPPhoto(r));
         return choice || null;
@@ -566,21 +571,14 @@
       const wantGlass = el('includeGlass').checked;
       const tintSel = el('lensTint').value;
 
-      const sunAll = byKey('sun_tech').filter(r=>applies(r,fam)).filter(r=>{
-        const n=N(r.enhancement);
-        if(!wantGlass && n.includes('glass')) return false;
-        return true;
-      });
-
       const isCustomMeasure = (row) => /custom\s*measure/i.test(N(row?.enhancement || row?.subtype || ''));
-      const customPool = DATA.filter(r => applies(r, 'PAL')).filter(isCustomMeasure);
 
       // Helper: classify aspheric vs non-aspheric for SV/LINED
       function isAA(row){ return splitCodes(row.code)[0] === 'AA'; }
       function isAsphericRow(row){
         const name = N(row.enhancement || row.subtype || '');
         const first = splitCodes(row.code)[0] || '';
-        const looksAspheric = /aspheric/.test(name) || /^BA\b/.test(first); // BA series + text match
+        const looksAspheric = /aspheric/.test(name) || /^BA\b/.test(first);
         return looksAspheric && !isAA(row); // AA is explicitly NON-aspheric
       }
 
@@ -589,34 +587,59 @@
       if (fam === 'PAL') {
         base = byKey('progressive_level').filter(r=>applies(r,fam)).filter(r=>{
           const name=N(r.enhancement);
-          if(!wantGlass && name.includes('glass'))  return false;
+          // Glass exclusivity
+          if (wantGlass && !isGlassBaseName(name)) return false;
+          if (!wantGlass && isGlassBaseName(name)) return false;
+
           if(isCustomMeasure(r)) return false;
-          if (tintSel==='polarized') return /polariz/.test(name);
+          if (tintSel==='polarized') return /polariz/.test(name); // polarized-as-material if it exists
           return !/(photochrom|polariz|tint|tinted|sunglass|gradient)/.test(name);
         });
 
-        // Ensure KA shows
-        const kaRow = pickBaseByExactCode('KA');
-        if (kaRow && !base.some(r => splitCodes(r.code)[0] === 'KA')) base.push(kaRow);
+        // Ensure KA shows (when not Glass-only)
+        if (!wantGlass) {
+          const kaRow = pickBaseByExactCode('KA');
+          if (kaRow && !base.some(r => splitCodes(r.code)[0] === 'KA')) base.push(kaRow);
+        }
 
       } else {
         // Non-PAL: SV or LINED
         if (tintSel==='polarized') {
-          base = sunAll.filter(r => /polariz/.test(N(r.enhancement)) && isDCode(r));
+          // If Glass is required, keep only glass-polarized bases (usually none)
+          if (wantGlass) {
+            base = byKey('sun_tech').filter(r=>{
+              const n=N(r.enhancement);
+              return applies(r,fam) && /polariz/.test(n) && /glass/.test(n);
+            });
+          } else {
+            base = byKey('sun_tech').filter(r=>{
+              const n=N(r.enhancement);
+              return applies(r,fam) && /polariz/.test(n) && isDCode(r) && !/glass/.test(n);
+            });
+          }
         } else {
+          // Start with material pool
           let pool = (fam==='SV' ? byKey('base_material') : byKey('occupational'));
 
-          // Filter by aspheric toggle: keep ONLY matching class
+          // Glass exclusivity on base pool
           pool = pool.filter(r=>{
             const name=N(r.enhancement);
-            if(!wantGlass && name.includes('glass'))  return false;
+            if (wantGlass && !isGlassBaseName(name)) return false;
+            if (!wantGlass && isGlassBaseName(name)) return false;
+            return true;
+          });
+
+          // Filter by aspheric toggle (only when not Glass; glass bases ignore Aspheric switch)
+          pool = pool.filter(r=>{
+            const name=N(r.enhancement);
             if(/photochrom|polariz|tint|tinted|sunglass|gradient/.test(name)) return false;
+            if (wantGlass) return true; // already glass-only
             const asph = isAsphericRow(r);
             return wantAsp ? asph : !asph;
           });
 
-          // When Aspheric OFF and SV/Clear → put AA first
-          if (!wantAsp && fam==='SV' && tintSel==='clear') {
+          // When Aspheric OFF and SV/Clear and NOT Glass → put AA first
+          if (!wantGlass && !wantAsp && fam==='SV' && tintSel==='clear') {
             const aaRow = pickBaseByExactCode('AA');
             if (aaRow) {
               const notAA = pool.filter(r => splitCodes(r.code)[0] !== 'AA');
@@ -638,13 +661,22 @@
           return pb-pa;
         });
       }
-      const arPool = wantAR ? byKey('ar_level').filter(r=>applies(r,fam)) : [];
+      const arPool = wantAR ? byKey('ar_level').filter(r=>{
+        const name=N(r.enhancement);
+        if (wantGlass && !isGlassBaseName(name)) return false; // AR options that are glass-only (rare); otherwise AR is independent, so allow all
+        return applies(r,fam);
+      }) : [];
       const arRanked = wantAR ? rankAR(arPool) : [];
       const arOptions = wantAR && arRanked.length ? arRanked : [null];
 
       const overs = wantOS ? (byKey('oversize').filter(r=>applies(r,fam))[0] || null) : null;
 
-      function buildBundle(m, arRow){ return makeBundle(m, [arRow, chooseSunFor(m), (el('includeCM')?.checked && fam==='PAL') ? (customPool[0]||null) : null, overs]); }
+      function buildBundle(m, arRow){
+        // Sun add-ons respect Glass exclusivity inside chooseSunFor()
+        const cm = (el('includeCM')?.checked && fam==='PAL') ? (DATA.filter(r => applies(r, 'PAL')).find(isCustomMeasure) || null) : null;
+        return makeBundle(m, [arRow, chooseSunFor(m), cm, overs]);
+      }
+
       const all = [];
       for(const m of base){ for(const ar of arOptions){ all.push(buildBundle(m, ar)); } }
       if (!all.length){
@@ -680,7 +712,7 @@
         for(const b of all){
           if (b.copay <= looser){
             const lbl=b.label; if (exclude.has(lbl)) continue;
-            if (!pick || b.profit>pick.profit || (b.profit===bestProfit && b.copay<pick.copay)) pick=b;
+            if (!pick || b.profit>pick.profit || (b.profit===pick.profit && b.copay<pick.copay)) pick=b;
           }
         }
         return pick;
