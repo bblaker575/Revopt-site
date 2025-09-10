@@ -161,6 +161,17 @@ if (!window.__PAYEREDGE_V16_TINTS3__) {
       }
     }
   }
+
+  /* NEW: pick a row by exact code with family/glass filters */
+  function pickByCode(code){
+    const fam=el('lensFamily').value;
+    const wantGlass=el('includeGlass').checked;
+    const list=(SIMPLE_BY_CODE.get(code)||[])
+      .filter(r=>applies(r,fam))
+      .filter(r=> wantGlass ? true : !isGlassRow(r));
+    return list[0]||null;
+  }
+
   function pickBaseByExactCode(baseCode){
     const list=SIMPLE_BY_CODE.get(baseCode)||[];
     if(!list.length) return null;
@@ -306,7 +317,7 @@ if (!window.__PAYEREDGE_V16_TINTS3__) {
     }
   }
 
-  /* KEY FIX: robust sun pool + diagnostics */
+  /* Pool of sun/tint/photo rows (diagnostic-friendly) */
   function sunPool(fam, wantGlass){
     const tag = r => (r.exclusive_key||'').toLowerCase();
     // primary sources by tag
@@ -327,58 +338,40 @@ if (!window.__PAYEREDGE_V16_TINTS3__) {
     return pool;
   }
 
+  /* ======= KEY FIX: MN / MP hard map for Tinted ======= */
   function chooseSunFor(baseRow){
     const tintSel=el('lensTint').value;
-    if(tintSel==='clear' || tintSel==='polarized') return null;
-
     const fam=el('lensFamily').value;
     const wantGlass=el('includeGlass').checked;
-
-    const poolAll = sunPool(fam, wantGlass);
-
-    // diagnostics in the status pill
     const status=el('status');
-    const baseName = baseRow?.enhancement || baseRow?.subtype || '';
-    const baseMk = materialKey(baseName);
 
-    // Transitions
-    if(tintSel==='transitions'){
-      const want=preferPhotoCodeForBase(baseRow);
-      const pool = poolAll.filter(r=>/photochrom|transitions/.test(N(r.enhancement)));
-      const choice = pool.find(r=>new RegExp('^'+want,'i').test((r.code||'').trim())) || pool.find(isPPhoto);
-      status.textContent = ` sun=${poolAll.length} trans=${pool.length} • base=${baseMk}`;
-      return choice||null;
+    // 1) TINTED — SOLID / GRADIENT map straight to MN / MP
+    if(tintSel==='tinted_solid'){
+      const row = pickByCode('MN');
+      status.textContent = `tint: SOLID • code=MN • base=${materialKey(baseRow?.enhancement||'')}${row?' • ok':''}`;
+      return row;
+    }
+    if(tintSel==='tinted_gradient'){
+      const row = pickByCode('MP');
+      status.textContent = `tint: GRADIENT • code=MP • base=${materialKey(baseRow?.enhancement||'')}${row?' • ok':''}`;
+      return row;
     }
 
-    // Tinted — Solid / Gradient
-    const wantGradient = tintSel==='tinted_gradient';
-    const isTintRow = n => /(tint|tinted|sun|sunglass|color|colored)/.test(n);
-    const isGrad = n => /(grad|gradient)/.test(n);
+    // 2) Polarized handled elsewhere by making it a BASE, not add-on
+    if(tintSel==='polarized') return null;
 
-    const tintSet = poolAll.filter(r=>{
-      const n=N(r.enhancement||r.subtype||'');
-      const tint=isTintRow(n);
-      const grad=isGrad(n);
-      return tint && (wantGradient ? grad : !grad);
-    });
+    // 3) Transitions / photochromic — keep material-aware PR/PM logic
+    if(tintSel==='transitions'){
+      const poolAll = sunPool(fam, wantGlass);
+      const pool = poolAll.filter(r=>/photochrom|transitions/.test(N(r.enhancement)));
+      const want=preferPhotoCodeForBase(baseRow);
+      const choice = pool.find(r=>new RegExp('^'+want,'i').test((r.code||'').trim())) || pool.find(isPPhoto) || null;
+      status.textContent = `photochromic: poolAll=${poolAll.length} pool=${pool.length} want=${want}${choice?' • ok':''} • base=${materialKey(baseRow?.enhancement||'')}`;
+      return choice;
+    }
 
-    // Stage 1: material match
-    let matched = tintSet.filter(r=>sunMatchesBase(r, baseRow));
-    // Stage 2: fallback
-    if(!matched.length) matched = tintSet;
-
-    // diagnostics
-    status.textContent = `tint ${wantGradient?'grad':'solid'}: sunAll=${poolAll.length} tint=${tintSet.length} matched=${matched.length} • base=${baseMk}`;
-
-    if(!matched.length) return null;
-
-    // highest practice profit
-    matched.sort((a,b)=>{
-      const pa=num(a.copay)-num(a.chargeback);
-      const pb=num(b.copay)-num(b.chargeback);
-      return pb-pa;
-    });
-    return matched[0];
+    // 4) Clear — nothing to add
+    return null;
   }
 
   function computeBundles(){
