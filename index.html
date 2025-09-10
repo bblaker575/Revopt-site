@@ -8,7 +8,9 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
   <style>
-    :root{--bg:#090e16;--bg-elev:#0c1320;--fg:#eaf1ff;--muted:#9fb0c9;--line:#263448;--accent:#72a8ff;--accent-2:#7be0c3;--tier-best:#ffd166;--tier-better:#a9c2ff;--tier-good:#7be0c3;--shadow-lg:0 18px 40px rgba(0,0,0,.35);--shadow-md:0 10px 26px rgba(0,0,0,.28);--radius:18px;--radius-sm:12px;--fz-12:12px;--fz-13:13px;--fz-15:15px;--fz-18:18px;--fz-20:20px;--fz-36:36px}
+    :root{--bg:#090e16;--bg-elev:#0c1320;--fg:#eaf1ff;--muted:#9fb0c9;--line:#263448;--accent:#72a8ff;--accent-2:#7be0c3;
+      --tier-best:#ffd166;--tier-better:#a9c2ff;--tier-good:#7be0c3;--shadow-lg:0 18px 40px rgba(0,0,0,.35);--shadow-md:0 10px 26px rgba(0,0,0,.28);
+      --radius:18px;--radius-sm:12px;--fz-12:12px;--fz-13:13px;--fz-15:15px;--fz-18:18px;--fz-20:20px;--fz-36:36px}
     *{box-sizing:border-box} html,body{height:100%}
     body{margin:0;background:
       radial-gradient(1200px 600px at 20% -10%, rgba(90,168,255,.12), transparent 60%),
@@ -16,19 +18,22 @@
       var(--bg);
       color:var(--fg);font:var(--fz-15)/1.45 Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
       -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;font-variant-numeric:tabular-nums}
-    header{position:sticky;top:0;z-index:20;display:flex;justify-content:space-between;align-items:center;gap:14px;padding:16px 20px;background:linear-gradient(180deg, rgba(9,14,22,.95), rgba(9,14,22,.78));border-bottom:1px solid var(--line);backdrop-filter:blur(10px)}
+    header{position:sticky;top:0;z-index:20;display:flex;justify-content:space-between;align-items:center;gap:14px;padding:16px 20px;
+      background:linear-gradient(180deg, rgba(9,14,22,.95), rgba(9,14,22,.78));border-bottom:1px solid var(--line);backdrop-filter:blur(10px)}
     h1{margin:0;font-weight:800;font-size:var(--fz-20);letter-spacing:.2px}
     .sub{color:var(--muted);font-size:var(--fz-12)} .version{color:var(--muted)} main{padding:18px}
-    .bar{display:flex;align-items:center;flex-wrap:wrap;gap:10px 14px;background:linear-gradient(180deg,var(--bg-elev),#0b1220);border:1px solid var(--line);border-radius:var(--radius);padding:12px 12px;box-shadow:var(--shadow-md)}
+    .bar{display:flex;align-items:center;flex-wrap:wrap;gap:10px 14px;background:linear-gradient(180deg,var(--bg-elev),#0b1220);
+      border:1px solid var(--line);border-radius:var(--radius);padding:12px;box-shadow:var(--shadow-md)}
     .group{display:flex;gap:10px;align-items:center;padding:6px 10px;border-radius:999px;background:#0b1424}
     .btn{background:#121f35;border:1px solid var(--line);color:var(--fg);padding:8px 12px;border-radius:var(--radius-sm);cursor:pointer;font-weight:600;transition:.15s}
     .btn:hover{background:#162844;border-color:#2e4260}
     .switch{display:inline-flex;align-items:center;gap:8px}
     .switch select,.switch input[type="checkbox"]{accent-color:var(--accent)}
     select{background:#0e1a30;color:var(--fg);border:1px solid var(--line);border-radius:10px;padding:6px 8px;outline:none}
-    select:focus{box-shadow:0 0 0 3px rgba(114,168,255,.25)} #status{margin-left:auto;padding:6px 10px;border-radius:999px;border:1px dashed var(--line);background:#0b1422;color:#c7d6ef}
+    select:focus{box-shadow:0 0 0 3px rgba(114,168,255,.25)}
+    #status{margin-left:auto;padding:6px 10px;border-radius:999px;border:1px dashed var(--line);background:#0b1422;color:#c7d6ef}
     .stack{display:grid;gap:18px;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));align-items:stretch;margin-top:16px}
-    .tier{background:linear-gradient(180deg,#0f1726,#0c1422);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow-lg);padding:16px;transition:.25s}
+    .tier{background:linear-gradient(180deg,#0f1726,#0c1422);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow-lg);padding:16px}
     .tierHead{display:grid;grid-template-columns:1fr auto;align-items:center;gap:10px;margin-bottom:12px}
     .stars{font-weight:800;display:flex;align-items:center;gap:8px}
     .stars .tag{font-size:var(--fz-12);color:var(--muted);padding:2px 8px;border:1px solid var(--line);border-radius:999px;background:#0c1424}
@@ -95,390 +100,415 @@
 </main>
 
 <script>
-  if (!window.__PAYEREDGE_V16_TINTS2__) {
-    window.__PAYEREDGE_V16_TINTS2__ = true;
+if (!window.__PAYEREDGE_V16_TINTS3__) {
+  window.__PAYEREDGE_V16_TINTS3__ = true;
 
-    const CSV_CANDIDATES = ['./vsp_choice_master_v8.3.csv','./data/vsp_choice_master_v8.3.csv'];
-    const BETTER_CAP_OF_MAX = 0.75, GOOD_CAP_OF_MAX = 0.50, CAP_RELAX_FACTOR = 0.90;
+  /* ============== helpers & cache ============== */
+  const CSV_CANDIDATES=['./vsp_choice_master_v8.3.csv','./data/vsp_choice_master_v8.3.csv'];
+  const BETTER_CAP_OF_MAX=0.75, GOOD_CAP_OF_MAX=0.50, CAP_RELAX_FACTOR=0.90;
 
-    const el = id=>document.getElementById(id);
-    const sum = a=>a.reduce((x,y)=>x+y,0);
-    const num = v=>{ const x=parseFloat(String(v??'').replace(/[^0-9.-]/g,'')); return isFinite(x)?x:0; };
-    const quickHash=s=>{ let h=2166136261>>>0; for(let i=0;i<s.length;i++){ h^=s.charCodeAt(i); h=Math.imul(h,16777619)>>>0; } return ('00000000'+h.toString(16)).slice(-8); };
-    const N = s=>String(s||'').toLowerCase();
+  const el=id=>document.getElementById(id);
+  const sum=a=>a.reduce((x,y)=>x+y,0);
+  const num=v=>{ const x=parseFloat(String(v??'').replace(/[^0-9.-]/g,'')); return isFinite(x)?x:0; };
+  const quickHash=s=>{ let h=2166136261>>>0; for(let i=0;i<s.length;i++){ h^=s.charCodeAt(i); h=Math.imul(h,16777619)>>>0; } return ('00000000'+h.toString(16)).slice(-8); };
+  const N=s=>String(s||'').toLowerCase();
 
-    const isDCode=r=>/^d/i.test((r.code||'').trim());
-    const isPPhoto=r=>/^p(m|r)/i.test((r.code||'').trim());
-    const isGlassBaseName=name=>/glass/.test(N(name||''));
-    const isGlassRow=r=>isGlassBaseName(r.enhancement||r.subtype||'');
-    const preferPhotoCodeForBase=row=> (isGlassRow(row)?'PM':'PR');
+  const isDCode=r=>/^d/i.test((r.code||'').trim());
+  const isPPhoto=r=>/^p(m|r)/i.test((r.code||'').trim());
+  const isGlassBaseName=name=>/glass/.test(N(name||''));
+  const isGlassRow=r=>isGlassBaseName(r.enhancement||r.subtype||'');
+  const preferPhotoCodeForBase=row=> (isGlassRow(row)?'PM':'PR');
 
-    const splitCodes=s=>String(s||'').toUpperCase().replace(/[^\w+&/,\s-]/g,'').split(/[\s+&/,\-]+/).map(t=>t.trim()).filter(Boolean);
-    const parseCopayNumbers= copayStr => { const m=String(copayStr||'').match(/[0-9]+(?:\.[0-9]{1,2})?/g); return m?m.map(x=>parseFloat(x)):[]; };
+  const splitCodes=s=>String(s||'').toUpperCase().replace(/[^\w+&/,\s-]/g,'').split(/[\s+&/,\-]+/).map(t=>t.trim()).filter(Boolean);
+  const parseCopayNumbers= s => { const m=String(s||'').match(/[0-9]+(?:\.[0-9]{1,2})?/g); return m?m.map(x=>parseFloat(x)):[]; };
 
-    function parseSplitFromNotes(notes){
-      const s=String(notes||'');
-      const sv=s.match(/(\d+)\s*\+\s*(\d+)\s*\(SV\)/i);
-      const mf=s.match(/(\d+)\s*\+\s*(\d+)\s*\(MF\)/i);
-      return { svBase: sv?num(sv[1]):null, svAdd: sv?num(sv[2]):null, mfBase: mf?num(mf[1]):null, mfAdd: mf?num(mf[2]):null };
+  function parseSplitFromNotes(notes){
+    const s=String(notes||'');
+    const sv=s.match(/(\d+)\s*\+\s*(\d+)\s*\(SV\)/i);
+    const mf=s.match(/(\d+)\s*\+\s*(\d+)\s*\(MF\)/i);
+    return { svBase: sv?num(sv[1]):null, svAdd: sv?num(sv[2]):null, mfBase: mf?num(mf[1]):null, mfAdd: mf?num(mf[2]):null };
+  }
+
+  function parseCSV(text){
+    const rows=[]; let row=[], field='', q=false;
+    for(let i=0;i<text.length;i++){
+      const ch=text[i];
+      if(ch==='\"'){ if(q && text[i+1]==='\"'){ field+='\"'; i++; } else { q=!q; } continue; }
+      if(!q && ch===','){ row.push(field); field=''; continue; }
+      if(!q && (ch==='\n'||ch==='\r')){ if(field!==''||row.length){ row.push(field); rows.push(row); row=[]; field=''; } continue; }
+      field+=ch;
     }
+    if(field!==''||row.length){ row.push(field); rows.push(row); }
+    const headers=rows.shift().map(h=>h.replace(/^\"|\"$/g,'').trim());
+    return rows.filter(r=>r.length>=headers.length).map(r=>{ const o={}; headers.forEach((h,i)=>o[h]=(r[i]||'').replace(/^\"|\"$/g,'').trim()); return o; });
+  }
 
-    function parseCSV(text){
-      const rows=[]; let row=[], field='', q=false;
-      for(let i=0;i<text.length;i++){
-        const ch=text[i];
-        if(ch==='\"'){ if(q && text[i+1]==='\"'){ field+='\"'; i++; } else { q=!q; } continue; }
-        if(!q && ch===','){ row.push(field); field=''; continue; }
-        if(!q && (ch==='\n'||ch==='\r')){ if(field!==''||row.length){ row.push(field); rows.push(row); row=[]; field=''; } continue; }
-        field+=ch;
-      }
-      if(field!==''||row.length){ row.push(field); rows.push(row); }
-      const headers=rows.shift().map(h=>h.replace(/^\"|\"$/g,'').trim());
-      return rows.filter(r=>r.length>=headers.length).map(r=>{ const o={}; headers.forEach((h,i)=>o[h]=(r[i]||'').replace(/^\"|\"$/g,'').trim()); return o; });
-    }
+  const CACHE_KEY='rev-vsp-choice-csv-v1', META_KEY='rev-vsp-choice-meta-v1';
+  const setCache=(t,m)=>{ localStorage.setItem(CACHE_KEY,t); localStorage.setItem(META_KEY,JSON.stringify(m)); };
+  const getCache=()=>({ text:localStorage.getItem(CACHE_KEY), meta: JSON.parse(localStorage.getItem(META_KEY)||'{}') });
+  const clearCacheStorage=()=>{ localStorage.removeItem(CACHE_KEY); localStorage.removeItem(META_KEY); };
 
-    const CACHE_KEY='rev-vsp-choice-csv-v1', META_KEY='rev-vsp-choice-meta-v1';
-    const setCache=(t,m)=>{ localStorage.setItem(CACHE_KEY,t); localStorage.setItem(META_KEY,JSON.stringify(m)); };
-    const getCache=()=>({ text:localStorage.getItem(CACHE_KEY), meta: JSON.parse(localStorage.getItem(META_KEY)||'{}') });
-    const clearCacheStorage=()=>{ localStorage.removeItem(CACHE_KEY); localStorage.removeItem(META_KEY); };
+  let DATA=[], SIMPLE_BY_CODE=new Map();
 
-    let DATA=[], SIMPLE_BY_CODE=new Map();
-
-    function buildSimpleIndex(){
-      SIMPLE_BY_CODE=new Map();
-      for(const r of DATA){
-        const parts=splitCodes(r.code);
-        if(parts.length===1){
-          const code=parts[0];
-          if(!SIMPLE_BY_CODE.has(code)) SIMPLE_BY_CODE.set(code,[]);
-          SIMPLE_BY_CODE.get(code).push(r);
-        }
-      }
-    }
-
-    function pickBaseByExactCode(baseCode){
-      const list=SIMPLE_BY_CODE.get(baseCode)||[];
-      if(!list.length) return null;
-      const score=s=> (s.includes('plastic')&&!s.includes('high'))?2:0;
-      return list.map(r=>({r,s:(r.enhancement||r.subtype||'').toLowerCase()})).sort((a,b)=>score(b.s)-score(a.s))[0].r;
-    }
-
-    async function tryFetch(url){
-      try{ const res=await fetch(url,{cache:'no-store'}); if(!res.ok) throw new Error('HTTP '+res.status); return {ok:true,text:await res.text(),url}; }
-      catch(e){ return {ok:false,err:String(e),url}; }
-    }
-
-    async function loadCSV(){
-      const status=el('status'); status.textContent=' loading…';
-      const tried=[]; let loaded=null;
-      for(const url of CSV_CANDIDATES){ const r=await tryFetch(url); tried.push(r); if(r.ok){ loaded=r; break; } }
-      if(loaded){
-        const meta={plan:'VSP_choice',version:new Date().toISOString().slice(0,10)+'.ui16-tints2',source:'network:'+loaded.url,sha:quickHash(loaded.text)};
-        setCache(loaded.text,meta); DATA=parseCSV(loaded.text); buildSimpleIndex(); renderMeta(DATA.length,meta);
-        status.textContent=` [ok] ${loaded.url} • ${DATA.length} rows`; computeBundles(); return;
-      }
-      const {text,meta}=getCache();
-      if(text){ DATA=parseCSV(text); buildSimpleIndex(); renderMeta(DATA.length,{...meta,source:'cache'});
-        status.textContent=` Network failed. Using cached data (${DATA.length} rows).`; computeBundles(); return; }
-      const diag=document.createElement('div'); diag.style.cssText='margin-top:12px;padding:10px;border:1px solid #843;background:#1a0f16;color:#f8cdd5;border-radius:10px;font-size:13px';
-      diag.innerHTML=`<b>Load failed — no cache available.</b><div style="margin-top:6px"><b>Fix it fast:</b><ol>
-        <li>Place <code>vsp_choice_master_v8.3.csv</code> alongside this HTML (or under <code>./data/</code>).</li>
-        <li>Open via a local server (not <code>file://</code>).</li>
-        <li>Click <b>Clear Cache</b> then <b>Force Refresh</b>.</li></ol></div>`;
-      el('status').textContent=' load failed (see diagnostics below)'; document.querySelector('main').appendChild(diag);
-    }
-
-    function renderMeta(count,meta){
-      el('version').textContent=`plan=${meta.plan||'VSP_choice'} • rows=${count||0} • version=${meta.version||'—'} • source=${meta.source||'—'} • sha=${meta.sha||'—'}`;
-    }
-
-    const byKey=k=>DATA.filter(r=>(r.active||'yes').toLowerCase()==='yes' && (r.exclusive_key||'').toLowerCase()===k);
-    function applies(row,fam){
-      const a=(row.applies_to||'ALL').toUpperCase();
-      if(a.includes('ALL')) return true;
-      if(fam==='SV') return a.includes('SV');
-      if(fam==='LINED') return a.includes('OCC');
-      if(fam==='PAL') return a.includes('MF');
-      return true;
-    }
-
-    function line(row){
-      const desc=row.enhancement||row.subtype||'—';
-      const codeStr=String(row.code||'').trim().toUpperCase();
-      const partsCodes=splitCodes(codeStr);
-      const notes=row.notes||row.note||row.Notes||row.NOTE||'';
-      if(partsCodes.length===1){
-        const cop=num(row.copay), cb=num(row.chargeback);
-        return {name:desc,code:codeStr,copay:cop,chargeback:cb,profit:cop-cb,parts:[]};
-      }
-      const fam=el('lensFamily').value;
-      const split=parseSplitFromNotes(notes);
-      const compositeCopayNums=parseCopayNumbers(row.copay);
-      const compositeTotalCopay=num(row.copay);
-      const compositeAddOnCB=num(row.chargeback);
-      const parts=[];
-      const baseCode=partsCodes[0];
-      const baseRow=pickBaseByExactCode(baseCode);
-      let baseCop=baseRow?num(baseRow.copay):(compositeCopayNums[0]??compositeTotalCopay);
-      let baseCB =baseRow?num(baseRow.chargeback):0;
-      if(fam!=='PAL' && split.svBase!=null) baseCop=split.svBase;
-      if(fam==='PAL' && split.mfBase!=null) baseCop=split.mfBase;
-      parts.push({code:baseCode,copay:baseCop,chargeback:baseCB,profit:baseCop-baseCB});
-      const addonCount=partsCodes.length-1;
-      let addonCopays=[]; let explicitAdd=(fam!=='PAL')?split.svAdd:split.mfAdd;
-      if(explicitAdd!=null){ addonCopays=[explicitAdd,...Array(Math.max(0,addonCount-1)).fill(0)]; }
-      else if(compositeCopayNums.length>=partsCodes.length){ addonCopays=compositeCopayNums.slice(1); }
-      else { const remaining=Math.max(compositeTotalCopay-baseCop,0);
-             if(addonCount<=1){ addonCopays=[remaining]; } else { const each=remaining/addonCount; addonCopays=Array.from({length:addonCount},()=>each); } }
-      const addonCBEach=addonCount<=1?compositeAddOnCB:(compositeAddOnCB/addonCount);
-      for(let i=1;i<partsCodes.length;i++){
-        const code=partsCodes[i]; const cop=num(addonCopays[i-1]??0); const cb=addonCBEach;
-        parts.push({code,copay:cop,chargeback:cb,profit:cop-cb});
-      }
-      const totalCop=parts.reduce((a,x)=>a+x.copay,0);
-      const totalCB =parts.reduce((a,x)=>a+x.chargeback,0);
-      return {name:desc,code:codeStr,copay:totalCop,chargeback:totalCB,profit:totalCop-totalCB,parts};
-    }
-
-    function makeBundle(base,addOns){
-      const rows=[base,...addOns.filter(Boolean)];
-      const lines=rows.map(line);
-      const cop=sum(lines.map(x=>x.copay));
-      const cb =sum(lines.map(x=>x.chargeback));
-      const pr =cop-cb; const ratio=cop>0?(pr/cop):0;
-      const label=base.enhancement||base.subtype||base.code||'Base';
-      return {label,lines,copay:cop,chargeback:cb,profit:pr,ratio};
-    }
-
-    function animateNumber(node,to){
-      const from=parseFloat(node.getAttribute('data-prev')||'0'); const start=performance.now(); const dur=380;
-      function step(t){ const k=Math.min(1,(t-start)/dur); const v=from+(to-from)*(0.5-Math.cos(Math.PI*k)/2); node.textContent=`$${v.toFixed(2)}`; if(k<1) requestAnimationFrame(step); else node.setAttribute('data-prev',to); }
-      requestAnimationFrame(step);
-    }
-    const tdMoney=v=>`<td class="money">$${v.toFixed(2)}</td>`;
-
-    function renderTier({name,cls,b}){
-      const div=document.createElement('div'); div.className='tier';
-      if(!b){ div.innerHTML=`<div class="tierHead"><div class="stars ${cls}"><span class="tag">${name}</span></div><div class="figures"><div class="hero">—</div><div class="caption">Patient Copay</div></div></div><div class="sub">No viable bundle</div>`; return div; }
-      const stars=name==='Best'?'★★★':name==='Better'?'★★':name==='Good'?'★':'◎';
-      const head=`<div class="tierHead"><div class="stars ${cls}"><div aria-label="${name}" title="${name}" style="font-size:18px">${stars}</div><span class="tag">${b.label}</span></div>
-        <div class="figures"><div class="hero" aria-label="Patient Copay" data-prev="0">$${b.copay.toFixed(2)}</div><div class="caption">Patient Copay</div><div class="caption">Service Fee (Practice Profit): <span class="svc">$${b.profit.toFixed(2)}</span></div></div></div>`;
-      const lines=b.lines.map(li=>{
-        const main=`<tr><td>${li.name}</td><td class="code">${li.code||'—'}</td>${tdMoney(li.copay)}${tdMoney(li.chargeback)}${tdMoney(li.profit)}</tr>`;
-        const parts=(li.parts&&li.parts.length)?`<tr><td colspan="5"><div class="break"><table><thead><tr><th class="colhed" style="width:120px">Code</th><th class="colhed">Copay</th><th class="colhed">Holdback</th><th class="colhed">Service Fee</th></tr></thead><tbody>${
-          li.parts.map(p=>`<tr><td><span class="codepill">${p.code}</span></td>${tdMoney(p.copay)}${tdMoney(p.chargeback)}${tdMoney(p.profit)}</tr>`).join('')}</tbody></table></div></td></tr>`:'';
-        return main+parts;
-      }).join('');
-      div.innerHTML=head+`<table><thead><tr><th>Item</th><th>Code</th><th class="nowrap">Copay</th><th class="nowrap">Holdback</th><th class="nowrap">Service Fee</th></tr></thead><tbody>${lines}</tbody>
-        <tfoot><tr><th colspan="2" style="text-align:right">Totals</th>${tdMoney(b.copay)}${tdMoney(b.chargeback)}${tdMoney(b.profit)}</tr></tfoot></table>`;
-      animateNumber(div.querySelector('.hero'), b.copay); return div;
-    }
-    function renderStack(rows){ const stack=el('stack'); stack.innerHTML=''; for(const row of rows){ stack.appendChild(renderTier(row)); } }
-
-    function materialKey(label){
-      const s=N(label);
-      if(s.includes('polycarb')) return 'poly';
-      if(s.includes('trivex')) return 'trivex';
-      if(/1\.74|1\.75/.test(s)) return 'hi174';
-      if(/1\.70|1\.71|above/.test(s)) return 'hi70';
-      if(/1\.66|1\.67/.test(s)) return 'hi167';
-      if(/cr[\s-]?39/.test(s)||(s.includes('plastic')&&!s.includes('high'))) return 'cr39';
-      return 'other';
-    }
-    function sunMatchesBase(sunRow,baseRow){
-      const mk=materialKey(baseRow.enhancement||baseRow.subtype||'');
-      const t=N(sunRow.enhancement);
-      switch(mk){
-        case 'poly':   return t.includes('polycarb');
-        case 'trivex': return t.includes('trivex');
-        case 'hi174':  return /(1\.74|1\.75)/.test(t);
-        case 'hi70':   return /(1\.70|1\.71|above)/.test(t);
-        case 'hi167':  return /(1\.66|1\.67)/.test(t);
-        case 'cr39':   return (/(cr[\s-]?39|plastic)/.test(t) && !/high/.test(t));
-        default:       return true;
+  function buildSimpleIndex(){
+    SIMPLE_BY_CODE=new Map();
+    for(const r of DATA){
+      const parts=splitCodes(r.code);
+      if(parts.length===1){
+        const code=parts[0];
+        if(!SIMPLE_BY_CODE.has(code)) SIMPLE_BY_CODE.set(code,[]);
+        SIMPLE_BY_CODE.get(code).push(r);
       }
     }
+  }
+  function pickBaseByExactCode(baseCode){
+    const list=SIMPLE_BY_CODE.get(baseCode)||[];
+    if(!list.length) return null;
+    const score=s=> (s.includes('plastic')&&!s.includes('high'))?2:0;
+    return list.map(r=>({r,s:(r.enhancement||r.subtype||'').toLowerCase()})).sort((a,b)=>score(b.s)-score(a.s))[0].r;
+  }
 
-    // >>> FIXED: broadened keywords + graceful fallback if material-specific rows are absent
-    function chooseSunFor(baseRow){
-      const tintSel=el('lensTint').value;
-      if(tintSel==='clear' || tintSel==='polarized') return null;
+  async function tryFetch(url){
+    try{ const res=await fetch(url,{cache:'no-store'}); if(!res.ok) throw new Error('HTTP '+res.status); return {ok:true,text:await res.text(),url}; }
+    catch(e){ return {ok:false,err:String(e),url}; }
+  }
 
-      const fam=el('lensFamily').value;
-      const wantGlass=el('includeGlass').checked;
+  async function loadCSV(){
+    const status=el('status'); status.textContent=' loading…';
+    const tried=[]; let loaded=null;
+    for(const url of CSV_CANDIDATES){ const r=await tryFetch(url); tried.push(r); if(r.ok){ loaded=r; break; } }
+    if(loaded){
+      const meta={plan:'VSP_choice',version:new Date().toISOString().slice(0,10)+'.ui16-tints3',source:'network:'+loaded.url,sha:quickHash(loaded.text)};
+      setCache(loaded.text,meta); DATA=parseCSV(loaded.text); buildSimpleIndex(); renderMeta(DATA.length,meta);
+      status.textContent=` [ok] ${loaded.url} • ${DATA.length} rows`; computeBundles(); return;
+    }
+    const {text,meta}=getCache();
+    if(text){ DATA=parseCSV(text); buildSimpleIndex(); renderMeta(DATA.length,{...meta,source:'cache'});
+      status.textContent=` Network failed. Using cached data (${DATA.length} rows).`; computeBundles(); return; }
+    status.textContent = ' load failed — no cache';
+  }
 
-      const sunAll=byKey('sun_tech').filter(r=>applies(r,fam)).filter(r=>{
-        const n=N(r.enhancement);
-        if(wantGlass) return /glass/.test(n);
-        return !/glass/.test(n);
+  function renderMeta(count,meta){
+    el('version').textContent=`plan=${meta.plan||'VSP_choice'} • rows=${count||0} • version=${meta.version||'—'} • source=${meta.source||'—'} • sha=${meta.sha||'—'}`;
+  }
+
+  const byKey=k=>DATA.filter(r=>(r.active||'yes').toLowerCase()==='yes' && (r.exclusive_key||'').toLowerCase()===k);
+
+  function applies(row,fam){
+    const a=(row.applies_to||'ALL').toUpperCase();
+    if(a.includes('ALL')) return true;
+    if(fam==='SV') return a.includes('SV');
+    if(fam==='LINED') return a.includes('OCC');
+    if(fam==='PAL') return a.includes('MF');
+    return true;
+  }
+
+  function line(row){
+    const desc=row.enhancement||row.subtype||'—';
+    const codeStr=String(row.code||'').trim().toUpperCase();
+    const partsCodes=splitCodes(codeStr);
+    const notes=row.notes||row.note||row.Notes||row.NOTE||'';
+    if(partsCodes.length===1){
+      const cop=num(row.copay), cb=num(row.chargeback);
+      return {name:desc,code:codeStr,copay:cop,chargeback:cb,profit:cop-cb,parts:[]};
+    }
+    const fam=el('lensFamily').value;
+    const split=parseSplitFromNotes(notes);
+    const compositeCopayNums=parseCopayNumbers(row.copay);
+    const compositeTotalCopay=num(row.copay);
+    const compositeAddOnCB=num(row.chargeback);
+    const parts=[];
+    const baseCode=partsCodes[0];
+    const baseRow=pickBaseByExactCode(baseCode);
+    let baseCop=baseRow?num(baseRow.copay):(compositeCopayNums[0]??compositeTotalCopay);
+    let baseCB =baseRow?num(baseRow.chargeback):0;
+    if(fam!=='PAL' && split.svBase!=null) baseCop=split.svBase;
+    if(fam==='PAL' && split.mfBase!=null) baseCop=split.mfBase;
+    parts.push({code:baseCode,copay:baseCop,chargeback:baseCB,profit:baseCop-baseCB});
+    const addonCount=partsCodes.length-1;
+    let addonCopays=[]; let explicitAdd=(fam!=='PAL')?split.svAdd:split.mfAdd;
+    if(explicitAdd!=null){ addonCopays=[explicitAdd,...Array(Math.max(0,addonCount-1)).fill(0)]; }
+    else if(compositeCopayNums.length>=partsCodes.length){ addonCopays=compositeCopayNums.slice(1); }
+    else { const remaining=Math.max(compositeTotalCopay-baseCop,0);
+           if(addonCount<=1){ addonCopays=[remaining]; } else { const each=remaining/addonCount; addonCopays=Array.from({length:addonCount},()=>each); } }
+    const addonCBEach=addonCount<=1?compositeAddOnCB:(compositeAddOnCB/addonCount);
+    for(let i=1;i<partsCodes.length;i++){
+      const code=partsCodes[i]; const cop=num(addonCopays[i-1]??0); const cb=addonCBEach;
+      parts.push({code,copay:cop,chargeback:cb,profit:cop-cb});
+    }
+    const totalCop=parts.reduce((a,x)=>a+x.copay,0);
+    const totalCB =parts.reduce((a,x)=>a+x.chargeback,0);
+    return {name:desc,code:codeStr,copay:totalCop,chargeback:totalCB,profit:totalCop-totalCB,parts};
+  }
+
+  function makeBundle(base,addOns){
+    const rows=[base,...addOns.filter(Boolean)];
+    const lines=rows.map(line);
+    const cop=sum(lines.map(x=>x.copay));
+    const cb =sum(lines.map(x=>x.chargeback));
+    const pr =cop-cb;
+    const label=base.enhancement||base.subtype||base.code||'Base';
+    return {label,lines,copay:cop,chargeback:cb,profit:pr,ratio:cop?pr/cop:0};
+  }
+
+  function animateNumber(node,to){
+    const from=parseFloat(node.getAttribute('data-prev')||'0'); const start=performance.now(); const dur=380;
+    function step(t){ const k=Math.min(1,(t-start)/dur); const v=from+(to-from)*(0.5-Math.cos(Math.PI*k)/2);
+      node.textContent=`$${v.toFixed(2)}`; if(k<1) requestAnimationFrame(step); else node.setAttribute('data-prev',to); }
+    requestAnimationFrame(step);
+  }
+  const tdMoney=v=>`<td class="money">$${v.toFixed(2)}</td>`;
+
+  function renderTier({name,cls,b}){
+    const div=document.createElement('div'); div.className='tier';
+    if(!b){ div.innerHTML=`<div class="tierHead"><div class="stars ${cls}"><span class="tag">${name}</span></div>
+      <div class="figures"><div class="hero">—</div><div class="caption">Patient Copay</div></div></div><div class="sub">No viable bundle</div>`; return div; }
+    const stars=name==='Best'?'★★★':name==='Better'?'★★':name==='Good'?'★':'◎';
+    const head=`<div class="tierHead">
+      <div class="stars ${cls}"><div aria-label="${name}" title="${name}" style="font-size:18px">${stars}</div><span class="tag">${b.label}</span></div>
+      <div class="figures"><div class="hero" aria-label="Patient Copay" data-prev="0">$${b.copay.toFixed(2)}</div>
+      <div class="caption">Patient Copay</div><div class="caption">Service Fee (Practice Profit): <span class="svc">$${b.profit.toFixed(2)}</span></div></div></div>`;
+    const lines=b.lines.map(li=>{
+      const main=`<tr><td>${li.name}</td><td class="code">${li.code||'—'}</td>${tdMoney(li.copay)}${tdMoney(li.chargeback)}${tdMoney(li.profit)}</tr>`;
+      const parts=(li.parts&&li.parts.length)?`<tr><td colspan="5"><div class="break"><table>
+        <thead><tr><th class="colhed" style="width:120px">Code</th><th class="colhed">Copay</th><th class="colhed">Holdback</th><th class="colhed">Service Fee</th></tr></thead>
+        <tbody>${li.parts.map(p=>`<tr><td><span class="codepill">${p.code}</span></td>${tdMoney(p.copay)}${tdMoney(p.chargeback)}${tdMoney(p.profit)}</tr>`).join('')}</tbody>
+      </table></div></td></tr>`:'';
+      return main+parts;
+    }).join('');
+    div.innerHTML=head+`<table><thead><tr><th>Item</th><th>Code</th><th>Copay</th><th>Holdback</th><th>Service Fee</th></tr></thead>
+      <tbody>${lines}</tbody><tfoot><tr><th colspan="2" style="text-align:right">Totals</th>${tdMoney(b.copay)}${tdMoney(b.chargeback)}${tdMoney(b.profit)}</tr></tfoot></table>`;
+    animateNumber(div.querySelector('.hero'), b.copay); return div;
+  }
+  function renderStack(rows){ const stack=el('stack'); stack.innerHTML=''; rows.forEach(r=>stack.appendChild(renderTier(r))); }
+
+  function materialKey(label){
+    const s=N(label);
+    if(s.includes('polycarb')) return 'poly';
+    if(s.includes('trivex')) return 'trivex';
+    if(/1\.74|1\.75/.test(s)) return 'hi174';
+    if(/1\.70|1\.71|above/.test(s)) return 'hi70';
+    if(/1\.66|1\.67/.test(s)) return 'hi167';
+    if(/cr[\s-]?39/.test(s)||(s.includes('plastic')&&!s.includes('high'))) return 'cr39';
+    return 'other';
+  }
+  function sunMatchesBase(sunRow,baseRow){
+    const mk=materialKey(baseRow.enhancement||baseRow.subtype||'');
+    const t=N(sunRow.enhancement);
+    switch(mk){
+      case 'poly':   return t.includes('polycarb');
+      case 'trivex': return t.includes('trivex');
+      case 'hi174':  return /(1\.74|1\.75)/.test(t);
+      case 'hi70':   return /(1\.70|1\.71|above)/.test(t);
+      case 'hi167':  return /(1\.66|1\.67)/.test(t);
+      case 'cr39':   return (/(cr[\s-]?39|plastic)/.test(t) && !/high/.test(t));
+      default:       return true;
+    }
+  }
+
+  /* KEY FIX: robust sun pool + diagnostics */
+  function sunPool(fam, wantGlass){
+    const tag = r => (r.exclusive_key||'').toLowerCase();
+    // primary sources by tag
+    let pool = DATA.filter(r => (r.active||'yes').toLowerCase()==='yes' && applies(r,fam) &&
+      (tag(r)==='sun_tech' || tag(r)==='sun'));
+    // inferred sun rows if tags are missing
+    const infer = DATA.filter(r=>{
+      if((r.active||'yes').toLowerCase()!=='yes' || !applies(r,fam)) return false;
+      const n=N(r.enhancement||r.subtype||'');
+      return /(tint|tinted|sun|sunglass|photochrom|transitions|polariz)/.test(n);
+    });
+    if (!pool.length) pool = infer;
+    // glass filter
+    pool = pool.filter(r=>{
+      const n=N(r.enhancement||r.subtype||'');
+      return wantGlass ? /glass/.test(n) : !/glass/.test(n);
+    });
+    return pool;
+  }
+
+  function chooseSunFor(baseRow){
+    const tintSel=el('lensTint').value;
+    if(tintSel==='clear' || tintSel==='polarized') return null;
+
+    const fam=el('lensFamily').value;
+    const wantGlass=el('includeGlass').checked;
+
+    const poolAll = sunPool(fam, wantGlass);
+
+    // diagnostics in the status pill
+    const status=el('status');
+    const baseName = baseRow?.enhancement || baseRow?.subtype || '';
+    const baseMk = materialKey(baseName);
+
+    // Transitions
+    if(tintSel==='transitions'){
+      const want=preferPhotoCodeForBase(baseRow);
+      const pool = poolAll.filter(r=>/photochrom|transitions/.test(N(r.enhancement)));
+      const choice = pool.find(r=>new RegExp('^'+want,'i').test((r.code||'').trim())) || pool.find(isPPhoto);
+      status.textContent = ` sun=${poolAll.length} trans=${pool.length} • base=${baseMk}`;
+      return choice||null;
+    }
+
+    // Tinted — Solid / Gradient
+    const wantGradient = tintSel==='tinted_gradient';
+    const isTintRow = n => /(tint|tinted|sun|sunglass|color|colored)/.test(n);
+    const isGrad = n => /(grad|gradient)/.test(n);
+
+    const tintSet = poolAll.filter(r=>{
+      const n=N(r.enhancement||r.subtype||'');
+      const tint=isTintRow(n);
+      const grad=isGrad(n);
+      return tint && (wantGradient ? grad : !grad);
+    });
+
+    // Stage 1: material match
+    let matched = tintSet.filter(r=>sunMatchesBase(r, baseRow));
+    // Stage 2: fallback
+    if(!matched.length) matched = tintSet;
+
+    // diagnostics
+    status.textContent = `tint ${wantGradient?'grad':'solid'}: sunAll=${poolAll.length} tint=${tintSet.length} matched=${matched.length} • base=${baseMk}`;
+
+    if(!matched.length) return null;
+
+    // highest practice profit
+    matched.sort((a,b)=>{
+      const pa=num(a.copay)-num(a.chargeback);
+      const pb=num(b.copay)-num(b.chargeback);
+      return pb-pa;
+    });
+    return matched[0];
+  }
+
+  function computeBundles(){
+    if(!DATA.length){ el('stack').innerHTML=''; return; }
+
+    const fam=el('lensFamily').value;
+    const wantAR=el('includeAR').checked;
+    const wantAsp=el('includeAspheric').checked;
+    const wantOS =el('includeOversize').checked;
+    const wantGlass=el('includeGlass').checked;
+    const tintSel=el('lensTint').value;
+
+    const isCustomMeasure=row=>/custom\s*measure/i.test(N(row?.enhancement||row?.subtype||''));
+    const isAA=row=>splitCodes(row.code)[0]==='AA';
+    function isAsphericRow(row){
+      const name=N(row.enhancement||row.subtype||'');
+      const first=splitCodes(row.code)[0]||'';
+      const looks=/aspheric/.test(name)||/^BA\b/.test(first);
+      return looks && !isAA(row);
+    }
+
+    let base=[];
+    if(fam==='PAL'){
+      base=byKey('progressive_level').filter(r=>applies(r,fam)).filter(r=>{
+        const name=N(r.enhancement);
+        if(wantGlass && !isGlassBaseName(name)) return false;
+        if(!wantGlass && isGlassBaseName(name)) return false;
+        if(isCustomMeasure(r)) return false;
+        if(tintSel==='polarized') return /polariz/.test(name);
+        return !/(photochrom|polariz|tint|tinted|sunglass|gradient|color|colored)/.test(name);
       });
-
-      if(tintSel==='transitions'){
-        const want=preferPhotoCodeForBase(baseRow);
-        let pool=sunAll.filter(r=>/photochrom|transitions/.test(N(r.enhancement)));
-        let choice=pool.find(r=>new RegExp('^'+want,'i').test((r.code||'').trim())) || pool.find(r=>isPPhoto(r));
-        return choice||null;
+      if(!wantGlass){
+        const kaRow=pickBaseByExactCode('KA');
+        if(kaRow && !base.some(r=>splitCodes(r.code)[0]==='KA')) base.push(kaRow);
       }
-
-      if(tintSel==='tinted_solid' || tintSel==='tinted_gradient'){
-        const wantGradient=(tintSel==='tinted_gradient');
-
-        // broader detection: tint/tinted/sun/sunglass/color/colored
-        const isTintRow = n => /(tint|tinted|sun|sunglass|color|colored)/.test(n);
-        const isGradient = n => /(grad|gradient)/.test(n);
-
-        const allTint = sunAll.filter(r=>{
-          const n=N(r.enhancement);
-          const tint=isTintRow(n);
-          const grad=isGradient(n);
-          return tint && (wantGradient ? grad : !grad);
-        });
-
-        // Stage 1: material-aligned
-        let pool = allTint.filter(r=>sunMatchesBase(r,baseRow));
-
-        // Stage 2: fallback if nothing matched by material
-        if(!pool.length) pool = allTint;
-
-        if(!pool.length) return null;
-
-        pool.sort((a,b)=>{
-          const pa=num(a.copay)-num(a.chargeback);
-          const pb=num(b.copay)-num(b.chargeback);
-          return pb-pa;
-        });
-        return pool[0]||null;
-      }
-      return null;
-    }
-
-    function computeBundles(){
-      if(!DATA.length){ el('stack').innerHTML=''; return; }
-
-      const fam=el('lensFamily').value;
-      const wantAR=el('includeAR').checked;
-      const wantAsp=el('includeAspheric').checked;
-      const wantOS =el('includeOversize').checked;
-      const wantGlass=el('includeGlass').checked;
-      const tintSel=el('lensTint').value;
-
-      const isCustomMeasure=row=>/custom\s*measure/i.test(N(row?.enhancement||row?.subtype||''));
-      const isAA=row=>splitCodes(row.code)[0]==='AA';
-      function isAsphericRow(row){
-        const name=N(row.enhancement||row.subtype||'');
-        const first=splitCodes(row.code)[0]||'';
-        const looks=/aspheric/.test(name)||/^BA\b/.test(first);
-        return looks && !isAA(row);
-      }
-
-      let base=[];
-      if(fam==='PAL'){
-        base=byKey('progressive_level').filter(r=>applies(r,fam)).filter(r=>{
+    } else {
+      if(tintSel==='polarized'){
+        base = wantGlass
+          ? byKey('sun_tech').filter(r=>applies(r,fam) && /polariz/.test(N(r.enhancement)) && /glass/.test(N(r.enhancement)))
+          : byKey('sun_tech').filter(r=>applies(r,fam) && /polariz/.test(N(r.enhancement)) && isDCode(r) && !/glass/.test(N(r.enhancement)));
+      } else {
+        let pool=(fam==='SV'?byKey('base_material'):byKey('occupational'));
+        pool=pool.filter(r=>{
           const name=N(r.enhancement);
           if(wantGlass && !isGlassBaseName(name)) return false;
           if(!wantGlass && isGlassBaseName(name)) return false;
-          if(isCustomMeasure(r)) return false;
-          if(tintSel==='polarized') return /polariz/.test(name);
-          return !/(photochrom|polariz|tint|tinted|sunglass|gradient|color|colored)/.test(name);
+          return true;
         });
-        if(!wantGlass){
-          const kaRow=pickBaseByExactCode('KA');
-          if(kaRow && !base.some(r=>splitCodes(r.code)[0]==='KA')) base.push(kaRow);
-        }
-      } else {
-        if(tintSel==='polarized'){
-          base = wantGlass
-            ? byKey('sun_tech').filter(r=>applies(r,fam) && /polariz/.test(N(r.enhancement)) && /glass/.test(N(r.enhancement)))
-            : byKey('sun_tech').filter(r=>applies(r,fam) && /polariz/.test(N(r.enhancement)) && isDCode(r) && !/glass/.test(N(r.enhancement)));
-        } else {
-          let pool=(fam==='SV'?byKey('base_material'):byKey('occupational'));
-          pool=pool.filter(r=>{
-            const name=N(r.enhancement);
-            if(wantGlass && !isGlassBaseName(name)) return false;
-            if(!wantGlass && isGlassBaseName(name)) return false;
-            return true;
-          });
-          pool=pool.filter(r=>{
-            const name=N(r.enhancement);
-            if(/photochrom|polariz|tint|tinted|sunglass|gradient|color|colored/.test(name)) return false;
-            if(wantGlass) return true;
-            const asph=isAsphericRow(r);
-            return wantAsp?asph:!asph;
-          });
-          if(!wantGlass && !wantAsp && fam==='SV' && tintSel==='clear'){
-            const aaRow=pickBaseByExactCode('AA');
-            if(aaRow){ const notAA=pool.filter(r=>splitCodes(r.code)[0]!=='AA'); pool=[aaRow,...notAA]; }
-          }
-          base=pool;
-        }
-      }
-
-      function rankAR(ars){
-        const gradeVal=s=>{ const m=String(s||'').match(/\b([A-D])\b/i); if(!m) return null; return {A:1,B:2,C:3,D:4}[m[1].toUpperCase()]||null; };
-        return [...ars].sort((a,b)=>{
-          const ga=gradeVal(a.enhancement)||-1, gb=gradeVal(b.enhancement)||-1;
-          if(ga!==gb) return gb-ga;
-          const pa=num(a.copay)-num(a.chargeback), pb=num(b.copay)-num(b.chargeback);
-          return pb-pa;
+        pool=pool.filter(r=>{
+          const name=N(r.enhancement);
+          if(/photochrom|polariz|tint|tinted|sunglass|gradient|color|colored/.test(name)) return false;
+          if(wantGlass) return true;
+          const asph=isAsphericRow(r);
+          return wantAsp?asph:!asph;
         });
+        if(!wantGlass && !wantAsp && fam==='SV' && tintSel==='clear'){
+          const aaRow=pickBaseByExactCode('AA');
+          if(aaRow){ const notAA=pool.filter(r=>splitCodes(r.code)[0]!=='AA'); pool=[aaRow,...notAA]; }
+        }
+        base=pool;
       }
-      const arPool = wantAR ? byKey('ar_level').filter(r=>{
-        const name=N(r.enhancement);
-        if(wantGlass && !isGlassBaseName(name)) return false;
-        return applies(r,fam);
-      }) : [];
-      const arRanked=wantAR?rankAR(arPool):[];
-      const arOptions=(wantAR && arRanked.length)?arRanked:[null];
-
-      const overs = wantOS ? (byKey('oversize').filter(r=>applies(r,fam))[0]||null) : null;
-
-      function buildBundle(m,arRow){
-        const cm=(el('includeCM')?.checked && fam==='PAL') ? (DATA.filter(r=>applies(r,'PAL')).find(row=>/custom\s*measure/i.test(N(row.enhancement||row.subtype||'')))||null) : null;
-        return makeBundle(m,[arRow,chooseSunFor(m),cm,overs]);
-      }
-
-      const all=[];
-      for(const m of base){ for(const ar of arOptions){ all.push(buildBundle(m,ar)); } }
-      if(!all.length){ renderStack([{name:'Best',cls:'best',b:null},{name:'Better',cls:'better',b:null},{name:'Good',cls:'good',b:null},{name:'Cheapest',cls:'good',b:null}]); return; }
-
-      const MaxPrice=Math.max(...all.map(b=>b.copay));
-      const best = all.reduce((p,c)=>(!p||c.profit>p.profit||(c.profit===p.profit&&c.copay<p.copay)?c:p),null);
-
-      function pickUnderCap(cap){
-        const cand=all.filter(b=>b.copay<=cap);
-        if(cand.length){ return cand.reduce((p,c)=>(!p||c.profit>p.profit||(c.profit===p.profit&&c.copay<p.copay)?c:p),null); }
-        const looser=cap/CAP_RELAX_FACTOR;
-        const cand2=all.filter(b=>b.copay<=looser);
-        if(cand2.length){ return cand2.reduce((p,c)=>(!p||c.profit>p.profit||(c.profit===p.profit&&c.copay<p.copay)?c:p),null); }
-        return all.reduce((p,c)=>(!p||c.copay<p.copay||(c.copay===p.copay&&c.profit>p.profit)?c:p),null);
-      }
-
-      const better=pickUnderCap(MaxPrice*BETTER_CAP_OF_MAX);
-      const good  =pickUnderCap(MaxPrice*GOOD_CAP_OF_MAX);
-      const cheapest=all.reduce((p,c)=>(!p||c.copay<p.copay||(c.copay===p.copay&&c.profit>p.profit)?c:p),null);
-
-      const picks=[best,better,good,cheapest].filter(Boolean);
-      const uniq=[], seen=new Set();
-      for(const b of picks){
-        const sig=[b.label,b.copay.toFixed(2),b.chargeback.toFixed(2),b.profit.toFixed(2)].join('|');
-        if(!seen.has(sig)){ seen.add(sig); uniq.push(b); }
-      }
-
-      renderStack([
-        {name:'Best',cls:'best',b:uniq[0]||null},
-        {name:'Better',cls:'better',b:uniq[1]||null},
-        {name:'Good',cls:'good',b:uniq[2]||null},
-        {name:'Cheapest',cls:'good',b:uniq[3]||null},
-      ]);
     }
 
-    el('forceRefresh').onclick=()=>{ clearCacheStorage(); loadCSV(); };
-    el('clearCache').onclick =()=>{ clearCacheStorage(); el('status').textContent=' cache cleared — click Force Refresh to reload'; };
-    ['lensFamily','lensTint','includeAR','includeAspheric','includeOversize','includeGlass','includeCM'].forEach(id=>{ const n=el(id); if(n) n.onchange=computeBundles; });
+    function rankAR(ars){
+      const gradeVal=s=>{ const m=String(s||'').match(/\b([A-D])\b/i); if(!m) return null; return {A:1,B:2,C:3,D:4}[m[1].toUpperCase()]||null; };
+      return [...ars].sort((a,b)=>{
+        const ga=gradeVal(a.enhancement)||-1, gb=gradeVal(b.enhancement)||-1;
+        if(ga!==gb) return gb-ga;
+        const pa=num(a.copay)-num(a.chargeback), pb=num(b.copay)-num(b.chargeback);
+        return pb-pa;
+      });
+    }
+    const arPool = wantAR ? byKey('ar_level').filter(r=>{
+      const name=N(r.enhancement);
+      if(wantGlass && !isGlassBaseName(name)) return false;
+      return applies(r,fam);
+    }) : [];
+    const arRanked=wantAR?rankAR(arPool):[];
+    const arOptions=(wantAR && arRanked.length)?arRanked:[null];
 
-    (function boot(){ loadCSV(); })();
+    const overs = wantOS ? (byKey('oversize').filter(r=>applies(r,fam))[0]||null) : null;
+
+    function buildBundle(m,arRow){
+      const cm=(el('includeCM')?.checked && fam==='PAL') ? (DATA.filter(r=>applies(r,'PAL')).find(row=>/custom\s*measure/i.test(N(row.enhancement||row.subtype||'')))||null) : null;
+      return makeBundle(m,[arRow,chooseSunFor(m),cm,overs]);
+    }
+
+    const all=[];
+    for(const m of base){ for(const ar of arOptions){ all.push(buildBundle(m,ar)); } }
+    if(!all.length){
+      renderStack([{name:'Best',cls:'best',b:null},{name:'Better',cls:'better',b:null},{name:'Good',cls:'good',b:null},{name:'Cheapest',cls:'good',b:null}]); return;
+    }
+
+    const MaxPrice=Math.max(...all.map(b=>b.copay));
+    const best = all.reduce((p,c)=>(!p||c.profit>p.profit||(c.profit===p.profit&&c.copay<p.copay)?c:p),null);
+
+    function pickUnderCap(cap){
+      const cand=all.filter(b=>b.copay<=cap);
+      if(cand.length){ return cand.reduce((p,c)=>(!p||c.profit>p.profit||(c.profit===p.profit&&c.copay<p.copay)?c:p),null); }
+      const looser=cap/CAP_RELAX_FACTOR;
+      const cand2=all.filter(b=>b.copay<=looser);
+      if(cand2.length){ return cand2.reduce((p,c)=>(!p||c.profit>p.profit||(c.profit===p.profit&&c.copay<p.copay)?c:p),null); }
+      return all.reduce((p,c)=>(!p||c.copay<p.copay||(c.copay===p.copay&&c.profit>p.profit)?c:p),null);
+    }
+
+    const better=pickUnderCap(MaxPrice*BETTER_CAP_OF_MAX);
+    const good  =pickUnderCap(MaxPrice*GOOD_CAP_OF_MAX);
+    const cheapest=all.reduce((p,c)=>(!p||c.copay<p.copay||(c.copay===p.copay&&c.profit>p.profit)?c:p),null);
+
+    const picks=[best,better,good,cheapest].filter(Boolean);
+    const uniq=[], seen=new Set();
+    for(const b of picks){
+      const sig=[b.label,b.copay.toFixed(2),b.chargeback.toFixed(2),b.profit.toFixed(2)].join('|');
+      if(!seen.has(sig)){ seen.add(sig); uniq.push(b); }
+    }
+
+    renderStack([
+      {name:'Best',cls:'best',b:uniq[0]||null},
+      {name:'Better',cls:'better',b:uniq[1]||null},
+      {name:'Good',cls:'good',b:uniq[2]||null},
+      {name:'Cheapest',cls:'good',b:uniq[3]||null},
+    ]);
   }
 
+  el('forceRefresh').onclick=()=>{ clearCacheStorage(); loadCSV(); };
+  el('clearCache').onclick =()=>{ clearCacheStorage(); el('status').textContent=' cache cleared — click Force Refresh to reload'; };
+  ['lensFamily','lensTint','includeAR','includeAspheric','includeOversize','includeGlass','includeCM'].forEach(id=>{ const n=el(id); if(n) n.onchange=computeBundles; });
+
+  (function boot(){ loadCSV(); })();
+}
 </script>
 </body>
 </html>
