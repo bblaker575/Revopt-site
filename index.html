@@ -158,9 +158,9 @@
 
     // Tries both filenames in both locations. First one that loads wins.
     const CSV_CANDIDATES = [
-  './vsp_choice_master_v8.3.csv',
-  './data/vsp_choice_master_v8.3.csv'
-];
+      './vsp_choice_master_v8.3.csv',
+      './data/vsp_choice_master_v8.3.csv'
+    ];
 
     const BETTER_CAP_OF_MAX = 0.75; // ≤75% of max copay
     const GOOD_CAP_OF_MAX   = 0.50; // ≤50% of max copay
@@ -571,17 +571,38 @@
           if (tintSel==='polarized') return /polariz/.test(name); // polarized as material
           return !/(photochrom|polariz|tint|tinted|sunglass|gradient)/.test(name);
         });
+
+        // Ensure KA (Progressive K – Plastic) is always available as a PAL base option
+        const kaRow = pickBaseByExactCode('KA');
+        if (kaRow && !base.some(r => splitCodes(r.code)[0] === 'KA')) {
+          base.push(kaRow);
+        }
+
       } else {
+        // Non-PAL: SV or LINED
         if (tintSel==='polarized') {
+          // SV/LINED polarized uses D-coded polarized bases (no separate sun add-on)
           base = sunAll.filter(r => /polariz/.test(N(r.enhancement)) && isDCode(r));
         } else {
-          const pool = (fam==='SV' ? byKey('base_material') : byKey('occupational'));
-          base = pool.filter(r=>applies(r,fam)).filter(r=>{
+          // Start with existing pools
+          let pool = (fam==='SV' ? byKey('base_material') : byKey('occupational'));
+
+          // Ensure AA (Aspheric Plastic 1.50) can be the cheapest SV base for Clear
+          if (fam === 'SV' && tintSel === 'clear') {
+            const aaRow = pickBaseByExactCode('AA');
+            if (aaRow) {
+              const notAA = pool.filter(r => splitCodes(r.code)[0] !== 'AA');
+              pool = [aaRow, ...notAA];
+            }
+          }
+
+          base = pool.filter(r=>{
             const name=N(r.enhancement);
-            if(!wantAsp && name.includes('aspheric')) return false;
+            if(!wantAsp && name.includes('aspheric')) return false; // honor Aspheric toggle
             if(!wantGlass && name.includes('glass'))  return false;
+            // exclude sun-tech items from base
             if(/photochrom|polariz|tint|tinted|sunglass|gradient/.test(name)) return false;
-            return true;
+            return applies(r, fam);
           });
         }
       }
