@@ -191,6 +191,21 @@
       return m ? m.map(x=>parseFloat(x)) : [];
     }
 
+    // NEW: parse "Copay = 45+28 (SV) / 55+28 (MF)" from notes (or similar)
+    function parseSplitFromNotes(notes){
+      const s = String(notes||'');
+      // SV pair
+      const sv = s.match(/(\d+)\s*\+\s*(\d+)\s*\(SV\)/i);
+      // MF pair
+      const mf = s.match(/(\d+)\s*\+\s*(\d+)\s*\(MF\)/i);
+      return {
+        svBase: sv ? num(sv[1]) : null,
+        svAdd : sv ? num(sv[2]) : null,
+        mfBase: mf ? num(mf[1]) : null,
+        mfAdd : mf ? num(mf[2]) : null
+      };
+    }
+
     function parseCSV(text){
       const rows=[]; let row=[], field='', q=false;
       for(let i=0;i<text.length;i++){
@@ -325,6 +340,7 @@
       const desc = row.enhancement || row.subtype || '—';
       const codeStr = String(row.code||'').trim().toUpperCase();
       const partsCodes = splitCodes(codeStr);
+      const notes = row.notes || row.note || row.Notes || row.NOTE || '';
 
       // Single-code line
       if (partsCodes.length === 1){
@@ -333,21 +349,25 @@
       }
 
       // Composite
-      const compositeCopayNums = parseCopayNumbers(row.copay); // e.g., [175,35] or [210]
+      const fam = el('lensFamily').value;
+      const split = parseSplitFromNotes(notes); // try to read explicit SV/MF base+addon
+
+      const compositeCopayNums = parseCopayNumbers(row.copay); // may just be [73] or [83]
       const compositeTotalCopay = num(row.copay);
       const compositeAddOnCB = num(row.chargeback);
 
       const parts = [];
 
-      // Base part from exact A-code row (or override if truly missing)
+      // Base part from exact A-code row (or override)
       const baseCode = partsCodes[0];
       const baseRow  = pickBaseByExactCode(baseCode);
       let baseCop  = baseRow ? num(baseRow.copay)      : (compositeCopayNums[0] ?? compositeTotalCopay);
       let baseCB   = baseRow ? num(baseRow.chargeback) : 0;
-      if (!baseRow && BASE_OVERRIDES[baseCode]) {
-        baseCop = BASE_OVERRIDES[baseCode].copay;
-        baseCB  = BASE_OVERRIDES[baseCode].chargeback;
-      }
+
+      // If notes give explicit base for family, prefer it
+      if (fam !== 'PAL' && split.svBase != null) baseCop = split.svBase;
+      if (fam === 'PAL' && split.mfBase != null) baseCop = split.mfBase;
+
       parts.push({ code:baseCode, copay:baseCop, chargeback:baseCB, profit:baseCop-baseCB });
 
       // Add-ons
@@ -355,9 +375,16 @@
 
       // Copays for add-ons
       let addonCopays = [];
-      if (compositeCopayNums.length >= partsCodes.length){
-        addonCopays = compositeCopayNums.slice(1); // explicit splits if present
+
+      // Prefer explicit split from notes if available
+      let explicitAdd = (fam !== 'PAL') ? split.svAdd : split.mfAdd;
+      if (explicitAdd != null) {
+        addonCopays = [explicitAdd, ...Array(Math.max(0, addonCount-1)).fill(0)];
+      } else if (compositeCopayNums.length >= partsCodes.length){
+        // If copay column contains full split like "45,28", use it
+        addonCopays = compositeCopayNums.slice(1);
       } else {
+        // Fallback to remaining math from composite total
         const remaining = Math.max(compositeTotalCopay - baseCop, 0);
         if (addonCount <= 1){
           addonCopays = [remaining];
@@ -367,7 +394,7 @@
         }
       }
 
-      // Holdback for add-ons from the composite row
+      // Holdback for add-ons from the composite row (already per-add on in your CSV)
       const addonCBEach = addonCount <= 1 ? compositeAddOnCB : (compositeAddOnCB / addonCount);
 
       for (let i=1;i<partsCodes.length;i++){
@@ -572,7 +599,7 @@
           return !/(photochrom|polariz|tint|tinted|sunglass|gradient)/.test(name);
         });
 
-        // Ensure KA (Progressive K – Plastic) is always available as a PAL base option
+        // Guard: ensure KA shows as a PAL base
         const kaRow = pickBaseByExactCode('KA');
         if (kaRow && !base.some(r => splitCodes(r.code)[0] === 'KA')) {
           base.push(kaRow);
@@ -587,7 +614,7 @@
           // Start with existing pools
           let pool = (fam==='SV' ? byKey('base_material') : byKey('occupational'));
 
-          // Ensure AA (Aspheric Plastic 1.50) can be the cheapest SV base for Clear
+          // Ensure AA can be cheapest SV base for Clear
           if (fam === 'SV' && tintSel === 'clear') {
             const aaRow = pickBaseByExactCode('AA');
             if (aaRow) {
