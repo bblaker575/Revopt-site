@@ -156,20 +156,16 @@
 
     /* ================== Config & utils ================== */
 
-    // Tries both filenames in both locations. First one that loads wins.
     const CSV_CANDIDATES = [
       './vsp_choice_master_v8.3.csv',
       './data/vsp_choice_master_v8.3.csv'
     ];
 
-    const BETTER_CAP_OF_MAX = 0.75; // ≤75% of max copay
-    const GOOD_CAP_OF_MAX   = 0.50; // ≤50% of max copay
-    const CAP_RELAX_FACTOR  = 0.90; // fallback relaxer
+    const BETTER_CAP_OF_MAX = 0.75;
+    const GOOD_CAP_OF_MAX   = 0.50;
+    const CAP_RELAX_FACTOR  = 0.90;
 
-    // Optional safety net if some A-base is still missing from CSV (leave empty now)
-    const BASE_OVERRIDES = {
-      // Example: NA: { copay: 175, chargeback: 95 }
-    };
+    const BASE_OVERRIDES = { };
 
     const el = (id)=>document.getElementById(id);
     const sum = (a)=>a.reduce((x,y)=>x+y,0);
@@ -191,12 +187,10 @@
       return m ? m.map(x=>parseFloat(x)) : [];
     }
 
-    // NEW: parse "Copay = 45+28 (SV) / 55+28 (MF)" from notes (or similar)
+    // Parse "Copay = 45+28 (SV) / 55+28 (MF)" from notes
     function parseSplitFromNotes(notes){
       const s = String(notes||'');
-      // SV pair
       const sv = s.match(/(\d+)\s*\+\s*(\d+)\s*\(SV\)/i);
-      // MF pair
       const mf = s.match(/(\d+)\s*\+\s*(\d+)\s*\(MF\)/i);
       return {
         svBase: sv ? num(sv[1]) : null,
@@ -350,21 +344,20 @@
 
       // Composite
       const fam = el('lensFamily').value;
-      const split = parseSplitFromNotes(notes); // try to read explicit SV/MF base+addon
+      const split = parseSplitFromNotes(notes);
 
-      const compositeCopayNums = parseCopayNumbers(row.copay); // may just be [73] or [83]
+      const compositeCopayNums = parseCopayNumbers(row.copay);
       const compositeTotalCopay = num(row.copay);
       const compositeAddOnCB = num(row.chargeback);
 
       const parts = [];
 
-      // Base part from exact A-code row (or override)
+      // Base part
       const baseCode = partsCodes[0];
       const baseRow  = pickBaseByExactCode(baseCode);
       let baseCop  = baseRow ? num(baseRow.copay)      : (compositeCopayNums[0] ?? compositeTotalCopay);
       let baseCB   = baseRow ? num(baseRow.chargeback) : 0;
 
-      // If notes give explicit base for family, prefer it
       if (fam !== 'PAL' && split.svBase != null) baseCop = split.svBase;
       if (fam === 'PAL' && split.mfBase != null) baseCop = split.mfBase;
 
@@ -375,16 +368,12 @@
 
       // Copays for add-ons
       let addonCopays = [];
-
-      // Prefer explicit split from notes if available
       let explicitAdd = (fam !== 'PAL') ? split.svAdd : split.mfAdd;
       if (explicitAdd != null) {
         addonCopays = [explicitAdd, ...Array(Math.max(0, addonCount-1)).fill(0)];
       } else if (compositeCopayNums.length >= partsCodes.length){
-        // If copay column contains full split like "45,28", use it
         addonCopays = compositeCopayNums.slice(1);
       } else {
-        // Fallback to remaining math from composite total
         const remaining = Math.max(compositeTotalCopay - baseCop, 0);
         if (addonCount <= 1){
           addonCopays = [remaining];
@@ -394,7 +383,6 @@
         }
       }
 
-      // Holdback for add-ons from the composite row (already per-add on in your CSV)
       const addonCBEach = addonCount <= 1 ? compositeAddOnCB : (compositeAddOnCB / addonCount);
 
       for (let i=1;i<partsCodes.length;i++){
@@ -552,7 +540,7 @@
       });
 
       if (tintSel==='transitions') {
-        const want = preferPhotoCodeForBase(baseRow); // PM for glass, else PR
+        const want = preferPhotoCodeForBase(baseRow);
         let pool = sunAll.filter(r => /photochrom/.test(N(r.enhancement)));
         let choice = pool.find(r => new RegExp('^' + want, 'i').test((r.code || '').trim())) || pool.find(r=>isPPhoto(r));
         return choice || null;
@@ -587,50 +575,55 @@
       const isCustomMeasure = (row) => /custom\s*measure/i.test(N(row?.enhancement || row?.subtype || ''));
       const customPool = DATA.filter(r => applies(r, 'PAL')).filter(isCustomMeasure);
 
+      // Helper: classify aspheric vs non-aspheric for SV/LINED
+      function isAA(row){ return splitCodes(row.code)[0] === 'AA'; }
+      function isAsphericRow(row){
+        const name = N(row.enhancement || row.subtype || '');
+        const first = splitCodes(row.code)[0] || '';
+        const looksAspheric = /aspheric/.test(name) || /^BA\b/.test(first); // BA series + text match
+        return looksAspheric && !isAA(row); // AA is explicitly NON-aspheric
+      }
+
       // Base candidates
       let base = [];
       if (fam === 'PAL') {
         base = byKey('progressive_level').filter(r=>applies(r,fam)).filter(r=>{
           const name=N(r.enhancement);
-          if(!wantAsp && name.includes('aspheric')) return false;
           if(!wantGlass && name.includes('glass'))  return false;
           if(isCustomMeasure(r)) return false;
-          if (tintSel==='polarized') return /polariz/.test(name); // polarized as material
+          if (tintSel==='polarized') return /polariz/.test(name);
           return !/(photochrom|polariz|tint|tinted|sunglass|gradient)/.test(name);
         });
 
-        // Guard: ensure KA shows as a PAL base
+        // Ensure KA shows
         const kaRow = pickBaseByExactCode('KA');
-        if (kaRow && !base.some(r => splitCodes(r.code)[0] === 'KA')) {
-          base.push(kaRow);
-        }
+        if (kaRow && !base.some(r => splitCodes(r.code)[0] === 'KA')) base.push(kaRow);
 
       } else {
         // Non-PAL: SV or LINED
         if (tintSel==='polarized') {
-          // SV/LINED polarized uses D-coded polarized bases (no separate sun add-on)
           base = sunAll.filter(r => /polariz/.test(N(r.enhancement)) && isDCode(r));
         } else {
-          // Start with existing pools
           let pool = (fam==='SV' ? byKey('base_material') : byKey('occupational'));
 
-          // Ensure AA can be cheapest SV base for Clear
-          if (fam === 'SV' && tintSel === 'clear') {
+          // Filter by aspheric toggle: keep ONLY matching class
+          pool = pool.filter(r=>{
+            const name=N(r.enhancement);
+            if(!wantGlass && name.includes('glass'))  return false;
+            if(/photochrom|polariz|tint|tinted|sunglass|gradient/.test(name)) return false;
+            const asph = isAsphericRow(r);
+            return wantAsp ? asph : !asph;
+          });
+
+          // When Aspheric OFF and SV/Clear → put AA first
+          if (!wantAsp && fam==='SV' && tintSel==='clear') {
             const aaRow = pickBaseByExactCode('AA');
             if (aaRow) {
               const notAA = pool.filter(r => splitCodes(r.code)[0] !== 'AA');
               pool = [aaRow, ...notAA];
             }
           }
-
-          base = pool.filter(r=>{
-            const name=N(r.enhancement);
-            if(!wantAsp && name.includes('aspheric')) return false; // honor Aspheric toggle
-            if(!wantGlass && name.includes('glass'))  return false;
-            // exclude sun-tech items from base
-            if(/photochrom|polariz|tint|tinted|sunglass|gradient/.test(name)) return false;
-            return applies(r, fam);
-          });
+          base = pool;
         }
       }
 
@@ -639,7 +632,7 @@
         const gradeVal = (s)=>{ const m=String(s||'').match(/\b([A-D])\b/i); if(!m) return null; return {A:1,B:2,C:3,D:4}[m[1].toUpperCase()]||null; };
         return [...ars].sort((a,b)=>{
           const ga=gradeVal(a.enhancement)||-1, gb=gradeVal(b.enhancement)||-1;
-          if(ga!==gb) return gb-ga; // prefer A
+          if(ga!==gb) return gb-ga;
           const pa=num(a.copay)-num(a.chargeback);
           const pb=num(b.copay)-num(b.chargeback);
           return pb-pa;
@@ -687,7 +680,7 @@
         for(const b of all){
           if (b.copay <= looser){
             const lbl=b.label; if (exclude.has(lbl)) continue;
-            if (!pick || b.profit>pick.profit || (b.profit===pick.profit && b.copay<pick.copay)) pick=b;
+            if (!pick || b.profit>pick.profit || (b.profit===bestProfit && b.copay<pick.copay)) pick=b;
           }
         }
         return pick;
