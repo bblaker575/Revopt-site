@@ -69,7 +69,7 @@ Misc,,Plastic Dyes – Solid Color (Except Pink I and II),IN,,15.0,10.0,5.0,,ALL
 Misc,,Plastic Dyes – Gradient,IP,,17.0,10.0,7.0,,ALL,yes,yes
 Misc,,UV Protection,IV,,16.0,10.0,6.0,,ALL,yes,yes
 Progressive,N,Custom Measurements (on Eligible Progressive N or O) Lenses,CM,,10.0,8.0,2.0,progressive_level,MF,yes,yes
-Progressive,N,Progressive N – Plastic,NA,Copay,175.0,80.0,95.0,progressive_level,MF,yes,yes
+Progressive,N,Progressive N – Plastic,NA,,175.0,80.0,95.0,progressive_level,MF,yes,yes
 Progressive,N,Progressive Trivex / 1.53–1.60,NA+NB,Copay = 175+47,222.0,22.0,25.0,progressive_level,MF,yes,yes
 Progressive,N,Progressive Hi-Index 1.66/1.67,NA+NH,Copay = 175+78,253.0,30.0,48.0,progressive_level,MF,yes,yes
 Progressive,N,Progressive Hi-Index 1.70+,NA+NJ,Copay = 175+125,300.0,48.0,77.0,progressive_level,MF,yes,yes
