@@ -100,10 +100,10 @@
 </main>
 
 <script>
-if (!window.__PAYEREDGE_V16_TINTS4__) { // FIX: bump guard
-  window.__PAYEREDGE_V16_TINTS4__ = true;
+if (!window.__PAYEREDGE_V16_TINTS5__) {
+  window.__PAYEREDGE_V16_TINTS5__ = true;
 
-  /* ============== helpers & cache ============== */
+  /* ================= helpers & cache ================= */
   const CSV_CANDIDATES=['./vsp_choice_master_v8.4.csv','./data/vsp_choice_master_v8.4.csv'];
   const BETTER_CAP_OF_MAX=0.75, GOOD_CAP_OF_MAX=0.60, CAP_RELAX_FACTOR=0.90;
 
@@ -122,25 +122,38 @@ if (!window.__PAYEREDGE_V16_TINTS4__) { // FIX: bump guard
   const splitCodes=s=>String(s||'').toUpperCase().replace(/[^\w+&/,\s-]/g,'').split(/[\s+&/,\-]+/).map(t=>t.trim()).filter(Boolean);
   const parseCopayNumbers= s => { const m=String(s||'').match(/[0-9]+(?:\.[0-9]{1,2})?/g); return m?m.map(x=>parseFloat(x)):[]; };
 
-  function parseSplitFromNotes(notes){
-    const s=String(notes||'');
-    const sv=s.match(/(\d+)\s*\+\s*(\d+)\s*\(SV\)/i);
-    const mf=s.match(/(\d+)\s*\+\s*(\d+)\s*\(MF\)/i);
-    return { svBase: sv?num(sv[1]):null, svAdd: sv?num(sv[2]):null, mfBase: mf?num(mf[1]):null, mfAdd: mf?num(mf[2]):null };
+  /* ---------- PAL-aware note parser (prevents negative fees) ---------- */
+  function parseSplitFromNotes(notes, fam){
+    const s = String(notes || '');
+    const sv = s.match(/(\d+)\s*\+\s*(\d+)\s*\(SV\)/i);
+    const mf = s.match(/(\d+)\s*\+\s*(\d+)\s*\(MF\)/i);
+    const plain = (!sv && !mf) ? s.match(/(\d+)\s*\+\s*(\d+)/) : null;
+
+    const svBase = sv ? +sv[1] : null;
+    const svAdd  = sv ? +sv[2] : null;
+    const mfBase = mf ? +mf[1] : null;
+    const mfAdd  = mf ? +mf[2] : null;
+
+    if (fam === 'PAL' && !mf && plain) {
+      // Untagged "A+B" inside PAL → treat as MF split
+      return { svBase, svAdd, mfBase: +plain[1], mfAdd: +plain[2] };
+    }
+    if (!sv && !mf && plain) {
+      // Non-PAL plain split → assume SV
+      return { svBase: +plain[1], svAdd: +plain[2], mfBase, mfAdd };
+    }
+    return { svBase, svAdd, mfBase, mfAdd };
   }
 
-  function parseCSV(text){
-    const rows=[]; let row=[], field='', q=false;
-    for(let i=0;i<text.length;i++){
-      const ch=text[i];
-      if(ch==='\"'){ if(q && text[i+1]==='\"'){ field+='\"'; i++; } else { q=!q; } continue; }
-      if(!q && ch===','){ row.push(field); field=''; continue; }
-      if(!q && (ch==='\n'||ch==='\r')){ if(field!==''||row.length){ row.push(field); rows.push(row); row=[]; field=''; } continue; }
-      field+=ch;
-    }
-    if(field!==''||row.length){ row.push(field); rows.push(row); }
-    const headers=rows.shift().map(h=>h.replace(/^\"|\"$/g,'').trim());
-    return rows.filter(r=>r.length>=headers.length).map(r=>{ const o={}; headers.forEach((h,i)=>o[h]=(r[i]||'').replace(/^\"|\"$/g,'').trim()); return o; });
+  /* ---------- infer base code for PAL when CSV code is blank ---------- */
+  function inferProgressiveBaseCodeFromDesc(desc){
+    const s=N(desc||'');
+    if(/^progressive\s+N/.test(s)) return 'NA';
+    if(/^progressive\s+O/.test(s)) return 'OA';
+    if(/^progressive\s+F/.test(s)) return 'FA';
+    if(/^progressive\s+J/.test(s)) return 'JA';
+    if(/^progressive\s+K/.test(s)) return 'KA';
+    return null;
   }
 
   const CACHE_KEY='rev-vsp-choice-csv-v1', META_KEY='rev-vsp-choice-meta-v1';
@@ -172,16 +185,16 @@ if (!window.__PAYEREDGE_V16_TINTS4__) { // FIX: bump guard
     return true;
   }
 
-  // FIX: choose per-family variant when a code has multiple material rows (SV vs MF pricing)
+  // choose the SV/MF variant when a code has both rows
   function chooseVariantForFamily(rows, fam) {
     if (!rows || rows.length <= 1) return rows?.[0] || null;
     const sorted = [...rows].sort((a,b)=>num(a.copay)-num(b.copay)); // low→high
-    if (fam === 'PAL') return sorted[sorted.length-1]; // MF → higher copay
-    if (fam === 'SV' || fam === 'LINED') return sorted[0]; // SV/LINED → lower copay
+    if (fam === 'PAL') return sorted[sorted.length-1];          // MF → higher copay
+    if (fam === 'SV' || fam === 'LINED') return sorted[0];      // SV/LINED → lower copay
     return sorted[0];
   }
 
-  /* pick row(s) by exact code with family/glass filters and SV/MF variant pick */
+  /* pick row by exact code with family/glass filters */
   function pickByCode(code){
     const fam=el('lensFamily').value;
     const wantGlass=el('includeGlass').checked;
@@ -191,7 +204,7 @@ if (!window.__PAYEREDGE_V16_TINTS4__) { // FIX: bump guard
     return chooseVariantForFamily(list, fam);
   }
 
-  // For base materials, prefer the plastic/non-high variant but still honor family selection
+  // For base materials, prefer the plastic/non-high variant but honor family selection
   function pickBaseByExactCode(baseCode){
     const fam=el('lensFamily').value;
     const list=(SIMPLE_BY_CODE.get(baseCode)||[]);
@@ -199,12 +212,9 @@ if (!window.__PAYEREDGE_V16_TINTS4__) { // FIX: bump guard
     const filtered=list.filter(r=>applies(r,fam));
     const famPicked=chooseVariantForFamily(filtered.length?filtered:list, fam);
     if (!famPicked) return null;
-    // Gentle preference for CR-39-like wording when ties exist
     const score=s=> (s.includes('plastic')&&!s.includes('high'))?2:0;
-    const s=(famPicked.enhancement||famPicked.subtype||'').toLowerCase();
-    const best=famPicked;
     const alt=filtered.length?filtered:list;
-    const maybeBetter=[best,...alt].sort((a,b)=>score((b.enhancement||b.subtype||'').toLowerCase())-score((a.enhancement||a.subtype||'').toLowerCase()))[0];
+    const maybeBetter=[famPicked,...alt].sort((a,b)=>score((b.enhancement||b.subtype||'').toLowerCase())-score((a.enhancement||a.subtype||'').toLowerCase()))[0];
     return maybeBetter;
   }
 
@@ -218,7 +228,7 @@ if (!window.__PAYEREDGE_V16_TINTS4__) { // FIX: bump guard
     const tried=[]; let loaded=null;
     for(const url of CSV_CANDIDATES){ const r=await tryFetch(url); tried.push(r); if(r.ok){ loaded=r; break; } }
     if(loaded){
-      const meta={plan:'VSP_choice',version:new Date().toISOString().slice(0,10)+'.ui16-tints4',source:'network:'+loaded.url,sha:quickHash(loaded.text)}; // FIX: version bump
+      const meta={plan:'VSP_choice',version:new Date().toISOString().slice(0,10)+'.ui16-tints5',source:'network:'+loaded.url,sha:quickHash(loaded.text)};
       setCache(loaded.text,meta); DATA=parseCSV(loaded.text); buildSimpleIndex(); renderMeta(DATA.length,meta);
       status.textContent=` [ok] ${loaded.url} • ${DATA.length} rows`; computeBundles(); return;
     }
@@ -226,6 +236,20 @@ if (!window.__PAYEREDGE_V16_TINTS4__) { // FIX: bump guard
     if(text){ DATA=parseCSV(text); buildSimpleIndex(); renderMeta(DATA.length,{...meta,source:'cache'});
       status.textContent=` Network failed. Using cached data (${DATA.length} rows).`; computeBundles(); return; }
     status.textContent = ' load failed — no cache';
+  }
+
+  function parseCSV(text){
+    const rows=[]; let row=[], field='', q=false;
+    for(let i=0;i<text.length;i++){
+      const ch=text[i];
+      if(ch==='\"'){ if(q && text[i+1]==='\"'){ field+='\"'; i++; } else { q=!q; } continue; }
+      if(!q && ch===','){ row.push(field); field=''; continue; }
+      if(!q && (ch==='\n'||ch==='\r')){ if(field!==''||row.length){ row.push(field); rows.push(row); row=[]; field=''; } continue; }
+      field+=ch;
+    }
+    if(field!==''||row.length){ row.push(field); rows.push(row); }
+    const headers=rows.shift().map(h=>h.replace(/^\"|\"$/g,'').trim());
+    return rows.filter(r=>r.length>=headers.length).map(r=>{ const o={}; headers.forEach((h,i)=>o[h]=(r[i]||'').replace(/^\"|\"$/g,'').trim()); return o; });
   }
 
   function renderMeta(count,meta){
@@ -238,40 +262,58 @@ if (!window.__PAYEREDGE_V16_TINTS4__) { // FIX: bump guard
 
   function line(row){
     const desc=row.enhancement||row.subtype||'—';
-    const codeStr=String(row.code||'').trim().toUpperCase();
+    // infer base progressive code if CSV left code empty
+    let codeStr=String(row.code||'').trim().toUpperCase();
+    if(!codeStr && /^Progressive/i.test(desc||'')){
+      const inferred = inferProgressiveBaseCodeFromDesc(desc);
+      if (inferred) codeStr = inferred;
+    }
     const partsCodes=splitCodes(codeStr);
     const notes=row.notes||row.note||row.Notes||row.NOTE||'';
+    const fam=el('lensFamily').value;
+    const split=parseSplitFromNotes(notes, fam);
+
+    // simple one-code row
     if(partsCodes.length===1){
       const cop=num(row.copay), cb=num(row.chargeback);
-      return {name:desc,code:codeStr,copay:cop,chargeback:cb,profit:cop-cb,parts:[]};
+      return {name:desc,code:partsCodes[0],copay:cop,chargeback:cb,profit:cop-cb,parts:[]};
     }
-    const fam=el('lensFamily').value;
-    const split=parseSplitFromNotes(notes);
+
+    // composite A+B rows
     const compositeCopayNums=parseCopayNumbers(row.copay);
     const compositeTotalCopay=num(row.copay);
     const compositeAddOnCB=num(row.chargeback);
     const parts=[];
     const baseCode=partsCodes[0];
     const baseRow=pickBaseByExactCode(baseCode);
+
     let baseCop=baseRow?num(baseRow.copay):(compositeCopayNums[0]??compositeTotalCopay);
     let baseCB =baseRow?num(baseRow.chargeback):0;
+
     if(fam!=='PAL' && split.svBase!=null) baseCop=split.svBase;
-    if(fam==='PAL' && split.mfBase!=null) baseCop=split.mfBase;
+    if(fam==='PAL'  && split.mfBase!=null) baseCop=split.mfBase;
+
     parts.push({code:baseCode,copay:baseCop,chargeback:baseCB,profit:baseCop-baseCB});
+
     const addonCount=partsCodes.length-1;
     let addonCopays=[]; let explicitAdd=(fam!=='PAL')?split.svAdd:split.mfAdd;
     if(explicitAdd!=null){ addonCopays=[explicitAdd,...Array(Math.max(0,addonCount-1)).fill(0)]; }
     else if(compositeCopayNums.length>=partsCodes.length){ addonCopays=compositeCopayNums.slice(1); }
-    else { const remaining=Math.max(compositeTotalCopay-baseCop,0);
-           if(addonCount<=1){ addonCopays=[remaining]; } else { const each=remaining/addonCount; addonCopays=Array.from({length:addonCount},()=>each); } }
+    else {
+      const remaining=Math.max(compositeTotalCopay-baseCop,0);
+      if(addonCount<=1){ addonCopays=[remaining]; } else { const each=remaining/addonCount; addonCopays=Array.from({length:addonCount},()=>each); }
+    }
     const addonCBEach=addonCount<=1?compositeAddOnCB:(compositeAddOnCB/addonCount);
+
     for(let i=1;i<partsCodes.length;i++){
       const code=partsCodes[i]; const cop=num(addonCopays[i-1]??0); const cb=addonCBEach;
-      parts.push({code,copay:cop,chargeback:cb,profit:cop-cb});
+      const profit = cop - cb;
+      parts.push({code,copay:cop,chargeback:cb,profit});
     }
+
     const totalCop=parts.reduce((a,x)=>a+x.copay,0);
     const totalCB =parts.reduce((a,x)=>a+x.chargeback,0);
-    return {name:desc,code:codeStr,copay:totalCop,chargeback:totalCB,profit:totalCop-totalCB,parts};
+    return {name:desc,code:partsCodes.join('+'),copay:totalCop,chargeback:totalCB,profit:totalCop-totalCB,parts};
   }
 
   function makeBundle(base,addOns){
@@ -373,7 +415,6 @@ if (!window.__PAYEREDGE_V16_TINTS4__) { // FIX: bump guard
       status.textContent = `tint: GRADIENT • code=MP • base=${materialKey(baseRow?.enhancement||'')}${row?' • ok':''}`;
       return row;
     }
-
     if(tintSel==='polarized') return null;
 
     if(tintSel==='transitions'){
@@ -384,7 +425,6 @@ if (!window.__PAYEREDGE_V16_TINTS4__) { // FIX: bump guard
       status.textContent = `photochromic: poolAll=${poolAll.length} pool=${pool.length} want=${want}${choice?' • ok':''} • base=${materialKey(baseRow?.enhancement||'')}`;
       return choice;
     }
-
     return null;
   }
 
@@ -417,10 +457,7 @@ if (!window.__PAYEREDGE_V16_TINTS4__) { // FIX: bump guard
         if(tintSel==='polarized') return /polariz/.test(name);
         return !/(photochrom|polariz|tint|tinted|sunglass|gradient|color|colored)/.test(name);
       });
-      if(!wantGlass){
-        const kaRow=pickBaseByExactCode('KA');
-        if(kaRow && !base.some(r=>splitCodes(r.code)[0]==='KA')) base.push(kaRow);
-      }
+      // NOTE: removed prior KA auto-push to avoid family leakage into N/O/F/J buckets
     } else {
       if(tintSel==='polarized'){
         base = wantGlass
@@ -442,7 +479,7 @@ if (!window.__PAYEREDGE_V16_TINTS4__) { // FIX: bump guard
           return wantAsp?asph:!asph;
         });
 
-        // FIX: collapse duplicates by code to the correct SV/MF variant for the chosen family
+        // collapse duplicates by code to the correct SV/LINED variant
         if (fam==='SV' || fam==='LINED') {
           const byCode=new Map();
           for (const r of pool) {
@@ -493,7 +530,7 @@ if (!window.__PAYEREDGE_V16_TINTS4__) { // FIX: bump guard
       renderStack([{name:'Best',cls:'best',b:null},{name:'Better',cls:'better',b:null},{name:'Good',cls:'good',b:null},{name:'Cheapest',cls:'good',b:null}]); return;
     }
 
-    // FIX: small-pool tier fallback before cap logic
+    // small-pool fallbacks
     const sorted=[...all].sort((a,b)=>a.copay-b.copay);
     if (sorted.length===1) {
       renderStack([{name:'Best',cls:'best',b:sorted[0]},{name:'Better',cls:'better',b:null},{name:'Good',cls:'good',b:null},{name:'Cheapest',cls:'good',b:null}]);
@@ -540,6 +577,7 @@ if (!window.__PAYEREDGE_V16_TINTS4__) { // FIX: bump guard
     ]);
   }
 
+  // wire up ui
   document.getElementById('forceRefresh').onclick=()=>{ clearCacheStorage(); loadCSV(); };
   document.getElementById('clearCache').onclick =()=>{ clearCacheStorage(); el('status').textContent=' cache cleared — click Force Refresh to reload'; };
   ['lensFamily','lensTint','includeAR','includeAspheric','includeOversize','includeGlass','includeCM'].forEach(id=>{ const n=el(id); if(n) n.onchange=computeBundles; });
