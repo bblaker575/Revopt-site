@@ -29,7 +29,7 @@
     .btn:hover{background:#162844;border-color:#2e4260}
     .switch{display:inline-flex;align-items:center;gap:8px}
     .switch select,.switch input[type="checkbox"]{accent-color:var(--accent)}
-    select{background:#0e1a30;color:var(--fg);border:1px solid var(--line);border-radius:10px;padding:6px 8px;outline:none}
+    select{background:#0e1a30;color:#fff;border:1px solid var(--line);border-radius:10px;padding:6px 8px;outline:none}
     select:focus{box-shadow:0 0 0 3px rgba(114,168,255,.25)}
     #status{margin-left:auto;padding:6px 10px;border-radius:999px;border:1px dashed var(--line);background:#0b1422;color:#c7d6ef}
     .stack{display:grid;gap:18px;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));align-items:stretch;margin-top:16px}
@@ -100,12 +100,12 @@
 </main>
 
 <script>
-if (!window.__PAYEREDGE_V16_TINTS5__) {
-  window.__PAYEREDGE_V16_TINTS5__ = true;
+if (!window.__PAYEREDGE_V16_TINTS6__) {
+  window.__PAYEREDGE_V16_TINTS6__ = true;
 
   /* ================= helpers & cache ================= */
   const CSV_CANDIDATES=['./vsp_choice_master_v8.4.csv','./data/vsp_choice_master_v8.4.csv'];
-  const BETTER_CAP_OF_MAX=0.75, GOOD_CAP_OF_MAX=0.55, CAP_RELAX_FACTOR=0.90;
+  const BETTER_CAP_OF_MAX=0.75, GOOD_CAP_OF_MAX=0.60, CAP_RELAX_FACTOR=0.90;
 
   const el=id=>document.getElementById(id);
   const sum=a=>a.reduce((x,y)=>x+y,0);
@@ -122,7 +122,7 @@ if (!window.__PAYEREDGE_V16_TINTS5__) {
   const splitCodes=s=>String(s||'').toUpperCase().replace(/[^\w+&/,\s-]/g,'').split(/[\s+&/,\-]+/).map(t=>t.trim()).filter(Boolean);
   const parseCopayNumbers= s => { const m=String(s||'').match(/[0-9]+(?:\.[0-9]{1,2})?/g); return m?m.map(x=>parseFloat(x)):[]; };
 
-  /* ---------- PAL-aware note parser (prevents negative fees) ---------- */
+  /* ---------- PAL-aware note parser ---------- */
   function parseSplitFromNotes(notes, fam){
     const s = String(notes || '');
     const sv = s.match(/(\d+)\s*\+\s*(\d+)\s*\(SV\)/i);
@@ -134,14 +134,8 @@ if (!window.__PAYEREDGE_V16_TINTS5__) {
     const mfBase = mf ? +mf[1] : null;
     const mfAdd  = mf ? +mf[2] : null;
 
-    if (fam === 'PAL' && !mf && plain) {
-      // Untagged "A+B" inside PAL → treat as MF split
-      return { svBase, svAdd, mfBase: +plain[1], mfAdd: +plain[2] };
-    }
-    if (!sv && !mf && plain) {
-      // Non-PAL plain split → assume SV
-      return { svBase: +plain[1], svAdd: +plain[2], mfBase, mfAdd };
-    }
+    if (fam === 'PAL' && !mf && plain) return { svBase, svAdd, mfBase:+plain[1], mfAdd:+plain[2] };
+    if (!sv && !mf && plain)         return { svBase:+plain[1], svAdd:+plain[2], mfBase, mfAdd };
     return { svBase, svAdd, mfBase, mfAdd };
   }
 
@@ -185,16 +179,14 @@ if (!window.__PAYEREDGE_V16_TINTS5__) {
     return true;
   }
 
-  // choose the SV/MF variant when a code has both rows
   function chooseVariantForFamily(rows, fam) {
     if (!rows || rows.length <= 1) return rows?.[0] || null;
-    const sorted = [...rows].sort((a,b)=>num(a.copay)-num(b.copay)); // low→high
-    if (fam === 'PAL') return sorted[sorted.length-1];          // MF → higher copay
-    if (fam === 'SV' || fam === 'LINED') return sorted[0];      // SV/LINED → lower copay
+    const sorted = [...rows].sort((a,b)=>num(a.copay)-num(b.copay));
+    if (fam === 'PAL') return sorted[sorted.length-1];
+    if (fam === 'SV' || fam === 'LINED') return sorted[0];
     return sorted[0];
   }
 
-  /* pick row by exact code with family/glass filters */
   function pickByCode(code){
     const fam=el('lensFamily').value;
     const wantGlass=el('includeGlass').checked;
@@ -204,7 +196,6 @@ if (!window.__PAYEREDGE_V16_TINTS5__) {
     return chooseVariantForFamily(list, fam);
   }
 
-  // For base materials, prefer the plastic/non-high variant but honor family selection
   function pickBaseByExactCode(baseCode){
     const fam=el('lensFamily').value;
     const list=(SIMPLE_BY_CODE.get(baseCode)||[]);
@@ -221,21 +212,6 @@ if (!window.__PAYEREDGE_V16_TINTS5__) {
   async function tryFetch(url){
     try{ const res=await fetch(url,{cache:'no-store'}); if(!res.ok) throw new Error('HTTP '+res.status); return {ok:true,text:await res.text(),url}; }
     catch(e){ return {ok:false,err:String(e),url}; }
-  }
-
-  async function loadCSV(){
-    const status=el('status'); status.textContent=' loading…';
-    const tried=[]; let loaded=null;
-    for(const url of CSV_CANDIDATES){ const r=await tryFetch(url); tried.push(r); if(r.ok){ loaded=r; break; } }
-    if(loaded){
-      const meta={plan:'VSP_choice',version:new Date().toISOString().slice(0,10)+'.ui16-tints5',source:'network:'+loaded.url,sha:quickHash(loaded.text)};
-      setCache(loaded.text,meta); DATA=parseCSV(loaded.text); buildSimpleIndex(); renderMeta(DATA.length,meta);
-      status.textContent=` [ok] ${loaded.url} • ${DATA.length} rows`; computeBundles(); return;
-    }
-    const {text,meta}=getCache();
-    if(text){ DATA=parseCSV(text); buildSimpleIndex(); renderMeta(DATA.length,{...meta,source:'cache'});
-      status.textContent=` Network failed. Using cached data (${DATA.length} rows).`; computeBundles(); return; }
-    status.textContent = ' load failed — no cache';
   }
 
   function parseCSV(text){
@@ -257,12 +233,10 @@ if (!window.__PAYEREDGE_V16_TINTS5__) {
   }
 
   const byKey=k=>DATA.filter(r=>(r.active||'yes').toLowerCase()==='yes' && (r.exclusive_key||'').toLowerCase()===k);
-
   const tdMoney=v=>`<td class="money">$${v.toFixed(2)}</td>`;
 
   function line(row){
     const desc=row.enhancement||row.subtype||'—';
-    // infer base progressive code if CSV left code empty
     let codeStr=String(row.code||'').trim().toUpperCase();
     if(!codeStr && /^Progressive/i.test(desc||'')){
       const inferred = inferProgressiveBaseCodeFromDesc(desc);
@@ -273,13 +247,13 @@ if (!window.__PAYEREDGE_V16_TINTS5__) {
     const fam=el('lensFamily').value;
     const split=parseSplitFromNotes(notes, fam);
 
-    // simple one-code row
     if(partsCodes.length===1){
-      const cop=num(row.copay), cb=num(row.chargeback);
+      let cop=num(row.copay), cb=num(row.chargeback), vsp=num(row.vsp);
+      // resilient: if chargeback missing but copay & vsp present, back-fill
+      if(!cb && cop && vsp){ cb=Math.max(0, cop - vsp); }
       return {name:desc,code:partsCodes[0],copay:cop,chargeback:cb,profit:cop-cb,parts:[]};
     }
 
-    // composite A+B rows
     const compositeCopayNums=parseCopayNumbers(row.copay);
     const compositeTotalCopay=num(row.copay);
     const compositeAddOnCB=num(row.chargeback);
@@ -301,14 +275,13 @@ if (!window.__PAYEREDGE_V16_TINTS5__) {
     else if(compositeCopayNums.length>=partsCodes.length){ addonCopays=compositeCopayNums.slice(1); }
     else {
       const remaining=Math.max(compositeTotalCopay-baseCop,0);
-      if(addonCount<=1){ addonCopays=[remaining]; } else { const each=remaining/addonCount; addonCopays=Array.from({length:addonCount},()=>each); }
+      addonCopays=(addonCount<=1)?[remaining]:Array.from({length:addonCount},()=>remaining/addonCount);
     }
     const addonCBEach=addonCount<=1?compositeAddOnCB:(compositeAddOnCB/addonCount);
 
     for(let i=1;i<partsCodes.length;i++){
       const code=partsCodes[i]; const cop=num(addonCopays[i-1]??0); const cb=addonCBEach;
-      const profit = cop - cb;
-      parts.push({code,copay:cop,chargeback:cb,profit});
+      parts.push({code,copay:cop,chargeback:cb,profit:cop-cb});
     }
 
     const totalCop=parts.reduce((a,x)=>a+x.copay,0);
@@ -366,21 +339,7 @@ if (!window.__PAYEREDGE_V16_TINTS5__) {
     if(/cr[\s-]?39/.test(s)||(s.includes('plastic')&&!s.includes('high'))) return 'cr39';
     return 'other';
   }
-  function sunMatchesBase(sunRow,baseRow){
-    const mk=materialKey(baseRow.enhancement||baseRow.subtype||'');
-    const t=N(sunRow.enhancement);
-    switch(mk){
-      case 'poly':   return t.includes('polycarb');
-      case 'trivex': return t.includes('trivex');
-      case 'hi174':  return /(1\.74|1\.75)/.test(t);
-      case 'hi70':   return /(1\.70|1\.71|above)/.test(t);
-      case 'hi167':  return /(1\.66|1\.67)/.test(t);
-      case 'cr39':   return (/(cr[\s-]?39|plastic)/.test(t) && !/high/.test(t));
-      default:       return true;
-    }
-  }
 
-  /* Pool of sun/tint/photo rows (diagnostic-friendly) */
   function sunPool(fam, wantGlass){
     const tag = r => (r.exclusive_key||'').toLowerCase();
     let pool = DATA.filter(r => (r.active||'yes').toLowerCase()==='yes' && applies(r,fam) &&
@@ -406,14 +365,10 @@ if (!window.__PAYEREDGE_V16_TINTS5__) {
     const status=el('status');
 
     if(tintSel==='tinted_solid'){
-      const row = pickByCode('MN');
-      status.textContent = `tint: SOLID • code=MN • base=${materialKey(baseRow?.enhancement||'')}${row?' • ok':''}`;
-      return row;
+      const row = pickByCode('MN'); status.textContent = `tint: SOLID • code=MN${row?' • ok':''}`; return row;
     }
     if(tintSel==='tinted_gradient'){
-      const row = pickByCode('MP');
-      status.textContent = `tint: GRADIENT • code=MP • base=${materialKey(baseRow?.enhancement||'')}${row?' • ok':''}`;
-      return row;
+      const row = pickByCode('MP'); status.textContent = `tint: GRADIENT • code=MP${row?' • ok':''}`; return row;
     }
     if(tintSel==='polarized') return null;
 
@@ -422,10 +377,34 @@ if (!window.__PAYEREDGE_V16_TINTS5__) {
       const pool = poolAll.filter(r=>/photochrom|transitions/.test(N(r.enhancement)));
       const want=preferPhotoCodeForBase(baseRow);
       const choice = pool.find(r=>new RegExp('^'+want,'i').test((r.code||'').trim())) || pool.find(isPPhoto) || null;
-      status.textContent = `photochromic: poolAll=${poolAll.length} pool=${pool.length} want=${want}${choice?' • ok':''} • base=${materialKey(baseRow?.enhancement||'')}`;
+      status.textContent = `photochromic: poolAll=${poolAll.length} pool=${pool.length} want=${want}${choice?' • ok':''}`;
       return choice;
     }
     return null;
+  }
+
+  /* ---------- CM eligibility: only Progressive N or O ---------- */
+  function isEligibleProgressiveNO(baseRow){
+    const code=(splitCodes(baseRow.code||'')[0]||'').toUpperCase();
+    const desc=N(baseRow.enhancement||baseRow.subtype||'');
+    if (code==='NA' || code==='OA') return true;
+    if (/^progressive\s+[no]\b/.test(desc)) return true;
+    return false;
+  }
+
+  async function loadCSV(){
+    const status=el('status'); status.textContent=' loading…';
+    const tried=[]; let loaded=null;
+    for(const url of CSV_CANDIDATES){ const r=await tryFetch(url); tried.push(r); if(r.ok){ loaded=r; break; } }
+    if(loaded){
+      const meta={plan:'VSP_choice',version:new Date().toISOString().slice(0,10)+'.ui16-tints6',source:'network:'+loaded.url,sha:quickHash(loaded.text)};
+      setCache(loaded.text,meta); DATA=parseCSV(loaded.text); buildSimpleIndex(); renderMeta(DATA.length,meta);
+      status.textContent=` [ok] ${loaded.url} • ${DATA.length} rows`; computeBundles(); return;
+    }
+    const {text,meta}=getCache();
+    if(text){ DATA=parseCSV(text); buildSimpleIndex(); renderMeta(DATA.length,{...meta,source:'cache'});
+      status.textContent=` Network failed. Using cached data (${DATA.length} rows).`; computeBundles(); return; }
+    status.textContent = ' load failed — no cache';
   }
 
   function computeBundles(){
@@ -457,7 +436,6 @@ if (!window.__PAYEREDGE_V16_TINTS5__) {
         if(tintSel==='polarized') return /polariz/.test(name);
         return !/(photochrom|polariz|tint|tinted|sunglass|gradient|color|colored)/.test(name);
       });
-      // NOTE: removed prior KA auto-push to avoid family leakage into N/O/F/J buckets
     } else {
       if(tintSel==='polarized'){
         base = wantGlass
@@ -479,7 +457,6 @@ if (!window.__PAYEREDGE_V16_TINTS5__) {
           return wantAsp?asph:!asph;
         });
 
-        // collapse duplicates by code to the correct SV/LINED variant
         if (fam==='SV' || fam==='LINED') {
           const byCode=new Map();
           for (const r of pool) {
@@ -519,9 +496,14 @@ if (!window.__PAYEREDGE_V16_TINTS5__) {
 
     const overs = wantOS ? (byKey('oversize').filter(r=>applies(r,fam))[0]||null) : null;
 
+    function cmIfEligible(baseRow){
+      if (!(el('includeCM')?.checked && fam==='PAL')) return null;
+      if (!isEligibleProgressiveNO(baseRow)) return null;  // << only N or O
+      return (DATA.filter(r=>applies(r,'PAL')).find(row=>/custom\s*measure/i.test(N(row.enhancement||row.subtype||'')))||null);
+    }
+
     function buildBundle(m,arRow){
-      const cm=(el('includeCM')?.checked && fam==='PAL') ? (DATA.filter(r=>applies(r,'PAL')).find(row=>/custom\s*measure/i.test(N(row.enhancement||row.subtype||'')))||null) : null;
-      return makeBundle(m,[arRow,chooseSunFor(m),cm,overs]);
+      return makeBundle(m,[arRow,chooseSunFor(m),cmIfEligible(m),overs]);
     }
 
     const all=[];
@@ -530,22 +512,11 @@ if (!window.__PAYEREDGE_V16_TINTS5__) {
       renderStack([{name:'Best',cls:'best',b:null},{name:'Better',cls:'better',b:null},{name:'Good',cls:'good',b:null},{name:'Cheapest',cls:'good',b:null}]); return;
     }
 
-    // small-pool fallbacks
     const sorted=[...all].sort((a,b)=>a.copay-b.copay);
-    if (sorted.length===1) {
-      renderStack([{name:'Best',cls:'best',b:sorted[0]},{name:'Better',cls:'better',b:null},{name:'Good',cls:'good',b:null},{name:'Cheapest',cls:'good',b:null}]);
-      return;
-    }
-    if (sorted.length===2) {
-      renderStack([{name:'Best',cls:'best',b:sorted[1]},{name:'Better',cls:'better',b:null},{name:'Good',cls:'good',b:null},{name:'Cheapest',cls:'good',b:sorted[0]}]);
-      return;
-    }
-    if (sorted.length===3) {
-      renderStack([{name:'Best',cls:'best',b:sorted[2]},{name:'Better',cls:'better',b:sorted[1]},{name:'Good',cls:'good',b:null},{name:'Cheapest',cls:'good',b:sorted[0]}]);
-      return;
-    }
+    if (sorted.length===1) { renderStack([{name:'Best',cls:'best',b:sorted[0]},{name:'Better',cls:'better',b:null},{name:'Good',cls:'good',b:null},{name:'Cheapest',cls:'good',b:null}]); return; }
+    if (sorted.length===2) { renderStack([{name:'Best',cls:'best',b:sorted[1]},{name:'Better',cls:'better',b:null},{name:'Good',cls:'good',b:null},{name:'Cheapest',cls:'good',b:sorted[0]}]); return; }
+    if (sorted.length===3) { renderStack([{name:'Best',cls:'best',b:sorted[2]},{name:'Better',cls:'better',b:sorted[1]},{name:'Good',cls:'good',b:null},{name:'Cheapest',cls:'good',b:sorted[0]}]); return; }
 
-    // original cap logic for 4+
     const MaxPrice=Math.max(...all.map(b=>b.copay));
     const best = all.reduce((p,c)=>(!p||c.profit>p.profit||(c.profit===p.profit&&c.copay<p.copay)?c:p),null);
 
@@ -577,7 +548,6 @@ if (!window.__PAYEREDGE_V16_TINTS5__) {
     ]);
   }
 
-  // wire up ui
   document.getElementById('forceRefresh').onclick=()=>{ clearCacheStorage(); loadCSV(); };
   document.getElementById('clearCache').onclick =()=>{ clearCacheStorage(); el('status').textContent=' cache cleared — click Force Refresh to reload'; };
   ['lensFamily','lensTint','includeAR','includeAspheric','includeOversize','includeGlass','includeCM'].forEach(id=>{ const n=el(id); if(n) n.onchange=computeBundles; });
