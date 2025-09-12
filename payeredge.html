@@ -72,19 +72,30 @@
     }
     .stars.best{color:var(--tier-best)} .stars.better{color:var(--tier-better)} .stars.good{color:var(--tier-good)}
     .figures{text-align:right;display:grid;gap:2px}
-    .hero{font-size:clamp(22px,3.2vw,36px);font-weight:800;line-height:1.0;letter-spacing:.2px;color:#cfe6ff;text-shadow:0 6px 18px rgba(114,168,255,.18)}
+    .hero{font-size:clamp(22px,3.0vw,36px);font-weight:800;line-height:1.0;letter-spacing:.2px;color:#cfe6ff;text-shadow:0 6px 18px rgba(114,168,255,.18)}
     .caption{color:var(--muted);font-size:var(--fz-12)}
     .svc{font-weight:800;color:var(--accent-2)}
 
-    table{width:100%;border-collapse:collapse;margin-top:10px}
+    /* ====== TABLES: fixed layout + predictable column widths ====== */
+    table{width:100%;border-collapse:collapse;margin-top:10px;table-layout:fixed}
     th,td{border-bottom:1px dashed #203043;padding:8px 6px;text-align:left;font-size:var(--fz-13);vertical-align:top}
     th{color:var(--muted);font-weight:700}
-    .code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;color:#cfe1ff;white-space:nowrap}
-    .money{font-weight:800;white-space:nowrap}
-    td:first-child,th:first-child{word-break:break-word}
 
+    /* Item column: allow wrap at spaces only (never mid-word / hyphens) */
+    .cell-item{word-break:keep-all;hyphens:none;overflow-wrap:break-word}
+
+    /* No wrap for money, codes and header labels */
+    .cell-code,.cell-money,.cell-label{white-space:nowrap}
+
+    .code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;color:#cfe1ff}
+    .money{font-weight:800}
+    td:first-child,th:first-child{ /* already wider via colgroup; keep words intact */
+      hyphens:none;word-break:keep-all
+    }
+
+    /* ===== Code-pills breakdown block ===== */
     .break{margin:6px 0 8px;background:#0b1424;border:1px solid var(--line);border-radius:10px;overflow:auto}
-    .break table{width:100%;min-width:360px}
+    .break table{width:100%;min-width:520px;table-layout:fixed}
     .break th,.break td{border:0;padding:6px 8px;text-align:left;font-size:12px}
     .break .codepill{
       display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:2px 8px;border:1px solid var(--line);border-radius:999px;
@@ -93,12 +104,12 @@
     }
     .break .colhed{color:var(--muted);font-weight:600}
 
-    /* ====== COMPACT MODES (no wrapping, cards stay 4-up) ====== */
+    /* ====== COMPACT MODES (cards stay 4-up) ====== */
     @media (max-width: 1280px){
       .stack{gap:12px}
       .tier{padding:12px}
       th,td{font-size:var(--fz-12)}
-      .hero{font-size:clamp(20px,2.8vw,32px)}
+      .hero{font-size:clamp(20px,2.7vw,32px)}
       .stars .tag{font-size:11px}
     }
     @media (max-width: 1080px){
@@ -106,12 +117,12 @@
       .btn{padding:6px 8px}
       .break th,.break td{font-size:var(--fz-11)}
       .code{font-size:11px}
-      .hero{font-size:clamp(18px,2.6vw,28px)}
+      .hero{font-size:clamp(18px,2.4vw,28px)}
     }
     @media (max-width: 900px){
       .stack{gap:10px}
       th,td{padding:6px 5px}
-      .hero{font-size:clamp(16px,2.4vw,24px)}
+      .hero{font-size:clamp(16px,2.2vw,24px)}
       .stars .tag{padding:2px 6px}
     }
     @media (max-width: 780px){
@@ -120,7 +131,7 @@
       .tier{padding:8px}
       th,td{font-size:11px}
       .code{font-size:10px}
-      .hero{font-size:clamp(15px,2.2vw,22px)}
+      .hero{font-size:clamp(15px,2.0vw,22px)}
     }
 
     :focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:8px}
@@ -175,10 +186,10 @@
 
 <script>
 /* ===========================================================
-   ui16-tints9 — fixed 4-up layout + prior logic fixes
+   ui16-tints10 — fixed 4-up + column widths + nowrap + pill fix
    =========================================================== */
-if (!window.__PAYEREDGE_V16_TINTS9__) {
-  window.__PAYEREDGE_V16_TINTS9__ = true;
+if (!window.__PAYEREDGE_V16_T10__) {
+  window.__PAYEREDGE_V16_T10__ = true;
 
   const CSV_CANDIDATES=['./vsp_choice_master_v8.4.csv','./data/vsp_choice_master_v8.4.csv'];
   const BETTER_CAP_OF_MAX=0.75, GOOD_CAP_OF_MAX=0.60, CAP_RELAX_FACTOR=0.90;
@@ -293,7 +304,7 @@ if (!window.__PAYEREDGE_V16_TINTS9__) {
     el('version').textContent=`plan=${meta.plan||'VSP_choice'} • rows=${count||0} • version=${meta.version||'—'} • source=${meta.source||'—'} • sha=${meta.sha||'—'}`;
   }
   const byKey=k=>DATA.filter(r=>(r.active||'yes').toLowerCase()==='yes' && (r.exclusive_key||'').toLowerCase()===k);
-  const tdMoney=v=>`<td class="money">$${v.toFixed(2)}</td>`;
+  const tdMoney=v=>`<td class="cell-money money">$${v.toFixed(2)}</td>`;
 
   function line(row){
     const desc=row.enhancement||row.subtype||'—';
@@ -373,27 +384,56 @@ if (!window.__PAYEREDGE_V16_TINTS9__) {
       return div;
     }
     const stars=name==='Best'?'★★★':name==='Better'?'★★':name==='Good'?'★':'◎';
+
     const head=`<div class="tierHead">
       <div class="stars ${cls}"><div aria-label="${name}" title="${name}" style="font-size:18px">${stars}</div><span class="tag">${b.label}</span></div>
       <div class="figures"><div class="hero" aria-label="Patient Copay" data-prev="0">$${b.copay.toFixed(2)}</div>
       <div class="caption">Patient Copay</div><div class="caption">Service Fee (Practice Profit): <span class="svc">$${b.profit.toFixed(2)}</span></div></div></div>`;
+
     const lines=b.lines.map(li=>{
-      const main=`<tr><td>${li.name}</td><td class="code">${li.code||'—'}</td>${tdMoney(li.copay)}${tdMoney(li.chargeback)}${tdMoney(li.profit)}</tr>`;
+      const main=`<tr>
+        <td class="cell-item">${li.name}</td>
+        <td class="cell-code code">${li.code||'—'}</td>
+        ${tdMoney(li.copay)}${tdMoney(li.chargeback)}${tdMoney(li.profit)}
+      </tr>`;
+
       const parts=(li.parts&&li.parts.length)?`<tr><td colspan="5"><div class="break"><table>
-        <thead><tr><th class="colhed" style="width:120px">Code</th><th class="colhed">Copay</th><th class="colhed">Holdback</th><th class="colhed">Service Fee</th></tr></thead>
-        <tbody>${li.parts.map(p=>`<tr><td><span class="codepill" title="${p.code}">${p.code}</span></td>${tdMoney(p.copay)}${tdMoney(p.chargeback)}${tdMoney(p.profit)}</tr>`).join('')}</tbody>
+        <colgroup>
+          <col style="width:120px"><col style="width:140px"><col style="width:140px"><col style="width:140px">
+        </colgroup>
+        <thead><tr>
+          <th class="colhed">Code</th><th class="colhed">Copay</th><th class="colhed">Holdback</th><th class="colhed">Service Fee</th>
+        </tr></thead>
+        <tbody>${li.parts.map(p=>`<tr>
+          <td><span class="codepill" title="${p.code}">${p.code}</span></td>
+          <td class="cell-money money">$${p.copay.toFixed(2)}</td>
+          <td class="cell-money money">$${p.chargeback.toFixed(2)}</td>
+          <td class="cell-money money">$${p.profit.toFixed(2)}</td>
+        </tr>`).join('')}</tbody>
       </table></div></td></tr>`:'';
       return main+parts;
     }).join('');
-    div.innerHTML=head+`<table><thead><tr><th>Item</th><th>Code</th><th>Copay</th><th>Holdback</th><th>Service Fee</th></tr></thead>
-      <tbody>${lines}</tbody><tfoot><tr><th colspan="2" style="text-align:right">Totals</th>${tdMoney(b.copay)}${tdMoney(b.chargeback)}${tdMoney(b.profit)}</tr></tfoot></table>`;
+
+    /* colgroup for the main table so columns don’t squeeze weirdly */
+    div.innerHTML=head+`<table>
+      <colgroup>
+        <col style="width:42%"><col style="width:12%"><col style="width:15%"><col style="width:15%"><col style="width:16%">
+      </colgroup>
+      <thead><tr>
+        <th class="cell-label">Item</th><th class="cell-label">Code</th>
+        <th class="cell-label">Copay</th><th class="cell-label">Holdback</th><th class="cell-label">Service Fee</th>
+      </tr></thead>
+      <tbody>${lines}</tbody>
+      <tfoot><tr><th colspan="2" style="text-align:right">Totals</th>${tdMoney(b.copay)}${tdMoney(b.chargeback)}${tdMoney(b.profit)}</tr></tfoot>
+    </table>`;
+
     animateNumber(div.querySelector('.hero'), b.copay);
     return div;
   }
   function renderStack(rows){
     const stack=el('stack'); stack.innerHTML='';
     rows.forEach(r=>stack.appendChild(renderTier(r)));
-    fitTextAll(); // ensure headings/tags fit inside fixed-width cards
+    fitTextAll();
   }
 
   function sunPool(fam, wantGlass){
@@ -444,7 +484,7 @@ if (!window.__PAYEREDGE_V16_TINTS9__) {
     let loaded=null;
     for(const url of CSV_CANDIDATES){ const r=await tryFetch(url); if(r.ok){ loaded=r; break; } }
     if(loaded){
-      const meta={plan:'VSP_choice',version:new Date().toISOString().slice(0,10)+'.ui16-tints9',source:'network:'+loaded.url,sha:quickHash(loaded.text)};
+      const meta={plan:'VSP_choice',version:new Date().toISOString().slice(0,10)+'.ui16-tints10',source:'network:'+loaded.url,sha:quickHash(loaded.text)};
       setCache(loaded.text,meta); DATA=parseCSV(loaded.text); buildSimpleIndex(); renderMeta(DATA.length,meta);
       status.textContent=` [ok] ${loaded.url} • ${DATA.length} rows`; computeBundles(); return;
     }
@@ -485,7 +525,7 @@ if (!window.__PAYEREDGE_V16_TINTS9__) {
       if(tintSel==='polarized'){
         base = wantGlass
           ? byKey('sun_tech').filter(r=>applies(r,fam) && /polariz/.test(N(r.enhancement)) && /glass/.test(N(r.enhancement)))
-          : byKey('sun_tech').filter(r=>applies(r,fam) && /polariz/.test(Nr(r.enhancement)) && isDCode(r) && !/glass/.test(N(r.enhancement)));
+          : byKey('sun_tech').filter(r=>applies(r,fam) && /polariz/.test(N(r.enhancement)) && isDCode(r) && !/glass/.test(N(r.enhancement)));
       } else {
         let pool=(fam==='SV'?byKey('base_material'):byKey('occupational'));
         pool=pool.filter(r=>{
@@ -592,10 +632,10 @@ if (!window.__PAYEREDGE_V16_TINTS9__) {
     ]);
   }
 
-  /* ===== Auto-fit big numbers and tags to fixed card width ===== */
+  /* ===== Auto-fit big numbers and tags (keeps within fixed card) ===== */
   function fitText(el, {min=10, max=36, step=0.4}={}){
     if(!el) return;
-    el.style.fontSize = ''; // allow CSS clamp
+    el.style.fontSize = '';
     const maxPx = Math.min(max, parseFloat(getComputedStyle(el).fontSize)||max);
     let size = maxPx;
     const parent = el.parentElement;
