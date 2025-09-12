@@ -7,6 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+
   <style>
     :root{
       --bg:#090e16;--bg-elev:#0c1320;--fg:#eaf1ff;--muted:#9fb0c9;--line:#263448;--accent:#72a8ff;--accent-2:#7be0c3;
@@ -31,6 +32,7 @@
     .sub{color:var(--muted);font-size:12px}
     main{padding:14px}
 
+    /* toolbar */
     .bar{display:flex;align-items:center;flex-wrap:wrap;gap:10px 12px;background:linear-gradient(180deg,var(--bg-elev),#0b1220);
       border:1px solid var(--line);border-radius:18px;padding:10px;box-shadow:var(--shadow-md)}
     .group{display:flex;gap:8px;align-items:center;padding:6px 8px;border-radius:999px;background:#0b1424}
@@ -41,6 +43,7 @@
     select:focus{box-shadow:0 0 0 3px rgba(114,168,255,.25)}
     #status{margin-left:auto;padding:6px 10px;border-radius:999px;border:1px dashed var(--line);background:#0b1422;color:#c7d6ef;font-size:12px;max-width:52vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
+    /* grid of cards */
     .viewport-frame{transform-origin:top left;width:100%}
     .stack{display:grid;grid-template-columns:repeat(4,minmax(320px,1fr));gap:14px;align-items:stretch;margin-top:12px}
 
@@ -52,13 +55,38 @@
     .hero{font-size:clamp(20px,2.6vw,36px);font-weight:800;line-height:1.0;letter-spacing:.2px;color:#cfe6ff;text-shadow:0 6px 18px rgba(114,168,255,.18)}
     .caption{color:var(--muted);font-size:12px} .svc{font-weight:800;color:var(--accent-2)}
 
+    /* --- Table & cells --- */
     table{width:100%;border-collapse:collapse;margin-top:8px;table-layout:fixed}
-    th,td{border-bottom:1px dashed #203043;padding:7px 6px;text-align:left;font-size:12px;vertical-align:top}
-    th{color:var(--muted);font-weight:700;line-height:1.15;white-space:normal;overflow:visible;text-overflow:clip}
+    th,td{
+      border-bottom:1px dashed #203043;
+      padding:8px 6px;
+      text-align:left;
+      font-size:12px;
+      vertical-align:top;
+    }
+    th{
+      color:var(--muted);
+      font-weight:700;
+      line-height:1.15;
+      white-space:normal;         /* never ellipsize headers */
+      overflow:visible;
+      text-overflow:clip;
+    }
     td{overflow:hidden;text-overflow:ellipsis}
-    .cell-item{overflow-wrap:break-word}
+    .cell-item{
+      overflow-wrap:break-word;   /* wrap long names */
+      word-break:break-word;
+      line-height:1.28;
+      padding-bottom:2px;         /* breathing room so numbers don’t collide */
+    }
     .cell-code{white-space:nowrap}
-    .cell-money{white-space:nowrap;font-weight:800;font-size:clamp(11px,1.1vw,13px)}
+    .cell-money{
+      white-space:nowrap;         /* keep dollar amounts on one line */
+      font-weight:800;
+      font-size:clamp(11px,1.1vw,13px);
+      overflow:visible;           /* NEVER show ... on prices */
+      text-overflow:clip;
+    }
 
     /* Inline breakdown (collapsible) */
     details.break{margin:2px 0 8px}
@@ -71,6 +99,22 @@
     .codepill{display:inline-flex;align-items:center;justify-content:center;padding:2px 8px;border:1px solid var(--line);border-radius:999px;
       font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px;color:#cfe1ff;background:#0e1a30;white-space:nowrap;max-width:84px;overflow:hidden;text-overflow:ellipsis}
     .money{white-space:nowrap;font-weight:800;font-size:clamp(10px,1vw,12px)}
+
+    /* ===== Mobile ===== */
+    @media (max-width: 900px){
+      .stack{grid-template-columns:1fr}            /* vertical stack */
+      .viewport-frame{transform:none !important;width:100% !important} /* disable scaling hack */
+      header{position:static}
+      .hero{font-size:32px}
+      table{table-layout:auto}                    /* allow natural widths */
+      .cell-money{font-size:13px}
+    }
+    @media (max-width: 560px){
+      body{font-size:14px}
+      .hero{font-size:28px}
+      th,td{padding:7px 6px}
+      .cell-money{font-size:13px}
+    }
 
     @media print{header,.bar{display:none} body{background:#fff;color:#000}.tier{break-inside:avoid;border:1px solid #000;box-shadow:none} table,th,td{border-color:#000}}
   </style>
@@ -124,8 +168,9 @@
 </main>
 
 <script>
-if(!window.__PAYEREDGE_V16_2_HEADERS_ANIM__){
-window.__PAYEREDGE_V16_2_HEADERS_ANIM__=true;
+/* single include guard */
+if(!window.__PAYEREDGE_UI16_3_MOBILE__){
+window.__PAYEREDGE_UI16_3_MOBILE__=true;
 
 /* ---------- helpers ---------- */
 const CSV_CANDIDATES=['./vsp_choice_master_v8.4.csv','./data/vsp_choice_master_v8.4.csv'];
@@ -139,14 +184,13 @@ const N=s=>String(s||'').toLowerCase();
 const isGlassName=name=>/glass/.test(N(name||''));
 const splitCodes=s=>String(s||'').toUpperCase().replace(/[^\w+&/,\s-]/g,'').split(/[\s+&/,\-]+/).map(t=>t.trim()).filter(Boolean);
 const parseCopayNumbers=s=>{ const m=String(s||'').match(/[0-9]+(?:\.[0-9]{1,2})?/g); return m?m.map(x=>parseFloat(x)):[]; };
-
+function preferPhotoCodeForBase(row){ return isGlassName(row.enhancement||row.subtype)?'PM':'PR'; }
 function parseSplitFromNotes(notes){
   const s=String(notes||'');
   const sv=s.match(/(\d+)\s*\+\s*(\d+)\s*\(SV\)/i);
   const mf=s.match(/(\d+)\s*\+\s*(\d+)\s*\(MF\)/i);
   return { svBase: sv?num(sv[1]):null, svAdd: sv?num(sv[2]):null, mfBase: mf?num(mf[1]):null, mfAdd: mf?num(mf[2]):null };
 }
-function preferPhotoCodeForBase(row){ return isGlassName(row.enhancement||row.subtype)?'PM':'PR'; }
 
 /* ---------- CSV & cache ---------- */
 function parseCSV(text){
@@ -202,7 +246,7 @@ async function loadCSV(){
   let loaded=null;
   for(const url of CSV_CANDIDATES){ const r=await tryFetch(url); if(r.ok){ loaded=r; break; } }
   if(loaded){
-    const meta={plan:'VSP_choice',version:new Date().toISOString().slice(0,10)+'.ui16.2-headers-anim',source:'network:'+loaded.url,sha:quickHash(loaded.text)};
+    const meta={plan:'VSP_choice',version:new Date().toISOString().slice(0,10)+'.ui16.3-mobile-stack',source:'network:'+loaded.url,sha:quickHash(loaded.text)};
     setCache(loaded.text,meta); DATA=parseCSV(loaded.text); buildSimpleIndex(); renderMeta(DATA.length,meta);
     status.textContent=` [ok] ${loaded.url} • ${DATA.length} rows`; computeBundles(); return;
   }
@@ -430,15 +474,18 @@ function computeBundles(){
 }
 
 /* ---------- rendering ---------- */
-const tdMoney=v=>`<td class="cell-money" data-anim="$${v.toFixed(2)}">$${v.toFixed(2)}</td>`;
+const LAST_NUM = new Map(); // animation state
 
-function breakdownDetails(li){
+const tdMoney = (v, key) =>
+  `<td class="cell-money" data-key="${key}" data-anim="${v.toFixed(2)}">$${v.toFixed(2)}</td>`;
+
+function breakdownDetails(li,rowKey){
   if(!li.parts?.length) return '';
-  const rows = li.parts.map(p => `
+  const rows = li.parts.map((p,pi) => `
     <div class="codepill" title="${p.code}">${p.code}</div>
-    <div class="money" data-anim="$${p.copay.toFixed(2)}">$${p.copay.toFixed(2)}</div>
-    <div class="money" data-anim="$${p.chargeback.toFixed(2)}">$${p.chargeback.toFixed(2)}</div>
-    <div class="money" data-anim="$${p.profit.toFixed(2)}">$${p.profit.toFixed(2)}</div>
+    <div class="money" data-key="${rowKey}-p${pi}-c"  data-anim="${p.copay.toFixed(2)}">$${p.copay.toFixed(2)}</div>
+    <div class="money" data-key="${rowKey}-p${pi}-cb" data-anim="${p.chargeback.toFixed(2)}">$${p.chargeback.toFixed(2)}</div>
+    <div class="money" data-key="${rowKey}-p${pi}-pr" data-anim="${p.profit.toFixed(2)}">$${p.profit.toFixed(2)}</div>
   `).join('');
   return `
     <tr>
@@ -461,37 +508,53 @@ function renderTier({name,cls,b}){
   if(!b){ div.innerHTML=`<div class="tierHead"><div class="stars ${cls}"><span>${name==='Best'?'★★★':name==='Better'?'★★':name==='Good'?'★':'◎'}</span><span class="sub" style="margin-left:8px">${name}</span></div>
     <div class="figures"><div class="hero">—</div><div class="caption">Patient Copay</div></div></div><div class="sub">No viable bundle</div>`; return div; }
   const stars=name==='Best'?'★★★':name==='Better'?'★★':name==='Good'?'★':'◎';
+
   const head=`<div class="tierHead">
     <div class="stars ${cls}"><div title="${name}" style="font-size:18px">${stars}</div><span class="sub" style="margin-left:6px">${b.label}</span></div>
-    <div class="figures"><div class="hero" aria-label="Patient Copay" data-anim="$${b.copay.toFixed(2)}">$${b.copay.toFixed(2)}</div>
-    <div class="caption">Patient Copay</div><div class="caption">Service Fee (Practice Profit): <span class="svc" data-anim="$${b.profit.toFixed(2)}">$${b.profit.toFixed(2)}</span></div></div></div>`;
-  const lines=b.lines.map(li=>{
+    <div class="figures">
+      <div class="hero" aria-label="Patient Copay" data-key="${name}-hero" data-anim="${b.copay.toFixed(2)}">$${b.copay.toFixed(2)}</div>
+      <div class="caption">Patient Copay</div>
+      <div class="caption">Service Fee (Practice Profit): <span class="svc" data-key="${name}-profit" data-anim="${b.profit.toFixed(2)}">$${b.profit.toFixed(2)}</span></div>
+    </div>
+  </div>`;
+
+  const lines=b.lines.map((li,i)=>{
+    const rowKey=`${name}-line${i}`;
     const main=`<tr>
       <td class="cell-item">${li.name}</td>
       <td class="cell-code">${li.code||'—'}</td>
-      ${tdMoney(li.copay)}${tdMoney(li.chargeback)}${tdMoney(li.profit)}
+      ${tdMoney(li.copay,  `${rowKey}-c`)}
+      ${tdMoney(li.chargeback, `${rowKey}-cb`)}
+      ${tdMoney(li.profit, `${rowKey}-pr`)}
     </tr>`;
-    const parts=(li.parts&&li.parts.length)?breakdownDetails(li):'';
+    const parts=(li.parts&&li.parts.length)?breakdownDetails(li,rowKey):'';
     return main+parts;
   }).join('');
+
   div.innerHTML=head+`<table>
-    <!-- Widen Code and numeric columns to prevent header/cell truncation -->
-    <colgroup><col style="width:44%"><col style="width:14%"><col style="width:14%"><col style="width:14%"><col style="width:14%"></colgroup>
+    <!-- desktop widths; mobile relaxes via media query -->
+    <colgroup><col style="width:48%"><col style="width:12%"><col style="width:13%"><col style="width:13%"><col style="width:14%"></colgroup>
     <thead><tr><th>Item</th><th>Code</th><th>Copay</th><th>Holdback</th><th>Service Fee</th></tr></thead>
     <tbody>${lines}</tbody>
-    <tfoot><tr><th colspan="2" style="text-align:right">Totals</th>${tdMoney(b.copay)}${tdMoney(b.chargeback)}${tdMoney(b.profit)}</tr></tfoot></table>`;
+    <tfoot><tr><th colspan="2" style="text-align:right">Totals</th>
+      ${tdMoney(b.copay,`${name}-tot-c`)}${tdMoney(b.chargeback,`${name}-tot-cb`)}${tdMoney(b.profit,`${name}-tot-pr`)}
+    </tr></tfoot></table>`;
   return div;
 }
 function renderStack(rows){
   const stack=el('stack'); stack.innerHTML='';
   rows.forEach(r=>stack.appendChild(renderTier(r)));
-  fitHeroText(); fitViewportScale(); animateMoney();   // <— bring back the “flip” on change
+  fitHeroText(); fitViewportScale(); animateMoney();
 }
 
 /* ---------- fit & animation ---------- */
 function fitViewportScale() {
   const frame = document.getElementById('frame'); if (!frame) return;
-  const needed = 360*4 + 14*3; const vw = document.documentElement.clientWidth;
+  const vw = document.documentElement.clientWidth;
+  if (vw <= 900){              // on mobile, no scaling—natural vertical layout
+    frame.style.transform = 'none'; frame.style.width = '100%'; return;
+  }
+  const needed = 360*4 + 14*3; // keep 4-up on desktop
   let scale = Math.min(1, vw / needed); if (scale < 0.82) scale = 0.82;
   frame.style.transform = `scale(${scale})`; frame.style.width = (100 / scale) + '%';
 }
@@ -503,30 +566,31 @@ function fitHeroText() {
     while (size > 14 && !fits()) { size -= 0.4; n.style.fontSize = size + 'px'; }
   });
 }
-/* smooth count-up for any element with data-anim="$123.45" */
-let animTick=0;
-function animateMoney(duration=300){
-  const nodes=[...document.querySelectorAll('[data-anim]')];
-  const prevKey='dataPrevValue';
-  const start=performance.now(); const from=[];
-  nodes.forEach(n=>{
-    const target=n.getAttribute('data-anim')||n.textContent.trim();
-    const curText=n[prevKey] ?? n.textContent.trim();
-    n[prevKey]=target;
-    const toVal=parseFloat(target.replace(/[^0-9.-]/g,''))||0;
-    const fromVal=parseFloat(curText.replace(/[^0-9.-]/g,''))||0;
-    from.push({n,fromVal,toVal});
+
+/* smooth count-up; remembers last values per data-key */
+function animateMoney(duration = 350) {
+  const nodes = [...document.querySelectorAll('[data-anim]')];
+  const frames = [];
+
+  nodes.forEach(n => {
+    const key = n.getAttribute('data-key') || Math.random().toString(36).slice(2);
+    const toVal = parseFloat(n.getAttribute('data-anim')) || 0;
+    const fromVal = LAST_NUM.has(key) ? LAST_NUM.get(key) : (parseFloat(n.textContent.replace(/[^0-9.-]/g,'')) || 0);
+    LAST_NUM.set(key, toVal);
+    frames.push({ n, fromVal, toVal });
   });
-  cancelAnimationFrame(animTick);
-  function step(t){
-    const k=Math.min(1,(t-start)/duration);
-    from.forEach(({n,fromVal,toVal})=>{
-      const v=fromVal+(toVal-fromVal)*k;
-      n.textContent='$'+v.toFixed(2);
+
+  const start = performance.now();
+  function step(ts) {
+    const t = Math.min(1, (ts - start) / duration);
+    const k = 1 - Math.pow(1 - t, 3); // easeOutCubic
+    frames.forEach(({ n, fromVal, toVal }) => {
+      const v = fromVal + (toVal - fromVal) * k;
+      n.textContent = '$' + v.toFixed(2);
     });
-    if(k<1) animTick=requestAnimationFrame(step);
+    if (t < 1) requestAnimationFrame(step);
   }
-  animTick=requestAnimationFrame(step);
+  requestAnimationFrame(step);
 }
 
 const ro = new ResizeObserver(()=>{ fitHeroText(); fitViewportScale(); });
