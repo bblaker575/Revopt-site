@@ -13,10 +13,7 @@
       --tier-best:#ffd166;--tier-better:#a9c2ff;--tier-good:#7be0c3;
       --shadow-lg:0 18px 40px rgba(0,0,0,.35);--shadow-md:0 10px 26px rgba(0,0,0,.28);
       --radius:18px;
-      /* unified column geometry */
-      --w-item:34%;
-      --w-code:20%;
-      --w-money:23%;
+      --w-item:34%; --w-code:20%; --w-money:23%;
     }
     *{box-sizing:border-box} html,body{height:100%}
     body{
@@ -27,14 +24,11 @@
       color:var(--fg);font:15px/1.45 Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
       -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;font-variant-numeric:tabular-nums
     }
-    header{
-      position:sticky;top:0;z-index:20;display:flex;justify-content:space-between;align-items:center;gap:14px;padding:12px 16px;
-      background:linear-gradient(180deg, rgba(9,14,22,.95), rgba(9,14,22,.78));border-bottom:1px solid var(--line);backdrop-filter:blur(10px)
-    }
+    header{position:sticky;top:0;z-index:20;display:flex;justify-content:space-between;align-items:center;gap:14px;padding:12px 16px;
+      background:linear-gradient(180deg, rgba(9,14,22,.95), rgba(9,14,22,.78));border-bottom:1px solid var(--line);backdrop-filter:blur(10px)}
     h1{margin:0;font-weight:800;font-size:clamp(16px,1.8vw,20px)}
     .sub{color:var(--muted);font-size:12px}
     main{padding:14px}
-    /* toolbar */
     .bar{display:flex;align-items:center;flex-wrap:wrap;gap:10px 12px;background:linear-gradient(180deg,var(--bg-elev),#0b1220);
       border:1px solid var(--line);border-radius:18px;padding:10px;box-shadow:var(--shadow-md)}
     .group{display:flex;gap:8px;align-items:center;padding:6px 8px;border-radius:999px;background:#0b1424}
@@ -44,7 +38,7 @@
     select{background:#0e1a30;color:#fff;border:1px solid var(--line);border-radius:10px;padding:6px 8px;outline:none}
     select:focus{box-shadow:0 0 0 3px rgba(114,168,255,.25)}
     #status{margin-left:auto;padding:6px 10px;border-radius:999px;border:1px dashed var(--line);background:#0b1422;color:#c7d6ef;font-size:12px;max-width:52vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-    /* grid */
+
     .viewport-frame{transform-origin:top left;width:100%}
     .stack{display:grid;grid-template-columns:repeat(4,minmax(320px,1fr));gap:14px;align-items:stretch;margin-top:12px}
     .tier{background:linear-gradient(180deg,#0f1726,#0c1422);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow-lg);padding:12px}
@@ -53,52 +47,28 @@
     .stars.best{color:var(--tier-best)} .stars.better{color:var(--tier-better)} .stars.good{color:var(--tier-good)}
     .figures{text-align:right;display:grid;gap:2px}
     .hero{font-size:clamp(20px,2.6vw,36px);font-weight:600;line-height:1;letter-spacing:.2px;color:#cfe6ff}
-    .caption{color:var(--muted);font-size:12px} .svc{font-weight:600;color:var(--accent-2)}
-    /* table */
+    .caption{color:var(--muted);font-size:12px}
+    .svc{font-weight:600;color:var(--accent-2)}
     table.bundle{width:100%;border-collapse:collapse;margin-top:8px;table-layout:fixed}
     th,td{border-bottom:1px dashed #203043;padding:8px 6px;font-size:12px;vertical-align:top}
     thead th{color:var(--muted);font-weight:700;line-height:1.15;white-space:nowrap}
-    .bundle col:nth-child(1){width:var(--w-item)}
-    .bundle col:nth-child(2){width:var(--w-code)}
-    .bundle col:nth-child(3){width:var(--w-money)}
-    .bundle col:nth-child(4){width:var(--w-money)}
+    .bundle col:nth-child(1){width:var(--w-item)} .bundle col:nth-child(2){width:var(--w-code)}
+    .bundle col:nth-child(3),.bundle col:nth-child(4){width:var(--w-money)}
     .cell-item{line-height:1.32;padding-bottom:2px}
     .cell-item .label{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;font-size:.95em}
     .cell-code{white-space:normal;word-break:break-word;overflow:visible;text-overflow:clip}
-    .cell-money{
-      white-space:nowrap;font-weight:600;text-align:right;
-      font-size:clamp(11px,1.05vw,13px);
-      font-variant-numeric:tabular-nums;
-      padding-left:16px;padding-right:6px;min-width:110px;
-    }
-    tfoot th, tfoot td{border-top:1px solid rgba(255,255,255,.08);border-bottom:0;padding-top:9px;padding-bottom:8px}
-    /* breakdown aligned to headers */
-    details.break summary{cursor:pointer;opacity:.9}
-    .breakbox{padding:6px 8px 10px}
-    .align-grid{
-      display:grid;
-      grid-template-columns: var(--w-item) var(--w-code) var(--w-money) var(--w-money);
-      column-gap:8px; row-gap:6px; align-items:center;
-    }
-    .align-grid .hdr{color:var(--muted);font-weight:600;font-size:11px}
-    .align-grid .money{ text-align:right; font-variant-numeric:tabular-nums }
-    .codepill{
-      display:inline-flex;align-items:center;justify-content:center;padding:2px 8px;border:1px solid var(--line);border-radius:999px;
-      font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px;color:#cfe1ff;background:#0e1a30;white-space:nowrap;max-width:110px;overflow:hidden;text-overflow:ellipsis
-    }
-    /* responsive */
-    @media (max-width:1280px){ thead th{font-size:11px} .cell-money{font-size:12px} }
-    @media (max-width:900px){
-      .stack{grid-template-columns:1fr}
-      .viewport-frame{transform:none !important;width:100% !important}
-      header{position:static}
-      .hero{font-size:32px}
-      table.bundle{table-layout:auto}
-      .cell-money{font-size:13px;min-width:unset;padding-left:12px}
-      .align-grid{grid-template-columns: 40% 20% 20% 20%}
-    }
-    @media (max-width:560px){ body{font-size:14px} .hero{font-size:28px} th,td{padding:7px 6px} }
-    @media print{header,.bar{display:none} body{background:#fff;color:#000}.tier{break-inside:avoid;border:1px solid #000;box-shadow:none} table,th,td{border-color:#000}}
+    .cell-money{white-space:nowrap;font-weight:600;text-align:right;font-size:clamp(11px,1.05vw,13px);
+      font-variant-numeric:tabular-nums;padding-left:16px;padding-right:6px;min-width:110px}
+    @media (max-width:900px){.stack{grid-template-columns:1fr}}
+
+    /* OCR preview panel */
+    .ocr-panel{margin-top:12px;display:grid;grid-template-columns:1.2fr 1fr;gap:12px}
+    .card{background:linear-gradient(180deg,#0f1726,#0c1422);border:1px solid var(--line);border-radius:14px;padding:10px}
+    .card h3{margin:0 0 6px 0;font-size:13px;color:#cfe6ff}
+    .card pre{white-space:pre-wrap;word-break:break-word;font:12px/1.35 ui-monospace,Menlo,Consolas,monospace;color:#bcd3ff;max-height:260px;overflow:auto;margin:0}
+    .kv{display:grid;grid-template-columns:1fr auto;gap:6px 10px}
+    .kv .k{color:#9fb0c9}
+    .kv .v{font-weight:700}
   </style>
 </head>
 <body>
@@ -153,6 +123,26 @@
   <div id="frame" class="viewport-frame">
     <div id="stack" class="stack"></div>
   </div>
+
+  <!-- OCR preview and extracted values -->
+  <div class="ocr-panel">
+    <div class="card">
+      <h3>OCR Text Preview</h3>
+      <pre id="ocrText">—</pre>
+    </div>
+    <div class="card">
+      <h3>Detected Benefits</h3>
+      <div class="kv" id="ocrKV">
+        <div class="k">Frame Allowance</div><div class="v" id="kv_frame">—</div>
+        <div class="k">Exam Copay</div><div class="v" id="kv_exam">—</div>
+        <div class="k">SV Lens Copay</div><div class="v" id="kv_sv">—</div>
+        <div class="k">PAL Copay</div><div class="v" id="kv_pal">—</div>
+        <div class="k">AR</div><div class="v" id="kv_ar">—</div>
+        <div class="k">Photochromic</div><div class="v" id="kv_photo">—</div>
+        <div class="k">Polarized</div><div class="v" id="kv_polar">—</div>
+      </div>
+    </div>
+  </div>
 </main>
 
 <!-- In-browser OCR library -->
@@ -162,17 +152,16 @@
 if(!window.__PAYEREDGE_UI1694_HOTFIX__){
 window.__PAYEREDGE_UI1694_HOTFIX__=true;
 
-/* show JS errors in the status pill so “blank” is diagnosable */
 window.onerror = function(msg, src, line, col){
   const s=document.getElementById('status');
   if(s) s.textContent = ' script error: ' + msg + ' @' + (src||'') + ':' + (line||'?');
 };
 
-/* ---------- helpers ---------- */
+/* ---------- core helpers ---------- */
 const CSV_CANDIDATES=[
   './vsp_choice_master_v8.4.csv',
   './data/vsp_choice_master_v8.4.csv',
-  './vsp_choice_master_v7_full_fixed.csv'       // fallback
+  './vsp_choice_master_v7_full_fixed.csv'
 ];
 const BETTER_CAP_OF_MAX=0.75, GOOD_CAP_OF_MAX=0.60, CAP_RELAX_FACTOR=0.90;
 
@@ -192,7 +181,7 @@ function parseSplitFromNotes(notes){
   return { svBase: sv?num(sv[1]):null, svAdd: sv?num(sv[2]):null, mfBase: mf?num(mf[1]):null, mfAdd: mf?num(mf[2]):null };
 }
 
-/* ---------- CSV & cache ---------- */
+/* ---------- CSV + cache ---------- */
 function parseCSV(text){
   const rows=[]; let row=[], field='', q=false;
   for(let i=0;i<text.length;i++){
@@ -474,10 +463,7 @@ function computeBundles(){
 }
 
 /* ---------- rendering (Holdback column removed) ---------- */
-const tdMoney = (v, key) =>
-  `<td class="cell-money" data-key="${key}" data-anim="${v.toFixed(2)}">$${v.toFixed(2)}</td>`;
-
-/* breakdown aligned to headers (Code, Copay, Service Fee) */
+const tdMoney = (v, key) => `<td class="cell-money" data-key="${key}" data-anim="${v.toFixed(2)}">$${v.toFixed(2)}</td>`;
 function breakdownDetails(li,rowKey){
   if(!li.parts?.length) return '';
   const rows = li.parts.map((p,pi) => `
@@ -501,7 +487,6 @@ function breakdownDetails(li,rowKey){
       </td>
     </tr>`;
 }
-
 function renderTier({name,cls,b}){
   const div=document.createElement('div'); div.className='tier';
   if(!b){
@@ -512,7 +497,6 @@ function renderTier({name,cls,b}){
       <div class="sub">No viable bundle</div>`; return div;
   }
   const stars=name==='Best'?'★★★':name==='Better'?'★★':name==='Good'?'★':'◎';
-
   const head=`<div class="tierHead">
     <div class="stars ${cls}"><div title="${name}" style="font-size:18px">${stars}</div><span class="sub" style="margin-left:6px">${b.label}</span></div>
     <div class="figures">
@@ -521,7 +505,6 @@ function renderTier({name,cls,b}){
       <div class="caption">Service Fee (Practice Profit): <span class="svc" data-key="${name}-profit" data-anim="${b.profit.toFixed(2)}">$${b.profit.toFixed(2)}</span></div>
     </div>
   </div>`;
-
   const lines=b.lines.map((li,i)=>{
     const rowKey=`${name}-line${i}`;
     const main=`<tr>
@@ -533,15 +516,9 @@ function renderTier({name,cls,b}){
     const parts=(li.parts&&li.parts.length)?breakdownDetails(li,rowKey):'';
     return main+parts;
   }).join('');
-
   div.innerHTML=head+`<table class="bundle">
     <colgroup><col><col><col><col></colgroup>
-    <thead><tr>
-      <th>Item</th>
-      <th>Code</th>
-      <th>Copay</th>
-      <th>Service Fee</th>
-    </tr></thead>
+    <thead><tr><th>Item</th><th>Code</th><th>Copay</th><th>Service Fee</th></tr></thead>
     <tbody>${lines}</tbody>
     <tfoot><tr><th colspan="2" style="text-align:right">Totals</th>
       ${tdMoney(b.copay,`${name}-tot-c`)}${tdMoney(b.profit,`${name}-tot-pr`)}
@@ -553,8 +530,6 @@ function renderStack(rows){
   rows.forEach(r=>stack.appendChild(renderTier(r)));
   fitHeroText(); fitViewportScale(); animateMoney(420);
 }
-
-/* fit & animation */
 function fitViewportScale() {
   const frame = document.getElementById('frame'); if (!frame) return;
   const vw = document.documentElement.clientWidth;
@@ -595,13 +570,13 @@ function animateMoney(duration = 350) {
 const ro = new ResizeObserver(()=>{ fitHeroText(); fitViewportScale(); });
 ro.observe(document.body);
 
-/* controls */
+/* ---------- controls ---------- */
 el('forceRefresh').onclick=()=>{ clearCacheStorage(); loadCSV(); };
 el('clearCache').onclick =()=>{ clearCacheStorage(); el('status').textContent=' cache cleared — click Force Refresh to reload'; };
 ['lensFamily','lensTint','includeAR','includeAspheric','includeOversize','includeGlass','includeCM']
   .forEach(id=>{ const n=el(id); if(n) n.onchange=computeBundles; });
 
-/* ---------- OCR: Scan Benefits (Camera) ---------- */
+/* ---------- OCR: camera flow with stronger cleanup + 2-pass OCR ---------- */
 const scanBtn   = document.getElementById('scanBenefitsBtn');
 const scanInput = document.getElementById('scanBenefitsFile');
 scanBtn?.addEventListener('click', ()=> scanInput?.click());
@@ -609,16 +584,24 @@ scanInput?.addEventListener('change', async ()=>{
   const file = scanInput.files?.[0]; if(!file) return;
   try{
     scanBtn.disabled = true; el('status').textContent=' scanning benefits…';
-    const url = URL.createObjectURL(file);
-    const { data } = await Tesseract.recognize(url, 'eng', {
-      tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789$.,:-/() '
-    });
-    URL.revokeObjectURL(url);
-    const text = data.text || '';
-    const benefits = parseBenefits(text);
-    window.lastBenefits = benefits;
+    const img = await fileToImage(file);
 
-    // Simple confirmation for staff
+    // Preprocess: scale up, grayscale, adaptive threshold, unsharp
+    const prep1 = preprocess(img, {scale:2.0, grayscale:true, threshold:'otsu', unsharp:true});
+    const prep2 = preprocess(img, {scale:1.6, grayscale:true, threshold:'sauvola', unsharp:true});
+
+    // Two OCR passes with different PSMs; pick the longer, cleaner text
+    const [t1, t2] = await Promise.all([
+      runTess(prep1.canvas, { psm: 6 }),
+      runTess(prep2.canvas, { psm: 4 })
+    ]);
+    const text = chooseBestText(t1, t2);
+    el('ocrText').textContent = text || '—';
+
+    const benefits = parseBenefitsSmart(text);
+    window.lastBenefits = benefits;
+    paintKV(benefits);
+
     alert([
       `Frame Allowance: ${fmt(benefits.frameAllowance)}`,
       `Exam Copay: ${fmt(benefits.examCopay)}`,
@@ -629,65 +612,253 @@ scanInput?.addEventListener('change', async ()=>{
     ].join('\n'));
 
     el('status').textContent=' scan complete';
-    // Optional: hook into your engine later
-    // if (typeof window.applyBenefitsToBundles === 'function') window.applyBenefitsToBundles(benefits);
-
   }catch(e){
     console.error(e);
     el('status').textContent=' scan failed';
-    alert('Sorry — I could not read that image. Try a clearer, flatter photo with good light.');
+    alert('Sorry — I could not read that image. Try a flatter photo with even lighting and no glare.');
   }finally{
     scanBtn.disabled = false;
     scanInput.value='';
   }
 });
-function centsOf(s){
-  if(!s) return null;
-  const m = String(s).replace(/[^\d.]/g,'');
-  if(!m) return null;
-  const [a,b='0']=m.split('.');
-  return parseInt(a||'0',10)*100 + parseInt((b+'00').slice(0,2),10);
+
+/* ---- OCR helpers ---- */
+function fileToImage(file){
+  return new Promise((resolve,reject)=>{
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = ()=>{ URL.revokeObjectURL(url); resolve(img); };
+    img.onerror = e => reject(e);
+    img.src = url;
+  });
 }
-function money(c){ if(c==null) return null; return {cents:c,raw:`$${(c/100).toFixed(2)}`}; }
-function fmt(m){ return m?.raw || '—'; }
-function parseBenefits(text){
-  const T=text.toLowerCase().replace(/\s+/g,' ');
-  const find=re=>{const m=T.match(re);return m?.[1]||null;};
-  const yesZero = s => s && /(included|covered|no cost|\$0|zero)/i.test(s);
+function preprocess(img, {scale=2, grayscale=true, threshold='otsu', unsharp=true}={}){
+  const w = Math.round(img.naturalWidth * scale);
+  const h = Math.round(img.naturalHeight * scale);
+  const canvas = document.createElement('canvas');
+  canvas.width = w; canvas.height = h;
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(img, 0, 0, w, h);
 
-  const frame  = find(/frame[^\.]{0,40}allowance[^$]{0,12}(\$?\d[\d,]*(?:\.\d{2})?)/i) || find(/allowance[^$]{0,12}(\$?\d[\d,]*(?:\.\d{2})?).{0,20}frame/i);
-  const exam   = find(/exam[^$]{0,20}(included|covered|\$?\d[\d,]*(?:\.\d{2})?)/i);
-  const sv     = find(/single\s*vision[^$]{0,25}(\$?\d[\d,]*(?:\.\d{2})?)/i);
-  const pal    = find(/(?:progressive|pal)[^$]{0,25}(\$?\d[\d,]*(?:\.\d{2})?)/i);
-  const arTxt  = find(/anti[\s-]*reflective[^$]{0,25}((?:tier\s*[abcd])|\$?\d[\d,]*(?:\.\d{2})?|included|covered|no cost|\$0)/i) || find(/\bar\b[^$]{0,20}((?:tier\s*[abcd])|\$?\d[\d,]*(?:\.\d{2})?|included|covered|no cost|\$0)/i);
-  const photo  = find(/photochrom|transitions[^$]{0,25}(\$?\d[\d,]*(?:\.\d{2})?|included|covered|no cost|\$0)/i);
-  const polar  = find(/polariz(?:ed|e)[^$]{0,25}(\$?\d[\d,]*(?:\.\d{2})?|included|covered|no cost|\$0)/i);
+  let imgData = ctx.getImageData(0,0,w,h);
+  const d = imgData.data;
 
-  let arTier = null, arCopay = null;
-  if(arTxt){
-    const m = /tier\s*([abcd])/i.exec(arTxt);
-    if(m) arTier = m[1].toUpperCase();
-    else arCopay = yesZero(arTxt) ? money(0) : money(centsOf(arTxt));
+  // grayscale
+  if(grayscale){
+    for(let i=0;i<d.length;i+=4){
+      const y = 0.299*d[i] + 0.587*d[i+1] + 0.114*d[i+2];
+      d[i]=d[i+1]=d[i+2]=y;
+    }
   }
 
-  return {
-    source: 'VSP',
-    frameAllowance: frame ? money(centsOf(frame)) : null,
-    examCopay: exam ? (yesZero(exam) ? money(0) : money(centsOf(exam))) : null,
-    svLensCopay: sv ? money(centsOf(sv)) : null,
-    progressiveCopay: pal ? money(centsOf(pal)) : null,
-    arTier,
-    arCopay,
-    photochromicCopay: photo ? (yesZero(photo) ? money(0) : money(centsOf(photo))) : null,
-    polarizedCopay: polar ? (yesZero(polar) ? money(0) : money(centsOf(polar))) : null,
-    rawText: text
+  // simple unsharp mask (blur -> highpass -> add)
+  if(unsharp){
+    const blurred = boxBlur(imgData, w, h, 1);
+    for(let i=0;i<d.length;i+=4){
+      const hp = d[i] - blurred.data[i];
+      d[i] = clamp(d[i] + hp*0.8);
+      d[i+1]=d[i]; d[i+2]=d[i];
+    }
+  }
+
+  // threshold
+  if(threshold){
+    if(threshold==='otsu'){
+      const t = otsuThreshold(imgData);
+      for(let i=0;i<d.length;i+=4){
+        const v = d[i] >= t ? 255:0;
+        d[i]=d[i+1]=d[i+2]=v;
+      }
+    } else if(threshold==='sauvola'){
+      // quick local threshold approximation (window 25px)
+      const win=25, k=0.3;
+      const g = new Uint8ClampedArray(d.length/4);
+      for(let i=0,pi=0;i<d.length;i+=4,pi++) g[pi]=d[i];
+      const mean = boxBlurGray(g, w, h, Math.floor(win/2));
+      const std  = localStd(g, mean, w, h, Math.floor(win/2));
+      for(let y=0;y<h;y++){
+        for(let x=0;x<w;x++){
+          const i = y*w+x;
+          const m = mean[i], s = std[i];
+          const T = m*(1 + k*((s/128)-1));
+          const v = g[i] > T ? 255:0;
+          const di = i*4;
+          d[di]=d[di+1]=d[di+2]=v;
+        }
+      }
+    }
+  }
+
+  ctx.putImageData(imgData,0,0);
+  return {canvas, ctx};
+}
+function clamp(v){ return v<0?0:v>255?255:v; }
+function boxBlur(imgData, w, h, r){
+  const out = new ImageData(w,h);
+  const src = imgData.data, dst = out.data;
+  const tmp = new Uint32Array(w*h);
+  // horizontal
+  for(let y=0;y<h;y++){
+    let sum=0;
+    for(let x=0;x<w+ r; x++){
+      if(x<w){ sum += src[(y*w+x)*4]; }
+      if(x>=r){ const xi=x-r; tmp[y*w+xi]=sum/(Math.min(x+1,w) - Math.max(0,x-r)); }
+      if(x>=2*r+1){ sum -= src[(y*w+(x-2*r-1))*4]; }
+    }
+  }
+  // vertical
+  for(let x=0;x<w;x++){
+    let sum=0;
+    for(let y=0;y<h+r;y++){
+      if(y<h){ sum += tmp[y*w+x]; }
+      if(y>=r){
+        const yi=y-r;
+        const val = sum/(Math.min(y+1,h) - Math.max(0,y-r));
+        const di=(yi*w+x)*4;
+        dst[di]=dst[di+1]=dst[di+2]=val; dst[di+3]=255;
+      }
+      if(y>=2*r+1){ sum -= tmp[(y-2*r-1)*w+x]; }
+    }
+  }
+  return out;
+}
+function boxBlurGray(g, w, h, r){
+  const out = new Uint8ClampedArray(w*h);
+  const tmp = new Float32Array(w*h);
+  for(let y=0;y<h;y++){
+    let sum=0;
+    for(let x=0;x<w+r;x++){
+      if(x<w) sum += g[y*w+x];
+      if(x>=r){ const xi=x-r; tmp[y*w+xi]=sum/(Math.min(x+1,w)-Math.max(0,x-r)); }
+      if(x>=2*r+1) sum -= g[y*w+(x-2*r-1)];
+    }
+  }
+  for(let x=0;x<w;x++){
+    let sum=0;
+    for(let y=0;y<h+r;y++){
+      if(y<h) sum += tmp[y*w+x];
+      if(y>=r){
+        const yi=y-r;
+        out[yi*w+x]=sum/(Math.min(y+1,h)-Math.max(0,y-r));
+      }
+      if(y>=2*r+1) sum -= tmp[(y-2*r-1)*w+x];
+    }
+  }
+  return out;
+}
+function localStd(g, mean, w, h, r){
+  const out = new Uint8ClampedArray(w*h);
+  const sq = new Uint32Array(w*h);
+  for(let i=0;i<g.length;i++) sq[i]=g[i]*g[i];
+  const meanSq = boxBlurGray(sq, w, h, r);
+  for(let i=0;i<g.length;i++){
+    const v = Math.sqrt(Math.max(0, meanSq[i]-mean[i]*mean[i]));
+    out[i]=v;
+  }
+  return out;
+}
+function otsuThreshold(imgData){
+  const hist=new Array(256).fill(0);
+  const d=imgData.data;
+  for(let i=0;i<d.length;i+=4) hist[d[i]]++;
+  const total = d.length/4;
+  let sum=0; for(let i=0;i<256;i++) sum += i*hist[i];
+  let sumB=0, wB=0, wF=0, varMax=0, t=127;
+  for(let i=0;i<256;i++){
+    wB += hist[i]; if(wB===0) continue;
+    wF = total - wB; if(wF===0) break;
+    sumB += i*hist[i];
+    const mB = sumB / wB;
+    const mF = (sum - sumB) / wF;
+    const v = wB*wF*(mB-mF)*(mB-mF);
+    if(v>varMax){ varMax=v; t=i; }
+  }
+  return t;
+}
+async function runTess(canvas, {psm=6}={}){
+  const opts = {
+    tessedit_pageseg_mode: String(psm),
+    tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789$.,:-/() '
   };
+  const out = await Tesseract.recognize(canvas, 'eng', opts);
+  return (out && out.data && out.data.text) ? out.data.text : '';
+}
+function chooseBestText(a,b){
+  // Pick the one that has more dollars found and fewer lone letters
+  const score = t => ((t.match(/\$/g)||[]).length*3) + (t.length/500) - ((t.match(/\b[Iil]\b/g)||[]).length);
+  return score(a)>=score(b)?a:b;
 }
 
-/* boot */
+/* ---- Parsing: line-based scoring (robust) ---- */
+function centsOf(s){ if(!s) return null; const m=String(s).replace(/[^\d.]/g,''); if(!m) return null; const [a,b='0']=m.split('.'); return parseInt(a||'0',10)*100+parseInt((b+'00').slice(0,2),10); }
+function money(c){ if(c==null) return null; return {cents:c,raw:`$${(c/100).toFixed(2)}`}; }
+function fmt(m){ return m?.raw || '—'; }
+
+function parseBenefitsSmart(raw){
+  const text = (raw||'').replace(/\r/g,'');
+  const lines = text.split('\n')
+    .map(s=>s.trim())
+    .filter(Boolean);
+
+  const pickMoneyNear = (keywords, fallbackRegex=/\$\s*\d[\d,]*(?:\.\d{2})?/g) =>{
+    let best=null, bestScore=-1;
+    for(const line of lines){
+      const l=line.toLowerCase();
+      const kwScore = keywords.reduce((acc,k)=> acc + (l.includes(k)?1:0), 0);
+      if(!kwScore) continue;
+      const m = line.match(fallbackRegex);
+      if(m && m.length){
+        // pick the rightmost $ on the line (copays often at the end)
+        const val = m[m.length-1];
+        const c = centsOf(val);
+        const score = kwScore*10 + (val.length>0?2:0);
+        if(c!=null && score>bestScore){ best = c; bestScore = score; }
+      } else if(/included|covered|no cost|\$0/i.test(line)){
+        const score = kwScore*10 + 1;
+        if(score>bestScore){ best = 0; bestScore = score; }
+      }
+    }
+    return best!=null ? money(best) : null;
+  };
+
+  // AR tier: look explicitly for tier letter
+  let arTier = null;
+  for(const line of lines){
+    const m = /(?:anti[\s-]*reflective|\bAR\b)[^\n]{0,24}(?:tier|level)\s*([ABCD])/i.exec(line);
+    if(m){ arTier = m[1].toUpperCase(); break; }
+  }
+  // AR copay if no tier
+  const arCopay = arTier ? null : pickMoneyNear(['anti-reflective','antireflective',' ar ']);
+
+  const benefits = {
+    source: 'VSP',
+    frameAllowance: pickMoneyNear(['frame','allowance']),
+    examCopay: pickMoneyNear(['exam','copay']),
+    svLensCopay: pickMoneyNear(['single vision','sv']),
+    progressiveCopay: pickMoneyNear(['progressive','pal']),
+    arTier,
+    arCopay,
+    photochromicCopay: pickMoneyNear(['photochrom','transitions']),
+    polarizedCopay: pickMoneyNear(['polariz']),
+    rawText: raw
+  };
+  return benefits;
+}
+
+function paintKV(b){
+  el('kv_frame').textContent = fmt(b.frameAllowance);
+  el('kv_exam').textContent  = fmt(b.examCopay);
+  el('kv_sv').textContent    = fmt(b.svLensCopay);
+  el('kv_pal').textContent   = fmt(b.progressiveCopay);
+  el('kv_ar').textContent    = b.arTier ? ('Tier '+b.arTier) : fmt(b.arCopay);
+  el('kv_photo').textContent = fmt(b.photochromicCopay);
+  el('kv_polar').textContent = fmt(b.polarizedCopay);
+}
+
+/* ---------- boot ---------- */
 (function boot(){ loadCSV(); })();
 
-} // end guard
+} // guard
 </script>
 </body>
 </html>
