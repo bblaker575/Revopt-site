@@ -73,27 +73,24 @@
       text-overflow:clip;
     }
     td{overflow:hidden;text-overflow:ellipsis}
-
     .cell-item{line-height:1.28;padding-bottom:2px}
     .cell-item .label{
       display:-webkit-box;
       -webkit-line-clamp:2;            /* clamp to 2 lines (desktop) */
       -webkit-box-orient:vertical;
       overflow:hidden;
-      font-size:.95em;                  /* tiny shrink to free width */
+      font-size:.96em;                  /* tiny shrink to free width */
     }
     @media (min-width:1200px){
-      .cell-item .label{-webkit-line-clamp:3} /* allow 3 lines on wide screens */
+      .cell-item .label{-webkit-line-clamp:3} /* give 3 lines on wide screens */
     }
     .cell-code{white-space:nowrap}
-
     .cell-money{
       white-space:nowrap;               /* never wrap dollars */
       font-weight:800;
-      font-size:clamp(11px,1.05vw,13px);/* slight downscale at mid widths */
+      font-size:clamp(11px,1.1vw,13px);
       overflow:visible;                 /* never ellipsize dollars */
       text-overflow:clip;
-      padding-left:10px;                /* breathing room between columns */
     }
 
     /* Inline breakdown (collapsible) */
@@ -109,10 +106,6 @@
     .money{white-space:nowrap;font-weight:800;font-size:clamp(10px,1vw,12px)}
 
     /* ===== Mobile ===== */
-    @media (max-width: 1280px){
-      th{font-size:11px}
-      .cell-money{font-size:12px}
-    }
     @media (max-width: 900px){
       .stack{grid-template-columns:1fr}            /* vertical stack */
       .viewport-frame{transform:none !important;width:100% !important}
@@ -181,8 +174,8 @@
 
 <script>
 /* single include guard */
-if(!window.__PAYEREDGE_UI16_5_TIGHT__){
-window.__PAYEREDGE_UI16_5_TIGHT__=true;
+if(!window.__PAYEREDGE_UI16_4_CLAMP__){
+window.__PAYEREDGE_UI16_4_CLAMP__=true;
 
 /* ---------- helpers ---------- */
 const CSV_CANDIDATES=['./vsp_choice_master_v8.4.csv','./data/vsp_choice_master_v8.4.csv'];
@@ -258,7 +251,7 @@ async function loadCSV(){
   let loaded=null;
   for(const url of CSV_CANDIDATES){ const r=await tryFetch(url); if(r.ok){ loaded=r; break; } }
   if(loaded){
-    const meta={plan:'VSP_choice',version:new Date().toISOString().slice(0,10)+'.ui16.5-tight',source:'network:'+loaded.url,sha:quickHash(loaded.text)};
+    const meta={plan:'VSP_choice',version:new Date().toISOString().slice(0,10)+'.ui16.4-clamp',source:'network:'+loaded.url,sha:quickHash(loaded.text)};
     setCache(loaded.text,meta); DATA=parseCSV(loaded.text); buildSimpleIndex(); renderMeta(DATA.length,meta);
     status.textContent=` [ok] ${loaded.url} • ${DATA.length} rows`; computeBundles(); return;
   }
@@ -486,6 +479,8 @@ function computeBundles(){
 }
 
 /* ---------- rendering ---------- */
+const LAST_NUM = new Map(); // animation state
+
 const tdMoney = (v, key) =>
   `<td class="cell-money" data-key="${key}" data-anim="${v.toFixed(2)}">$${v.toFixed(2)}</td>`;
 
@@ -544,11 +539,11 @@ function renderTier({name,cls,b}){
   div.innerHTML=head+`<table>
     <!-- desktop widths; mobile relaxes via media query -->
     <colgroup>
-      <col style="width:40%"><!-- Item (clamped) -->
-      <col style="width:10%"><!-- Code -->
-      <col style="width:16%"><!-- Copay -->
-      <col style="width:16%"><!-- Holdback -->
-      <col style="width:18%"><!-- Service Fee -->
+      <col style="width:42%"><!-- Item (clamped) -->
+      <col style="width:12%"><!-- Code -->
+      <col style="width:15%"><!-- Copay -->
+      <col style="width:15%"><!-- Holdback -->
+      <col style="width:16%"><!-- Service Fee -->
     </colgroup>
     <thead><tr><th>Item</th><th>Code</th><th>Copay</th><th>Holdback</th><th>Service Fee</th></tr></thead>
     <tbody>${lines}</tbody>
