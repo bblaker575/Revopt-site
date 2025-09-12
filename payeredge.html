@@ -35,7 +35,6 @@
     .version{color:var(--muted)}
     main{padding:14px}
 
-    /* Toolbar */
     .bar{
       display:flex;align-items:center;flex-wrap:wrap;gap:10px 12px;
       background:linear-gradient(180deg,var(--bg-elev),#0b1220);
@@ -50,11 +49,20 @@
     select:focus{box-shadow:0 0 0 3px rgba(114,168,255,.25)}
     #status{margin-left:auto;padding:6px 10px;border-radius:999px;border:1px dashed var(--line);background:#0b1422;color:#c7d6ef;font-size:var(--fz-12);max-width:45vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
-    /* Cards grid */
-    .stack{display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));align-items:stretch;margin-top:14px}
+    /* ===== ALWAYS 4 VISIBLE CARDS, NO SCROLL ===== */
+    .stack{
+      display:grid;
+      grid-template-columns:repeat(4, minmax(0,1fr));
+      gap:16px;
+      align-items:stretch;
+      margin-top:14px;
+      overflow:visible;
+      min-width:0;
+    }
+
     .tier{
       background:linear-gradient(180deg,#0f1726,#0c1422);border:1px solid var(--line);border-radius:var(--radius);
-      box-shadow:var(--shadow-lg);padding:14px;min-width:0 /* fix overflow in grid items */
+      box-shadow:var(--shadow-lg);padding:14px;min-width:0
     }
     .tierHead{display:grid;grid-template-columns:1fr auto;align-items:center;gap:10px;margin-bottom:10px;min-width:0}
     .stars{font-weight:800;display:flex;align-items:center;gap:8px;min-width:0}
@@ -64,12 +72,10 @@
     }
     .stars.best{color:var(--tier-best)} .stars.better{color:var(--tier-better)} .stars.good{color:var(--tier-good)}
     .figures{text-align:right;display:grid;gap:2px}
-    /* Auto-fit headline with clamp & JS safety net */
-    .hero{font-size:clamp(24px,3.5vw,36px);font-weight:800;line-height:1.0;letter-spacing:.2px;color:#cfe6ff;text-shadow:0 6px 18px rgba(114,168,255,.18)}
+    .hero{font-size:clamp(22px,3.2vw,36px);font-weight:800;line-height:1.0;letter-spacing:.2px;color:#cfe6ff;text-shadow:0 6px 18px rgba(114,168,255,.18)}
     .caption{color:var(--muted);font-size:var(--fz-12)}
     .svc{font-weight:800;color:var(--accent-2)}
 
-    /* Tables */
     table{width:100%;border-collapse:collapse;margin-top:10px}
     th,td{border-bottom:1px dashed #203043;padding:8px 6px;text-align:left;font-size:var(--fz-13);vertical-align:top}
     th{color:var(--muted);font-weight:700}
@@ -77,7 +83,6 @@
     .money{font-weight:800;white-space:nowrap}
     td:first-child,th:first-child{word-break:break-word}
 
-    /* Parts “break” section */
     .break{margin:6px 0 8px;background:#0b1424;border:1px solid var(--line);border-radius:10px;overflow:auto}
     .break table{width:100%;min-width:360px}
     .break th,.break td{border:0;padding:6px 8px;text-align:left;font-size:12px}
@@ -88,16 +93,34 @@
     }
     .break .colhed{color:var(--muted);font-weight:600}
 
-    /* Better small-screen compaction */
-    @media (max-width: 980px){
-      .stack{grid-template-columns:repeat(auto-fit,minmax(300px,1fr))}
+    /* ====== COMPACT MODES (no wrapping, cards stay 4-up) ====== */
+    @media (max-width: 1280px){
+      .stack{gap:12px}
       .tier{padding:12px}
+      th,td{font-size:var(--fz-12)}
+      .hero{font-size:clamp(20px,2.8vw,32px)}
+      .stars .tag{font-size:11px}
     }
-    @media (max-width: 680px){
-      .group{gap:6px}
+    @media (max-width: 1080px){
+      .tier{padding:10px;border-radius:14px}
       .btn{padding:6px 8px}
-      th,td{font-size:var(--fz-12);padding:6px 5px}
       .break th,.break td{font-size:var(--fz-11)}
+      .code{font-size:11px}
+      .hero{font-size:clamp(18px,2.6vw,28px)}
+    }
+    @media (max-width: 900px){
+      .stack{gap:10px}
+      th,td{padding:6px 5px}
+      .hero{font-size:clamp(16px,2.4vw,24px)}
+      .stars .tag{padding:2px 6px}
+    }
+    @media (max-width: 780px){
+      header{padding:10px 12px}
+      main{padding:12px}
+      .tier{padding:8px}
+      th,td{font-size:11px}
+      .code{font-size:10px}
+      .hero{font-size:clamp(15px,2.2vw,22px)}
     }
 
     :focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:8px}
@@ -152,15 +175,11 @@
 
 <script>
 /* ===========================================================
-   ui16-tints7  —  Layout tightening + PAL logic already included
-   This file contains the same business logic fixes we shipped
-   earlier (PAL parsing, MN/MP mapping, CM eligibility, etc.)
-   plus the UI resilience tweaks requested.
+   ui16-tints9 — fixed 4-up layout + prior logic fixes
    =========================================================== */
-if (!window.__PAYEREDGE_V16_TINTS7__) {
-  window.__PAYEREDGE_V16_TINTS7__ = true;
+if (!window.__PAYEREDGE_V16_TINTS9__) {
+  window.__PAYEREDGE_V16_TINTS9__ = true;
 
-  /* ============== helpers & cache ============== */
   const CSV_CANDIDATES=['./vsp_choice_master_v8.4.csv','./data/vsp_choice_master_v8.4.csv'];
   const BETTER_CAP_OF_MAX=0.75, GOOD_CAP_OF_MAX=0.60, CAP_RELAX_FACTOR=0.90;
 
@@ -184,17 +203,12 @@ if (!window.__PAYEREDGE_V16_TINTS7__) {
     const sv = s.match(/(\d+)\s*\+\s*(\d+)\s*\(SV\)/i);
     const mf = s.match(/(\d+)\s*\+\s*(\d+)\s*\(MF\)/i);
     const plain = (!sv && !mf) ? s.match(/(\d+)\s*\+\s*(\d+)/) : null;
-
-    const svBase = sv ? +sv[1] : null;
-    const svAdd  = sv ? +sv[2] : null;
-    const mfBase = mf ? +mf[1] : null;
-    const mfAdd  = mf ? +mf[2] : null;
-
+    const svBase = sv ? +sv[1] : null, svAdd = sv ? +sv[2] : null;
+    const mfBase = mf ? +mf[1] : null, mfAdd = mf ? +mf[2] : null;
     if (fam === 'PAL' && !mf && plain) return { svBase, svAdd, mfBase:+plain[1], mfAdd:+plain[2] };
     if (!sv && !mf && plain)         return { svBase:+plain[1], svAdd:+plain[2], mfBase, mfAdd };
     return { svBase, svAdd, mfBase, mfAdd };
   }
-
   function inferProgressiveBaseCodeFromDesc(desc){
     const s=N(desc||'');
     if(/^progressive\s+N/.test(s)) return 'NA';
@@ -211,7 +225,6 @@ if (!window.__PAYEREDGE_V16_TINTS7__) {
   const clearCacheStorage=()=>{ localStorage.removeItem(CACHE_KEY); localStorage.removeItem(META_KEY); };
 
   let DATA=[], SIMPLE_BY_CODE=new Map();
-
   function buildSimpleIndex(){
     SIMPLE_BY_CODE=new Map();
     for(const r of DATA){
@@ -232,15 +245,12 @@ if (!window.__PAYEREDGE_V16_TINTS7__) {
     if(fam==='PAL') return a.includes('MF');
     return true;
   }
-
-  function chooseVariantForFamily(rows, fam) {
+  function chooseVariantForFamily(rows, fam){
     if (!rows || rows.length <= 1) return rows?.[0] || null;
-    const sorted = [...rows].sort((a,b)=>num(a.copay)-num(b.copay));
-    if (fam === 'PAL') return sorted[sorted.length-1];
-    if (fam === 'SV' || fam === 'LINED') return sorted[0];
+    const sorted=[...rows].sort((a,b)=>num(a.copay)-num(b.copay));
+    if (fam==='PAL') return sorted[sorted.length-1];
     return sorted[0];
   }
-
   function pickByCode(code){
     const fam=el('lensFamily').value;
     const wantGlass=el('includeGlass').checked;
@@ -249,7 +259,6 @@ if (!window.__PAYEREDGE_V16_TINTS7__) {
       .filter(r=> wantGlass ? true : !isGlassRow(r));
     return chooseVariantForFamily(list, fam);
   }
-
   function pickBaseByExactCode(baseCode){
     const fam=el('lensFamily').value;
     const list=(SIMPLE_BY_CODE.get(baseCode)||[]);
@@ -267,7 +276,6 @@ if (!window.__PAYEREDGE_V16_TINTS7__) {
     try{ const res=await fetch(url,{cache:'no-store'}); if(!res.ok) throw new Error('HTTP '+res.status); return {ok:true,text:await res.text(),url}; }
     catch(e){ return {ok:false,err:String(e),url}; }
   }
-
   function parseCSV(text){
     const rows=[]; let row=[], field='', q=false;
     for(let i=0;i<text.length;i++){
@@ -281,11 +289,9 @@ if (!window.__PAYEREDGE_V16_TINTS7__) {
     const headers=rows.shift().map(h=>h.replace(/^\"|\"$/g,'').trim());
     return rows.filter(r=>r.length>=headers.length).map(r=>{ const o={}; headers.forEach((h,i)=>o[h]=(r[i]||'').replace(/^\"|\"$/g,'').trim()); return o; });
   }
-
   function renderMeta(count,meta){
     el('version').textContent=`plan=${meta.plan||'VSP_choice'} • rows=${count||0} • version=${meta.version||'—'} • source=${meta.source||'—'} • sha=${meta.sha||'—'}`;
   }
-
   const byKey=k=>DATA.filter(r=>(r.active||'yes').toLowerCase()==='yes' && (r.exclusive_key||'').toLowerCase()===k);
   const tdMoney=v=>`<td class="money">$${v.toFixed(2)}</td>`;
 
@@ -352,6 +358,13 @@ if (!window.__PAYEREDGE_V16_TINTS7__) {
     return {label,lines,copay:cop,chargeback:cb,profit:pr,ratio:cop?pr/cop:0};
   }
 
+  function animateNumber(node,to){
+    const from=parseFloat(node.getAttribute('data-prev')||'0'); const start=performance.now(); const dur=380;
+    function step(t){ const k=Math.min(1,(t-start)/dur); const v=from+(to-from)*(0.5-Math.cos(Math.PI*k)/2);
+      node.textContent=`$${v.toFixed(2)}`; if(k<1) requestAnimationFrame(step); else node.setAttribute('data-prev',to); }
+    requestAnimationFrame(step);
+  }
+
   function renderTier({name,cls,b}){
     const div=document.createElement('div'); div.className='tier';
     if(!b){
@@ -377,17 +390,10 @@ if (!window.__PAYEREDGE_V16_TINTS7__) {
     animateNumber(div.querySelector('.hero'), b.copay);
     return div;
   }
-  function renderStack(rows){ const stack=el('stack'); stack.innerHTML=''; rows.forEach(r=>stack.appendChild(renderTier(r))); fitTextAll(); }
-
-  function materialKey(label){
-    const s=N(label);
-    if(s.includes('polycarb')) return 'poly';
-    if(s.includes('trivex')) return 'trivex';
-    if(/1\.74|1\.75/.test(s)) return 'hi174';
-    if(/1\.70|1\.71|above/.test(s)) return 'hi70';
-    if(/1\.66|1\.67/.test(s)) return 'hi167';
-    if(/cr[\s-]?39/.test(s)||(s.includes('plastic')&&!s.includes('high'))) return 'cr39';
-    return 'other';
+  function renderStack(rows){
+    const stack=el('stack'); stack.innerHTML='';
+    rows.forEach(r=>stack.appendChild(renderTier(r)));
+    fitTextAll(); // ensure headings/tags fit inside fixed-width cards
   }
 
   function sunPool(fam, wantGlass){
@@ -438,7 +444,7 @@ if (!window.__PAYEREDGE_V16_TINTS7__) {
     let loaded=null;
     for(const url of CSV_CANDIDATES){ const r=await tryFetch(url); if(r.ok){ loaded=r; break; } }
     if(loaded){
-      const meta={plan:'VSP_choice',version:new Date().toISOString().slice(0,10)+'.ui16-tints7',source:'network:'+loaded.url,sha:quickHash(loaded.text)};
+      const meta={plan:'VSP_choice',version:new Date().toISOString().slice(0,10)+'.ui16-tints9',source:'network:'+loaded.url,sha:quickHash(loaded.text)};
       setCache(loaded.text,meta); DATA=parseCSV(loaded.text); buildSimpleIndex(); renderMeta(DATA.length,meta);
       status.textContent=` [ok] ${loaded.url} • ${DATA.length} rows`; computeBundles(); return;
     }
@@ -540,7 +546,6 @@ if (!window.__PAYEREDGE_V16_TINTS7__) {
       if (!isEligibleProgressiveNO(baseRow)) return null;
       return (DATA.filter(r=>applies(r,'PAL')).find(row=>/custom\s*measure/i.test(N(row.enhancement||row.subtype||'')))||null);
     }
-
     function buildBundle(m,arRow){
       return makeBundle(m,[arRow,chooseSunFor(m),cmIfEligible(m),overs]);
     }
@@ -587,18 +592,10 @@ if (!window.__PAYEREDGE_V16_TINTS7__) {
     ]);
   }
 
-  // number animation
-  function animateNumber(node,to){
-    const from=parseFloat(node.getAttribute('data-prev')||'0'); const start=performance.now(); const dur=380;
-    function step(t){ const k=Math.min(1,(t-start)/dur); const v=from+(to-from)*(0.5-Math.cos(Math.PI*k)/2);
-      node.textContent=`$${v.toFixed(2)}`; if(k<1) requestAnimationFrame(step); else node.setAttribute('data-prev',to); }
-    requestAnimationFrame(step);
-  }
-
-  // ===== Auto-fit long labels & big numbers so bubbles/headers never overflow
-  function fitText(el, {min=10, max=36, step=0.5}={}){
+  /* ===== Auto-fit big numbers and tags to fixed card width ===== */
+  function fitText(el, {min=10, max=36, step=0.4}={}){
     if(!el) return;
-    el.style.fontSize = ''; // let CSS clamp apply first
+    el.style.fontSize = ''; // allow CSS clamp
     const maxPx = Math.min(max, parseFloat(getComputedStyle(el).fontSize)||max);
     let size = maxPx;
     const parent = el.parentElement;
@@ -607,13 +604,12 @@ if (!window.__PAYEREDGE_V16_TINTS7__) {
     while(size>min && !fits()){ size -= step; el.style.fontSize = size+'px'; }
   }
   function fitTextAll(){
-    document.querySelectorAll('.hero').forEach(n=>fitText(n,{min:18,max:36}));
-    document.querySelectorAll('.tierHead .tag').forEach(n=>fitText(n,{min:10,max:13}));
+    document.querySelectorAll('.hero').forEach(n=>fitText(n,{min:14,max:36}));
+    document.querySelectorAll('.tierHead .tag').forEach(n=>fitText(n,{min:9,max:13}));
   }
   const ro=new ResizeObserver(()=>fitTextAll());
   ro.observe(document.body);
 
-  // UI wiring
   document.getElementById('forceRefresh').onclick=()=>{ clearCacheStorage(); loadCSV(); };
   document.getElementById('clearCache').onclick =()=>{ clearCacheStorage(); el('status').textContent=' cache cleared — click Force Refresh to reload'; };
   ['lensFamily','lensTint','includeAR','includeAspheric','includeOversize','includeGlass','includeCM'].forEach(id=>{ const n=el(id); if(n) n.onchange=computeBundles; });
