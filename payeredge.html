@@ -60,31 +60,33 @@
     th{color:var(--muted);font-weight:700;line-height:1.15}
     td{overflow:hidden;text-overflow:ellipsis}
 
-    /* column widths (more room to money) */
-    /* 36 / 10 / 18 / 18 / 18 */
+    /* Column widths (money gets more room): 36 / 10 / 18 / 18 / 18 */
     .bundle col:nth-child(1){width:36%}
     .bundle col:nth-child(2){width:10%}
     .bundle col:nth-child(3){width:18%}
     .bundle col:nth-child(4){width:18%}
     .bundle col:nth-child(5){width:18%}
 
-    /* item column clamps */
     .cell-item{line-height:1.28;padding-bottom:2px}
     .cell-item .label{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-size:.95em}
     @media (min-width:1200px){ .cell-item .label{-webkit-line-clamp:3} }
 
     .cell-code{white-space:nowrap}
 
-    /* money columns: guaranteed gutters + right align + min-width */
+    /* Money columns: right-align + generous inner padding + min width. NO bars. */
     .cell-money{
       white-space:nowrap;font-weight:800;text-align:right;
       font-size:clamp(11px,1.05vw,13px);
-      padding-left:18px;padding-right:4px; /* ← breathing room */
+      padding-left:18px;padding-right:4px;   /* breathing room between columns */
       overflow:visible;text-overflow:clip;
-      min-width:110px;                  /* ← prevent squeeze */
-      border-left:1px dashed #203043;   /* ← subtle vertical gutter */
+      min-width:110px;                        /* prevents squeeze/crowding */
     }
-    .th-money{white-space:normal;text-align:right;border-left:1px dashed #203043;padding-left:12px}
+    .th-money{white-space:normal;text-align:right}
+
+    /* enforce right alignment even if class is missed */
+    .bundle td:nth-child(3), .bundle th:nth-child(3),
+    .bundle td:nth-child(4), .bundle th:nth-child(4),
+    .bundle td:nth-child(5), .bundle th:nth-child(5){ text-align:right }
 
     /* mobile */
     @media (max-width:1280px){ th{font-size:11px} .cell-money{font-size:12px} }
@@ -94,8 +96,7 @@
       header{position:static}
       .hero{font-size:32px}
       table.bundle{table-layout:auto}
-      .cell-money{font-size:13px;min-width:unset;border-left:0;padding-left:10px}
-      .th-money{border-left:0}
+      .cell-money{font-size:13px;min-width:unset;padding-left:12px}
     }
     @media (max-width:560px){ body{font-size:14px} .hero{font-size:28px} th,td{padding:7px 6px} }
 
@@ -151,8 +152,8 @@
 </main>
 
 <script>
-if(!window.__PAYEREDGE_UI16_7_CLEAR_GUTTERS__){
-window.__PAYEREDGE_UI16_7_CLEAR_GUTTERS__=true;
+if(!window.__PAYEREDGE_UI16_8_NO_BARS__){
+window.__PAYEREDGE_UI16_8_NO_BARS__=true;
 
 /* ---------- helpers ---------- */
 const CSV_CANDIDATES=['./vsp_choice_master_v8.4.csv','./data/vsp_choice_master_v8.4.csv'];
@@ -228,7 +229,7 @@ async function loadCSV(){
   let loaded=null;
   for(const url of CSV_CANDIDATES){ const r=await tryFetch(url); if(r.ok){ loaded=r; break; } }
   if(loaded){
-    const meta={plan:'VSP_choice',version:new Date().toISOString().slice(0,10)+'.ui16.7-clear-gutters',source:'network:'+loaded.url,sha:quickHash(loaded.text)};
+    const meta={plan:'VSP_choice',version:new Date().toISOString().slice(0,10)+'.ui16.8-no-bars',source:'network:'+loaded.url,sha:quickHash(loaded.text)};
     setCache(loaded.text,meta); DATA=parseCSV(loaded.text); buildSimpleIndex(); renderMeta(DATA.length,meta);
     status.textContent=` [ok] ${loaded.url} • ${DATA.length} rows`; computeBundles(); return;
   }
