@@ -6,18 +6,13 @@
   <title>PayerEdge — VSP Bundles</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <!-- Inter renders very close to SF on non-Apple devices; we still prefer system on Apple -->
+  <!-- Inter for cross-platform; SF on Apple devices via system stack -->
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
   <style>
     :root{
       /* Palette */
-      --bg:#0a0e15;
-      --bg-elev:#0e1521;
-      --fg:#f6f8ff;
-      --muted:#a8b7cf;
-      --line:#233141;
-      --accent:#7fb3ff;
-      --accent-2:#79e5c5;
+      --bg:#0a0e15; --bg-elev:#0e1521; --fg:#f6f8ff; --muted:#a8b7cf; --line:#233141;
+      --accent:#7fb3ff; --accent-2:#79e5c5;
 
       /* Emphasis */
       --tier-best:#ffd166; --tier-better:#a9c2ff; --tier-good:#7be0c3;
@@ -32,12 +27,9 @@
       --w-code:22%;
       --w-money:19%;
 
-      /* Type scale (Apple-esque: quiet, crisp) */
+      /* Type (reverted) */
       --fs-10:10.5px; --fs-11:11.5px; --fs-12:12.5px; --fs-13:13.5px; --fs-14:14.5px;
       --fs-16:16px; --fs-18:18px; --fs-20:20px; --fs-24:24px; --fs-32:32px; --fs-36:36px;
-
-      /* Spacing */
-      --sp-4:4px; --sp-6:6px; --sp-8:8px; --sp-10:10px; --sp-12:12px; --sp-14:14px; --sp-16:16px;
     }
 
     *{box-sizing:border-box}
@@ -58,7 +50,7 @@
 
     header{
       position:sticky;top:0;z-index:20;
-      display:flex;justify-content:space-between;align-items:center;gap:var(--sp-14);
+      display:flex;justify-content:space-between;align-items:center;gap:14px;
       padding:12px 16px;
       background:linear-gradient(180deg, rgba(10,14,21,.96), rgba(10,14,21,.78));
       border-bottom:1px solid var(--line);
@@ -66,15 +58,16 @@
     }
     h1{margin:0;font-weight:800;font-size:clamp(16px,1.8vw,var(--fs-20));letter-spacing:.2px}
     .sub{color:var(--muted);font-size:var(--fs-12)}
+    main{padding:14px}
 
-    main{padding:var(--sp-14)}
+    /* toolbar */
     .bar{
       display:flex;align-items:center;flex-wrap:wrap;gap:10px 12px;
       background:linear-gradient(180deg,var(--bg-elev),#0b1422);
       border:1px solid var(--line);border-radius:var(--radius);
-      padding:var(--sp-10);box-shadow:var(--shadow-md)
+      padding:10px;box-shadow:var(--shadow-md)
     }
-    .group{display:flex;gap:var(--sp-8);align-items:center;padding:6px 8px;border-radius:999px;background:#0b1424}
+    .group{display:flex;gap:8px;align-items:center;padding:6px 8px;border-radius:999px;background:#0b1424}
     .btn{
       background:#121f35;border:1px solid var(--line);color:var(--fg);
       padding:6px 10px;border-radius:12px;cursor:pointer;font-weight:600;font-size:var(--fs-12);
@@ -107,9 +100,14 @@
     .stars{font-weight:800;display:flex;align-items:center;gap:8px}
     .stars.best{color:var(--tier-best)} .stars.better{color:var(--tier-better)} .stars.good{color:var(--tier-good)}
     .figures{text-align:right;display:grid;gap:2px}
-    .hero{font-size:clamp(22px,2.7vw,var(--fs-36));font-weight:800;line-height:1;letter-spacing:.1px;color:#e4efff;text-shadow:0 6px 18px rgba(114,168,255,.16)}
+    .hero{
+      font-size:clamp(20px,2.6vw,36px);   /* reverted size */
+      font-weight:600;                    /* reverted weight */
+      line-height:1;letter-spacing:.2px;
+      color:#cfe6ff;text-shadow:0 6px 18px rgba(114,168,255,.18)
+    }
     .caption{color:var(--muted);font-size:var(--fs-11)}
-    .svc{font-weight:800;color:var(--accent-2)}
+    .svc{font-weight:600;color:var(--accent-2)} /* reverted weight */
 
     /* Table */
     table.bundle{width:100%;border-collapse:collapse;margin-top:8px;table-layout:fixed}
@@ -125,10 +123,8 @@
       display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;font-size:var(--fs-12)
     }
 
-    /* Code chip (unified look) */
-    .cell-code{
-      white-space:normal;overflow:visible;text-overflow:clip;word-break:break-word
-    }
+    /* Code chip */
+    .cell-code{white-space:normal;overflow:visible;text-overflow:clip;word-break:break-word}
     .codechip{
       display:inline-flex;align-items:center;gap:6px;
       padding:2px 8px;border:1px solid var(--line);border-radius:999px;
@@ -138,8 +134,9 @@
     }
 
     .cell-money{
-      white-space:nowrap;font-weight:800;text-align:right;
-      font-size:clamp(12px,1.05vw,13.5px);
+      white-space:nowrap;text-align:right;
+      font-weight:600;                           /* reverted weight */
+      font-size:clamp(11px,1.05vw,13px);         /* reverted size */
       font-variant-numeric:tabular-nums;
       padding-left:16px;padding-right:6px;
       overflow:visible;text-overflow:clip;
@@ -149,16 +146,9 @@
     .bundle td:nth-child(4), .bundle th:nth-child(4){ text-align:right }
     tfoot th, tfoot td{border-top:1px solid rgba(255,255,255,.08);border-bottom:0;padding-top:9px;padding-bottom:8px}
 
-    /* Breakdown (re-aligned to 3 visible headers: Item | Code | Copay | Service Fee) */
+    /* Breakdown (nested table shares the exact colgroup for perfect alignment) */
     details.break summary{cursor:pointer;opacity:.95;font-weight:600}
-    .breakbox{padding:6px 8px 10px}
-    .align-grid{
-      display:grid;
-      grid-template-columns: var(--w-item) var(--w-code) var(--w-money) var(--w-money);
-      column-gap:8px; row-gap:6px; align-items:center;
-    }
-    .align-grid .hdr{color:#cbd6ec;font-weight:700;font-size:var(--fs-11)}
-    .align-grid .money{ text-align:right; font-variant-numeric:tabular-nums }
+    .breakbox{padding:6px 0 10px}
 
     /* Responsive */
     @media (max-width:1280px){
@@ -173,7 +163,6 @@
       .hero{font-size:var(--fs-32)}
       table.bundle{table-layout:auto}
       .cell-money{font-size:13px;min-width:unset;padding-left:12px}
-      .align-grid{grid-template-columns: 25% 25% 25% 25%}
     }
     @media (max-width:560px){
       body{font-size:14px} .hero{font-size:28px} th,td{padding:7px 6px}
@@ -235,10 +224,10 @@
 </main>
 
 <script>
-if(!window.__PAYEREDGE_UI1695_APPLE__){
-window.__PAYEREDGE_UI1695_APPLE__=true;
+if(!window.__PAYEREDGE_UI1695_REVERT__){
+window.__PAYEREDGE_UI1695_REVERT__=true;
 
-/* pipe JS errors into status pill */
+/* show JS errors in status */
 window.onerror = function(msg, src, line, col){
   const s=document.getElementById('status');
   if(s) s.textContent = ' script error: ' + msg + ' @' + (src||'') + ':' + (line||'?');
@@ -322,7 +311,7 @@ async function loadCSV(){
   let loaded=null, tried=[];
   for(const url of CSV_CANDIDATES){ const r=await tryFetch(url); tried.push(url); if(r.ok){ loaded=r; break; } }
   if(loaded){
-    const meta={plan:'VSP_choice',version:new Date().toISOString().slice(0,10)+'.ui16.9.5-apple',source:'network:'+loaded.url,sha:quickHash(loaded.text)};
+    const meta={plan:'VSP_choice',version:new Date().toISOString().slice(0,10)+'.ui16.9.5-revert',source:'network:'+loaded.url,sha:quickHash(loaded.text)};
     setCache(loaded.text,meta); DATA=parseCSV(loaded.text); buildSimpleIndex(); renderMeta(DATA.length,meta);
     status.textContent=` [ok] ${loaded.url} • ${DATA.length} rows`; computeBundles(); return;
   }
@@ -553,13 +542,15 @@ function computeBundles(){
 const tdMoney = (v, key) =>
   `<td class="cell-money" data-key="${key}" data-anim="${v.toFixed(2)}">$${v.toFixed(2)}</td>`;
 
-function breakdownDetails(li,rowKey){
+function breakdownTable(li,rowKey){
   if(!li.parts?.length) return '';
-  const rows = li.parts.map((p,pi) => `
-    <div></div>
-    <div class="money"><span class="codechip" title="${p.code}">${p.code}</span></div>
-    <div class="money" data-key="${rowKey}-p${pi}-c"  data-anim="${p.copay.toFixed(2)}">$${p.copay.toFixed(2)}</div>
-    <div class="money" data-key="${rowKey}-p${pi}-pr" data-anim="${p.profit.toFixed(2)}">$${p.profit.toFixed(2)}</div>
+  const rows = li.parts.map((p,pi)=>`
+      <tr>
+        <td></td>
+        <td><span class="codechip" title="${p.code}">${p.code}</span></td>
+        <td class="cell-money" data-key="${rowKey}-p${pi}-c"  data-anim="${p.copay.toFixed(2)}">$${p.copay.toFixed(2)}</td>
+        <td class="cell-money" data-key="${rowKey}-p${pi}-pr" data-anim="${p.profit.toFixed(2)}">$${p.profit.toFixed(2)}</td>
+      </tr>
   `).join('');
   return `
     <tr>
@@ -567,10 +558,23 @@ function breakdownDetails(li,rowKey){
         <details class="break" open>
           <summary>Breakdown</summary>
           <div class="breakbox">
-            <div class="align-grid">
-              <div></div><div class="hdr">Code</div><div class="hdr">Copay</div><div class="hdr">Service Fee</div>
-              ${rows}
-            </div>
+            <table class="bundle" aria-label="Breakdown rows" style="margin-top:6px">
+              <colgroup>
+                <col style="width:var(--w-item)">
+                <col style="width:var(--w-code)">
+                <col style="width:var(--w-money)">
+                <col style="width:var(--w-money)">
+              </colgroup>
+              <thead>
+                <tr>
+                  <th></th>
+                  <th>Code</th>
+                  <th>Copay</th>
+                  <th>Service Fee</th>
+                </tr>
+              </thead>
+              <tbody>${rows}</tbody>
+            </table>
           </div>
         </details>
       </td>
@@ -606,7 +610,7 @@ function renderTier({name,cls,b}){
       ${tdMoney(li.copay,  `${rowKey}-c`)}
       ${tdMoney(li.profit, `${rowKey}-pr`)}
     </tr>`;
-    const parts=(li.parts&&li.parts.length)?breakdownDetails(li,rowKey):'';
+    const parts=(li.parts&&li.parts.length)?breakdownTable(li,rowKey):'';
     return main+parts;
   }).join('');
 
