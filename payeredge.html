@@ -6,173 +6,110 @@
   <title>PayerEdge — VSP Bundles</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <!-- Inter for cross-platform; SF on Apple devices via system stack -->
+  <!-- Same family/weights as your original -->
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
   <style>
     :root{
-      /* Palette */
-      --bg:#0a0e15; --bg-elev:#0e1521; --fg:#f6f8ff; --muted:#a8b7cf; --line:#233141;
-      --accent:#7fb3ff; --accent-2:#79e5c5;
+      --bg:#090e16;--bg-elev:#0c1320;--fg:#eaf1ff;--muted:#9fb0c9;--line:#263448;--accent:#72a8ff;--accent-2:#7be0c3;
+      --tier-best:#ffd166;--tier-better:#a9c2ff;--tier-good:#7be0c3;
+      --shadow-lg:0 18px 40px rgba(0,0,0,.35);--shadow-md:0 10px 26px rgba(0,0,0,.28);
+      --radius:18px;
 
-      /* Emphasis */
-      --tier-best:#ffd166; --tier-better:#a9c2ff; --tier-good:#7be0c3;
-
-      /* Shadow & Radius */
-      --shadow-lg:0 22px 50px rgba(0,0,0,.35);
-      --shadow-md:0 12px 28px rgba(0,0,0,.26);
-      --radius:20px;
-
-      /* Column geometry (Holdback removed: Item | Code | Copay | Service Fee) */
+      /* unified column geometry (Holdback removed) */
       --w-item:40%;
       --w-code:22%;
       --w-money:19%;
-
-      /* Type (reverted) */
-      --fs-10:10.5px; --fs-11:11.5px; --fs-12:12.5px; --fs-13:13.5px; --fs-14:14.5px;
-      --fs-16:16px; --fs-18:18px; --fs-20:20px; --fs-24:24px; --fs-32:32px; --fs-36:36px;
     }
-
-    *{box-sizing:border-box}
-    html,body{height:100%}
+    *{box-sizing:border-box} html,body{height:100%}
     body{
-      margin:0;
-      background:
-        radial-gradient(1200px 600px at 20% -10%, rgba(114,168,255,.12), transparent 60%),
+      margin:0;background:
+        radial-gradient(1200px 600px at 20% -10%, rgba(90,168,255,.12), transparent 60%),
         radial-gradient(900px 500px at 110% 10%, rgba(123,224,195,.10), transparent 60%),
         var(--bg);
       color:var(--fg);
-      font:15px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,system-ui,sans-serif;
-      -webkit-font-smoothing:antialiased;
-      -moz-osx-font-smoothing:grayscale;
-      font-variant-numeric:tabular-nums;
-      letter-spacing:.1px;
+      font:15px/1.45 Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+      -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;
+      font-variant-numeric:tabular-nums
     }
-
     header{
-      position:sticky;top:0;z-index:20;
-      display:flex;justify-content:space-between;align-items:center;gap:14px;
-      padding:12px 16px;
-      background:linear-gradient(180deg, rgba(10,14,21,.96), rgba(10,14,21,.78));
-      border-bottom:1px solid var(--line);
-      backdrop-filter:blur(10px)
+      position:sticky;top:0;z-index:20;display:flex;justify-content:space-between;align-items:center;gap:14px;padding:12px 16px;
+      background:linear-gradient(180deg, rgba(9,14,22,.95), rgba(9,14,22,.78));border-bottom:1px solid var(--line);backdrop-filter:blur(10px)
     }
-    h1{margin:0;font-weight:800;font-size:clamp(16px,1.8vw,var(--fs-20));letter-spacing:.2px}
-    .sub{color:var(--muted);font-size:var(--fs-12)}
+    h1{margin:0;font-weight:800;font-size:clamp(16px,1.8vw,20px)}
+    .sub{color:var(--muted);font-size:12px}
     main{padding:14px}
 
     /* toolbar */
-    .bar{
-      display:flex;align-items:center;flex-wrap:wrap;gap:10px 12px;
-      background:linear-gradient(180deg,var(--bg-elev),#0b1422);
-      border:1px solid var(--line);border-radius:var(--radius);
-      padding:10px;box-shadow:var(--shadow-md)
-    }
+    .bar{display:flex;align-items:center;flex-wrap:wrap;gap:10px 12px;background:linear-gradient(180deg,var(--bg-elev),#0b1220);
+      border:1px solid var(--line);border-radius:18px;padding:10px;box-shadow:var(--shadow-md)}
     .group{display:flex;gap:8px;align-items:center;padding:6px 8px;border-radius:999px;background:#0b1424}
-    .btn{
-      background:#121f35;border:1px solid var(--line);color:var(--fg);
-      padding:6px 10px;border-radius:12px;cursor:pointer;font-weight:600;font-size:var(--fs-12);
-      transition:.15s
-    }
+    .btn{background:#121f35;border:1px solid var(--line);color:var(--fg);padding:6px 9px;border-radius:12px;cursor:pointer;font-weight:600;transition:.15s}
     .btn:hover{background:#162844;border-color:#2e4260}
-    .switch{display:inline-flex;align-items:center;gap:8px;font-size:var(--fs-12);color:#cfe1ff}
-    select{
-      background:#0e1a30;color:#fff;border:1px solid var(--line);
-      border-radius:10px;padding:6px 8px;outline:none;font-size:var(--fs-12)
-    }
+    .switch{display:inline-flex;align-items:center;gap:8px}
+    select{background:#0e1a30;color:#fff;border:1px solid var(--line);border-radius:10px;padding:6px 8px;outline:none}
     select:focus{box-shadow:0 0 0 3px rgba(114,168,255,.25)}
-    #status{
-      margin-left:auto;padding:6px 10px;border-radius:999px;border:1px dashed var(--line);
-      background:#0b1422;color:#c7d6ef;font-size:var(--fs-11);
-      max-width:52vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap
-    }
+    #status{margin-left:auto;padding:6px 10px;border-radius:999px;border:1px dashed var(--line);background:#0b1422;color:#c7d6ef;font-size:12px;max-width:52vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
-    /* Cards grid */
+    /* grid */
     .viewport-frame{transform-origin:top left;width:100%}
     .stack{display:grid;grid-template-columns:repeat(4,minmax(320px,1fr));gap:14px;align-items:stretch;margin-top:12px}
-    .tier{
-      background:linear-gradient(180deg,#0f1726,#0c1422);
-      border:1px solid var(--line);
-      border-radius:var(--radius);
-      box-shadow:var(--shadow-lg);
-      padding:12px
-    }
-    .tierHead{display:grid;grid-template-columns:1fr auto;align-items:center;gap:10px;margin-bottom:6px}
+    .tier{background:linear-gradient(180deg,#0f1726,#0c1422);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow-lg);padding:12px}
+    .tierHead{display:grid;grid-template-columns:1fr auto;align-items:center;gap:10px;margin-bottom:8px}
     .stars{font-weight:800;display:flex;align-items:center;gap:8px}
     .stars.best{color:var(--tier-best)} .stars.better{color:var(--tier-better)} .stars.good{color:var(--tier-good)}
     .figures{text-align:right;display:grid;gap:2px}
-    .hero{
-      font-size:clamp(20px,2.6vw,36px);   /* reverted size */
-      font-weight:600;                    /* reverted weight */
-      line-height:1;letter-spacing:.2px;
-      color:#cfe6ff;text-shadow:0 6px 18px rgba(114,168,255,.18)
-    }
-    .caption{color:var(--muted);font-size:var(--fs-11)}
-    .svc{font-weight:600;color:var(--accent-2)} /* reverted weight */
+    .hero{font-size:clamp(20px,2.6vw,36px);font-weight:800;line-height:1;letter-spacing:.2px;color:#cfe6ff;text-shadow:0 6px 18px rgba(114,168,255,.18)}
+    .caption{color:var(--muted);font-size:12px} .svc{font-weight:800;color:var(--accent-2)}
 
-    /* Table */
+    /* table */
     table.bundle{width:100%;border-collapse:collapse;margin-top:8px;table-layout:fixed}
-    th,td{border-bottom:1px dashed #213245;padding:7px 6px;font-size:var(--fs-12);vertical-align:top}
-    thead th{color:#c8d6ee;font-weight:700;line-height:1.1;white-space:nowrap;font-size:var(--fs-11);letter-spacing:.2px}
+    th,td{border-bottom:1px dashed #203043;padding:8px 6px;font-size:12px;vertical-align:top}
+    thead th{color:var(--muted);font-weight:700;line-height:1.15;white-space:nowrap}
     .bundle col:nth-child(1){width:var(--w-item)}
     .bundle col:nth-child(2){width:var(--w-code)}
     .bundle col:nth-child(3){width:var(--w-money)}
     .bundle col:nth-child(4){width:var(--w-money)}
 
     .cell-item{line-height:1.32;padding-bottom:2px}
-    .cell-item .label{
-      display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;font-size:var(--fs-12)
-    }
+    .cell-item .label{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;font-size:.95em}
 
-    /* Code chip */
-    .cell-code{white-space:normal;overflow:visible;text-overflow:clip;word-break:break-word}
-    .codechip{
-      display:inline-flex;align-items:center;gap:6px;
-      padding:2px 8px;border:1px solid var(--line);border-radius:999px;
-      background:#0e1a30;color:#cfe1ff;
-      font:600 var(--fs-12) ui-monospace,Menlo,Consolas,monospace;
-      letter-spacing:.2px
+    .cell-code{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .codepill{
+      display:inline-flex;align-items:center;justify-content:center;padding:2px 8px;border:1px solid var(--line);border-radius:999px;
+      font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px;color:#cfe1ff;background:#0e1a30;white-space:nowrap;max-width:110px;overflow:hidden;text-overflow:ellipsis
     }
 
     .cell-money{
-      white-space:nowrap;text-align:right;
-      font-weight:600;                           /* reverted weight */
-      font-size:clamp(11px,1.05vw,13px);         /* reverted size */
+      white-space:nowrap;font-weight:800;text-align:right;
+      font-size:clamp(11px,1.05vw,13px);
       font-variant-numeric:tabular-nums;
       padding-left:16px;padding-right:6px;
       overflow:visible;text-overflow:clip;
-      min-width:110px;
+      min-width:120px;
     }
     .bundle td:nth-child(3), .bundle th:nth-child(3),
     .bundle td:nth-child(4), .bundle th:nth-child(4){ text-align:right }
+
     tfoot th, tfoot td{border-top:1px solid rgba(255,255,255,.08);border-bottom:0;padding-top:9px;padding-bottom:8px}
 
-    /* Breakdown (nested table shares the exact colgroup for perfect alignment) */
-    details.break summary{cursor:pointer;opacity:.95;font-weight:600}
+    /* breakdown: nested table with matching colgroup for perfect alignment (Code | Copay | Service Fee) */
+    details.break summary{cursor:pointer;opacity:.9}
     .breakbox{padding:6px 0 10px}
+    .break-table thead th{color:var(--muted);font-weight:700;font-size:11px}
+    .break-table .cell-money{min-width:auto}
 
-    /* Responsive */
-    @media (max-width:1280px){
-      thead th{font-size:var(--fs-10)}
-      .cell-money{font-size:12px}
-      .codechip{font-size:var(--fs-11);padding:2px 7px}
-    }
+    /* responsive */
+    @media (max-width:1280px){ thead th{font-size:11px} .cell-money{font-size:12px} }
     @media (max-width:900px){
       .stack{grid-template-columns:1fr}
       .viewport-frame{transform:none !important;width:100% !important}
       header{position:static}
-      .hero{font-size:var(--fs-32)}
+      .hero{font-size:32px}
       table.bundle{table-layout:auto}
       .cell-money{font-size:13px;min-width:unset;padding-left:12px}
     }
-    @media (max-width:560px){
-      body{font-size:14px} .hero{font-size:28px} th,td{padding:7px 6px}
-    }
-    @media print{
-      header,.bar{display:none}
-      body{background:#fff;color:#000}
-      .tier{break-inside:avoid;border:1px solid #000;box-shadow:none}
-      table,th,td{border-color:#000}
-    }
+    @media (max-width:560px){ body{font-size:14px} .hero{font-size:28px} th,td{padding:7px 6px} }
+    @media print{header,.bar{display:none} body{background:#fff;color:#000}.tier{break-inside:avoid;border:1px solid #000;box-shadow:none} table,th,td{border-color:#000}}
   </style>
 </head>
 <body>
@@ -193,9 +130,9 @@
     <div class="group">
       <label class="switch">Lens family
         <select id="lensFamily" aria-label="Lens family">
-          <option value="SV">Single Vision</option>
+          <option value="SV" selected>Single Vision</option>
           <option value="LINED">Lined Bi/Tri</option>
-          <option value="PAL" selected>Progressive</option>
+          <option value="PAL">Progressive</option>
         </select>
       </label>
       <label class="switch">Lens tint
@@ -224,10 +161,10 @@
 </main>
 
 <script>
-if(!window.__PAYEREDGE_UI1695_REVERT__){
-window.__PAYEREDGE_UI1695_REVERT__=true;
+if(!window.__PAYEREDGE_UI1696_FONTSBACK__){
+window.__PAYEREDGE_UI1696_FONTSBACK__=true;
 
-/* show JS errors in status */
+/* show JS errors in the status pill so “blank” is diagnosable */
 window.onerror = function(msg, src, line, col){
   const s=document.getElementById('status');
   if(s) s.textContent = ' script error: ' + msg + ' @' + (src||'') + ':' + (line||'?');
@@ -311,7 +248,7 @@ async function loadCSV(){
   let loaded=null, tried=[];
   for(const url of CSV_CANDIDATES){ const r=await tryFetch(url); tried.push(url); if(r.ok){ loaded=r; break; } }
   if(loaded){
-    const meta={plan:'VSP_choice',version:new Date().toISOString().slice(0,10)+'.ui16.9.5-revert',source:'network:'+loaded.url,sha:quickHash(loaded.text)};
+    const meta={plan:'VSP_choice',version:new Date().toISOString().slice(0,10)+'.ui16.9.6-fontsback',source:'network:'+loaded.url,sha:quickHash(loaded.text)};
     setCache(loaded.text,meta); DATA=parseCSV(loaded.text); buildSimpleIndex(); renderMeta(DATA.length,meta);
     status.textContent=` [ok] ${loaded.url} • ${DATA.length} rows`; computeBundles(); return;
   }
@@ -547,7 +484,7 @@ function breakdownTable(li,rowKey){
   const rows = li.parts.map((p,pi)=>`
       <tr>
         <td></td>
-        <td><span class="codechip" title="${p.code}">${p.code}</span></td>
+        <td><span class="codepill" title="${p.code}">${p.code}</span></td>
         <td class="cell-money" data-key="${rowKey}-p${pi}-c"  data-anim="${p.copay.toFixed(2)}">$${p.copay.toFixed(2)}</td>
         <td class="cell-money" data-key="${rowKey}-p${pi}-pr" data-anim="${p.profit.toFixed(2)}">$${p.profit.toFixed(2)}</td>
       </tr>
@@ -558,7 +495,7 @@ function breakdownTable(li,rowKey){
         <details class="break" open>
           <summary>Breakdown</summary>
           <div class="breakbox">
-            <table class="bundle" aria-label="Breakdown rows" style="margin-top:6px">
+            <table class="bundle break-table" aria-label="Breakdown rows" style="margin-top:6px">
               <colgroup>
                 <col style="width:var(--w-item)">
                 <col style="width:var(--w-code)">
@@ -603,7 +540,7 @@ function renderTier({name,cls,b}){
 
   const lines=b.lines.map((li,i)=>{
     const rowKey=`${name}-line${i}`;
-    const code = li.code ? `<span class="codechip" title="${li.code}">${li.code}</span>` : '—';
+    const code = li.code ? `<span class="codepill" title="${li.code}">${li.code}</span>` : '—';
     const main=`<tr>
       <td class="cell-item"><span class="label" title="${li.name}">${li.name}</span></td>
       <td class="cell-code">${code}</td>
