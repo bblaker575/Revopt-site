@@ -13,11 +13,10 @@
       --tier-best:#ffd166;--tier-better:#a9c2ff;--tier-good:#7be0c3;
       --shadow-lg:0 18px 40px rgba(0,0,0,.35);--shadow-md:0 10px 26px rgba(0,0,0,.28);
       --radius:18px;
-
       /* unified column geometry */
       --w-item:34%;
       --w-code:14%;
-      --w-money:17%; /* 3 money columns */
+      --w-money:17%;
     }
     *{box-sizing:border-box} html,body{height:100%}
     body{
@@ -35,7 +34,6 @@
     h1{margin:0;font-weight:800;font-size:clamp(16px,1.8vw,20px)}
     .sub{color:var(--muted);font-size:12px}
     main{padding:14px}
-
     /* toolbar */
     .bar{display:flex;align-items:center;flex-wrap:wrap;gap:10px 12px;background:linear-gradient(180deg,var(--bg-elev),#0b1220);
       border:1px solid var(--line);border-radius:18px;padding:10px;box-shadow:var(--shadow-md)}
@@ -46,11 +44,9 @@
     select{background:#0e1a30;color:#fff;border:1px solid var(--line);border-radius:10px;padding:6px 8px;outline:none}
     select:focus{box-shadow:0 0 0 3px rgba(114,168,255,.25)}
     #status{margin-left:auto;padding:6px 10px;border-radius:999px;border:1px dashed var(--line);background:#0b1422;color:#c7d6ef;font-size:12px;max-width:52vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-
     /* grid */
     .viewport-frame{transform-origin:top left;width:100%}
     .stack{display:grid;grid-template-columns:repeat(4,minmax(320px,1fr));gap:14px;align-items:stretch;margin-top:12px}
-
     .tier{background:linear-gradient(180deg,#0f1726,#0c1422);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow-lg);padding:12px}
     .tierHead{display:grid;grid-template-columns:1fr auto;align-items:center;gap:10px;margin-bottom:8px}
     .stars{font-weight:800;display:flex;align-items:center;gap:8px}
@@ -58,23 +54,18 @@
     .figures{text-align:right;display:grid;gap:2px}
     .hero{font-size:clamp(20px,2.6vw,36px);font-weight:800;line-height:1;letter-spacing:.2px;color:#cfe6ff;text-shadow:0 6px 18px rgba(114,168,255,.18)}
     .caption{color:var(--muted);font-size:12px} .svc{font-weight:800;color:var(--accent-2)}
-
-    /* table & cells */
+    /* table */
     table.bundle{width:100%;border-collapse:collapse;margin-top:8px;table-layout:fixed}
     th,td{border-bottom:1px dashed #203043;padding:8px 6px;font-size:12px;vertical-align:top}
     thead th{color:var(--muted);font-weight:700;line-height:1.15;white-space:nowrap}
-
-    /* unified widths via CSS vars */
     .bundle col:nth-child(1){width:var(--w-item)}
     .bundle col:nth-child(2){width:var(--w-code)}
     .bundle col:nth-child(3){width:var(--w-money)}
     .bundle col:nth-child(4){width:var(--w-money)}
     .bundle col:nth-child(5){width:var(--w-money)}
-
     .cell-item{line-height:1.32;padding-bottom:2px}
     .cell-item .label{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;font-size:.95em}
     .cell-code{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-
     .cell-money{
       white-space:nowrap;font-weight:800;text-align:right;
       font-size:clamp(11px,1.05vw,13px);
@@ -86,10 +77,8 @@
     .bundle td:nth-child(3), .bundle th:nth-child(3),
     .bundle td:nth-child(4), .bundle th:nth-child(4),
     .bundle td:nth-child(5), .bundle th:nth-child(5){ text-align:right }
-
     tfoot th, tfoot td{border-top:1px solid rgba(255,255,255,.08);border-bottom:0;padding-top:9px;padding-bottom:8px}
-
-    /* breakdown: align perfectly under table header using the SAME 5 columns, first is spacer */
+    /* breakdown aligned to headers */
     details.break summary{cursor:pointer;opacity:.9}
     .breakbox{padding:6px 8px 10px}
     .align-grid{
@@ -103,7 +92,6 @@
       display:inline-flex;align-items:center;justify-content:center;padding:2px 8px;border:1px solid var(--line);border-radius:999px;
       font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px;color:#cfe1ff;background:#0e1a30;white-space:nowrap;max-width:110px;overflow:hidden;text-overflow:ellipsis
     }
-
     /* responsive */
     @media (max-width:1280px){ thead th{font-size:11px} .cell-money{font-size:12px} }
     @media (max-width:900px){
@@ -116,7 +104,6 @@
       .align-grid{grid-template-columns: 20% 20% 20% 20% 20%}
     }
     @media (max-width:560px){ body{font-size:14px} .hero{font-size:28px} th,td{padding:7px 6px} }
-
     @media print{header,.bar{display:none} body{background:#fff;color:#000}.tier{break-inside:avoid;border:1px solid #000;box-shadow:none} table,th,td{border-color:#000}}
   </style>
 </head>
@@ -169,11 +156,21 @@
 </main>
 
 <script>
-if(!window.__PAYEREDGE_UI1693_CLEAN__){
-window.__PAYEREDGE_UI1693_CLEAN__=true;
+if(!window.__PAYEREDGE_UI1694_HOTFIX__){
+window.__PAYEREDGE_UI1694_HOTFIX__=true;
+
+/* show JS errors in the status pill so “blank” is diagnosable */
+window.onerror = function(msg, src, line, col){
+  const s=document.getElementById('status');
+  if(s) s.textContent = ' script error: ' + msg + ' @' + (src||'') + ':' + (line||'?');
+};
 
 /* ---------- helpers ---------- */
-const CSV_CANDIDATES=['./vsp_choice_master_v8.4.csv','./data/vsp_choice_master_v8.4.csv'];
+const CSV_CANDIDATES=[
+  './vsp_choice_master_v8.4.csv',
+  './data/vsp_choice_master_v8.4.csv',
+  './vsp_choice_master_v7_full_fixed.csv'       // fallback added
+];
 const BETTER_CAP_OF_MAX=0.75, GOOD_CAP_OF_MAX=0.60, CAP_RELAX_FACTOR=0.90;
 
 const el=id=>document.getElementById(id);
@@ -243,17 +240,17 @@ async function tryFetch(url){
 }
 async function loadCSV(){
   const status=el('status'); status.textContent=' loading…';
-  let loaded=null;
-  for(const url of CSV_CANDIDATES){ const r=await tryFetch(url); if(r.ok){ loaded=r; break; } }
+  let loaded=null, tried=[];
+  for(const url of CSV_CANDIDATES){ const r=await tryFetch(url); tried.push(url); if(r.ok){ loaded=r; break; } }
   if(loaded){
-    const meta={plan:'VSP_choice',version:new Date().toISOString().slice(0,10)+'.ui16.9.3-clean',source:'network:'+loaded.url,sha:quickHash(loaded.text)};
+    const meta={plan:'VSP_choice',version:new Date().toISOString().slice(0,10)+'.ui16.9.4-hotfix',source:'network:'+loaded.url,sha:quickHash(loaded.text)};
     setCache(loaded.text,meta); DATA=parseCSV(loaded.text); buildSimpleIndex(); renderMeta(DATA.length,meta);
     status.textContent=` [ok] ${loaded.url} • ${DATA.length} rows`; computeBundles(); return;
   }
   const {text,meta}=getCache();
   if(text){ DATA=parseCSV(text); buildSimpleIndex(); renderMeta(DATA.length,{...meta,source:'cache'});
     status.textContent=` Network failed. Using cached data (${DATA.length} rows).`; computeBundles(); return; }
-  status.textContent = ' load failed — no cache';
+  status.textContent = ' load failed — no cache (tried: ' + tried.join(', ') + ')';
 }
 function renderMeta(count,meta){
   el('version').textContent=`plan=${meta.plan||'VSP_choice'} • rows=${count||0} • version=${meta.version||'—'} • source=${meta.source||'—'} • sha=${meta.sha||'—'}`;
@@ -366,7 +363,7 @@ function computeBundles(){
   const wantGlass=el('includeGlass').checked;
   const tintSel=el('lensTint').value;
 
-  const isCustomMeasure=row=>/custom\s*measure/i.test(N(row?.enhancement||row?.subtype||'')));
+  const isCustomMeasure=row=>/custom\s*measure/i.test(N(row?.enhancement||row?.subtype||'')); // FIXED: removed stray ")"
   const isAA=row=>splitCodes(row.code)[0]==='AA';
   function isAsphericRow(row){
     const name=N(row.enhancement||row.subtype||'');
@@ -477,11 +474,11 @@ function computeBundles(){
 const tdMoney = (v, key) =>
   `<td class="cell-money" data-key="${key}" data-anim="${v.toFixed(2)}">$${v.toFixed(2)}</td>`;
 
-/* NOTE: header pill removed per request */
+/* breakdown header pill removed (no duplicate code badge) */
 function breakdownDetails(li,rowKey){
   if(!li.parts?.length) return '';
   const rows = li.parts.map((p,pi) => `
-    <div></div> <!-- spacer for Item column -->
+    <div></div>
     <div class="money"><span class="codepill" title="${p.code}">${p.code}</span></div>
     <div class="money" data-key="${rowKey}-p${pi}-c"  data-anim="${p.copay.toFixed(2)}">$${p.copay.toFixed(2)}</div>
     <div class="money" data-key="${rowKey}-p${pi}-cb" data-anim="${p.chargeback.toFixed(2)}">$${p.chargeback.toFixed(2)}</div>
