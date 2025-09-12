@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>PayerEdge — VSP Bundles + OCR (PDF-safe)</title>
+  <title>PayerEdge — VSP Bundles + OCR</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
@@ -13,7 +13,7 @@
       --tier-best:#ffd166;--tier-better:#a9c2ff;--tier-good:#7be0c3;
       --shadow-lg:0 18px 40px rgba(0,0,0,.35);--shadow-md:0 10px 26px rgba(0,0,0,.28);
       --radius:18px;
-      /* 4 columns, no Holdback in UI */
+      /* 3 visible columns (Holdback removed) */
       --w-item:38%; --w-code:18%; --w-money:22%;
     }
     *{box-sizing:border-box}
@@ -51,8 +51,8 @@
     .stars{font-weight:800;display:flex;align-items:center;gap:8px}
     .stars.best{color:var(--tier-best)} .stars.better{color:var(--tier-better)} .stars.good{color:var(--tier-good)}
     .figures{text-align:right;display:grid;gap:2px}
-    .hero{font-size:clamp(20px,2.6vw,36px);font-weight:800;line-height:1;letter-spacing:.2px;color:#cfe6ff;text-shadow:0 6px 18px rgba(114,168,255,.18)}
-    .caption{color:var(--muted);font-size:12px} .svc{font-weight:800;color:#7be0c3}
+    .hero{font-size:clamp(20px,2.6vw,36px);font-weight:600;line-height:1;letter-spacing:.2px;color:#cfe6ff}
+    .caption{color:var(--muted);font-size:12px} .svc{font-weight:600;color:var(--accent-2)}
     /* table (no Holdback column in UI) */
     table.bundle{width:100%;border-collapse:collapse;margin-top:8px;table-layout:fixed}
     th,td{border-bottom:1px dashed #203043;padding:8px 6px;font-size:12px;vertical-align:top}
@@ -64,10 +64,26 @@
     .cell-item{line-height:1.32;padding-bottom:2px}
     .cell-item .label{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;font-size:.95em}
     .cell-code{white-space:normal;word-break:break-word;overflow:visible;text-overflow:clip}
-    .cell-money{white-space:nowrap;font-weight:800;text-align:right;font-size:clamp(11px,1.05vw,13px);
+    .cell-money{white-space:nowrap;font-weight:600;text-align:right;font-size:clamp(11px,1.05vw,13px);
       font-variant-numeric:tabular-nums;padding-left:16px;padding-right:6px;min-width:110px}
+    .bundle td:nth-child(3), .bundle th:nth-child(3),
+    .bundle td:nth-child(4), .bundle th:nth-child(4){ text-align:right }
     tfoot th, tfoot td{border-top:1px solid rgba(255,255,255,.08);border-bottom:0;padding-top:9px;padding-bottom:8px}
-    /* OCR cards */
+    /* breakdown aligned to headers */
+    details.break summary{cursor:pointer;opacity:.9}
+    .breakbox{padding:6px 8px 10px}
+    .align-grid{
+      display:grid;
+      grid-template-columns: var(--w-item) var(--w-code) var(--w-money) var(--w-money);
+      column-gap:8px; row-gap:6px; align-items:center;
+    }
+    .align-grid .hdr{color:var(--muted);font-weight:600;font-size:11px}
+    .align-grid .money{ text-align:right; font-variant-numeric:tabular-nums }
+    .codepill{
+      display:inline-flex;align-items:center;justify-content:center;padding:2px 8px;border:1px solid var(--line);border-radius:999px;
+      font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px;color:#cfe6ff;background:#0e1a30;white-space:nowrap;max-width:110px;overflow:hidden;text-overflow:ellipsis
+    }
+    /* OCR panel */
     .panel{display:grid;grid-template-columns:1.2fr 1fr;gap:12px;margin-top:12px}
     .card{background:linear-gradient(180deg,#0f1726,#0c1422);border:1px solid var(--line);border-radius:14px;padding:10px}
     .card h3{margin:0 0 6px 0;font-size:13px;color:#cfe6ff}
@@ -75,15 +91,7 @@
     .kv{display:grid;grid-template-columns:1fr auto;gap:6px 10px}
     .kv .k{color:#9fb0c9}
     .kv .v{font-weight:700}
-    @media (max-width:900px){
-      .stack{grid-template-columns:1fr}
-      .viewport-frame{transform:none !important;width:100% !important}
-      header{position:static}
-      .hero{font-size:32px}
-      table.bundle{table-layout:auto}
-      .cell-money{font-size:13px;min-width:unset;padding-left:12px}
-      .panel{grid-template-columns:1fr}
-    }
+    @media (max-width:900px){ .stack{grid-template-columns:1fr} .panel{grid-template-columns:1fr} }
   </style>
 </head>
 <body>
@@ -118,8 +126,6 @@
           <option value="transitions">Transitions®</option>
         </select>
       </label>
-    </div>
-    <div class="group">
       <label class="switch"><input type="checkbox" id="includeAR" checked> Include AR (tiered)</label>
       <label class="switch"><input type="checkbox" id="includeAspheric"> Aspheric</label>
       <label class="switch"><input type="checkbox" id="includeOversize"> Oversize</label>
@@ -129,8 +135,9 @@
 
     <!-- OCR controls -->
     <div class="group">
-      <button class="btn" id="scanBenefitsBtn">Scan Benefits (Camera / PDF)</button>
-      <input id="scanBenefitsFile" type="file" accept="application/pdf,image/*" capture="environment" style="display:none">
+      <button class="btn" id="scanBenefitsBtn">Scan Benefits (PDF or Photo)</button>
+      <!-- IMPORTANT: no 'capture' so Safari shows Camera / Photo Library / Files -->
+      <input id="scanBenefitsFile" type="file" accept="application/pdf,image/*" style="display:none">
     </div>
 
     <span id="status" aria-live="polite"></span>
@@ -143,7 +150,7 @@
   <!-- OCR debug -->
   <div class="panel">
     <div class="card">
-      <h3>OCR Text / PDF Text Preview</h3>
+      <h3>OCR Text Preview</h3>
       <pre id="ocrText">—</pre>
     </div>
     <div class="card">
@@ -162,7 +169,10 @@
 <script>pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js";</script>
 
 <script>
-/* -------------------- helpers + error surface -------------------- */
+if(!window.__PAYEREDGE_UI1694_OCR__){
+window.__PAYEREDGE_UI1694_OCR__=true;
+
+/* ------------- helpers & status ------------- */
 const el=id=>document.getElementById(id);
 const sum=a=>a.reduce((x,y)=>x+y,0);
 const num=v=>{ const x=parseFloat(String(v??'').replace(/[^0-9.-]/g,'')); return isFinite(x)?x:0; };
@@ -170,13 +180,14 @@ const N=s=>String(s||'').toLowerCase();
 function setStatus(s){ const n=el('status'); if(n) n.textContent=s; }
 window.onerror = (m,src,line)=> setStatus(' script error: '+m+' @'+(src||'')+':'+(line||'?'));
 
-/* -------------------- CSV + base app -------------------- */
+/* ------------- CSV ------------- */
 const CSV_CANDIDATES=[
   './vsp_choice_master_v8.4.csv',
   './data/vsp_choice_master_v8.4.csv',
   './vsp_choice_master_v7_full_fixed.csv'
 ];
 const BETTER_CAP_OF_MAX=0.75, GOOD_CAP_OF_MAX=0.60, CAP_RELAX_FACTOR=0.90;
+
 function quickHash(s){ let h=2166136261>>>0; for(let i=0;i<s.length;i++){ h^=s.charCodeAt(i); h=Math.imul(h,16777619)>>>0; } return ('00000000'+h.toString(16)).slice(-8); }
 function parseCSV(text){
   const rows=[]; let row=[], field='', q=false;
@@ -191,7 +202,7 @@ function parseCSV(text){
   const headers=rows.shift().map(h=>h.replace(/^\"|\"$/g,'').trim());
   return rows.filter(r=>r.length>=headers.length).map(r=>{ const o={}; headers.forEach((h,i)=>o[h]=(r[i]||'').replace(/^\"|\"$/g,'').trim()); return o; });
 }
-const CACHE_KEY='rev-vsp-choice-csv-v3', META_KEY='rev-vsp-choice-meta-v3';
+const CACHE_KEY='rev-vsp-choice-csv-v1', META_KEY='rev-vsp-choice-meta-v1';
 const setCache=(t,m)=>{ localStorage.setItem(CACHE_KEY,t); localStorage.setItem(META_KEY,JSON.stringify(m)); };
 const getCache=()=>({ text:localStorage.getItem(CACHE_KEY), meta: JSON.parse(localStorage.getItem(META_KEY)||'{}') });
 const clearCacheStorage=()=>{ localStorage.removeItem(CACHE_KEY); localStorage.removeItem(META_KEY); };
@@ -243,8 +254,12 @@ function applies(row,fam){
 }
 const isGlassName=name=>/glass/.test(N(name||''));
 
-/* ---------- OCR state ---------- */
-let OCR_STATE = { materialsCents: 0, covered: new Set() };
+/* ---------- OCR → coverage overrides ---------- */
+let OCR_STATE = {
+  materialsCents: 0,
+  covered: new Set(),       // 'ar','photochromic','polarized','polycarbonate','high_index','scratch','uv','std_prog','prem_prog'
+  glassMaterial: false      // explicit “glass lenses covered” (not tints/coatings)
+};
 const COVERAGE_MAP = {
   'Anti-Reflective':'ar',
   'Photochromic / Transitions':'photochromic',
@@ -257,7 +272,7 @@ const COVERAGE_MAP = {
   'Premium Progressives':'prem_prog'
 };
 
-/* ---------- sun pick ---------- */
+/* ---------- choose sun add-on ---------- */
 function preferPhotoCodeForBase(row){ return isGlassName(row.enhancement||row.subtype)?'PM':'PR'; }
 function sunPool(fam, wantGlass){
   const tag = r => (r.exclusive_key||'').toLowerCase();
@@ -290,7 +305,7 @@ function chooseSunFor(baseRow){
   return null;
 }
 
-/* ---------- code pickers ---------- */
+/* ---------- simple code pickers ---------- */
 function buildSimpleIndexOnce(){ if(!SIMPLE_BY_CODE.size) buildSimpleIndex(); }
 function pickByCode(code){
   buildSimpleIndexOnce();
@@ -330,6 +345,18 @@ function enhanceKeyFromName(name){
   if(/premium.*progress|premium\s+progressive/.test(n)) return 'prem_prog';
   return null;
 }
+/* covered rule per your policy */
+function isCoveredByOCR(code, name){
+  const k = enhanceKeyFromName(name);
+  if(!k) return false;
+  const first = (splitCodes(code)[0]||'').toUpperCase();
+  if(k==='std_prog'){
+    if(first==='KA') return OCR_STATE.covered.has('std_prog');
+    if(first==='KE') return OCR_STATE.covered.has('std_prog') && OCR_STATE.glassMaterial; // glass requires explicit coverage
+  }
+  return OCR_STATE.covered.has(k);
+}
+
 function parseLine(row){
   const desc=row.enhancement||row.subtype||'—';
   const codeStr=String(row.code||'').trim().toUpperCase();
@@ -338,8 +365,7 @@ function parseLine(row){
 
   if(partsCodes.length===1){
     let cop=num(row.copay), cb=num(row.chargeback);
-    const k = enhanceKeyFromName(desc);
-    if(k && OCR_STATE.covered.has(k)){ cop = 0; cb = 0; }
+    if(isCoveredByOCR(codeStr, desc)){ cop = 0; cb = 0; }
     return {name:desc,code:codeStr,copay:cop,chargeback:cb,profit:cop-cb,parts:[]};
   }
 
@@ -357,9 +383,9 @@ function parseLine(row){
   if(fam!=='PAL' && split.svBase!=null) baseCop=split.svBase;
   if(fam==='PAL' && split.mfBase!=null) baseCop=split.mfBase;
 
-  let baseName = baseRow?.enhancement || row.enhancement || row.subtype || '';
-  const baseK = enhanceKeyFromName(baseName);
-  if(baseK && OCR_STATE.covered.has(baseK)){ baseCop=0; baseCB=0; }
+  const baseName = baseRow?.enhancement || row.enhancement || row.subtype || '';
+  if(isCoveredByOCR(baseCode, baseName)){ baseCop=0; baseCB=0; }
+
   parts.push({code:baseCode,copay:baseCop,chargeback:baseCB,profit:baseCop-baseCB});
 
   const addonCount=partsCodes.length-1;
@@ -372,20 +398,20 @@ function parseLine(row){
   for(let i=1;i<partsCodes.length;i++){
     const code=partsCodes[i]; let cop=num(addonCopays[i-1]??0); let cb=addonCBEach;
     const addRow = pickByCode(code) || {};
-    const addName = addRow.enhancement || addRow.subtype || '';
-    const k2 = enhanceKeyFromName(addName||row.enhancement||'');
-    if(k2 && OCR_STATE.covered.has(k2)){ cop = 0; cb = 0; }
+    const addName = addRow.enhancement || addRow.subtype || row.enhancement || '';
+    if(isCoveredByOCR(code, addName)){ cop = 0; cb = 0; }
     parts.push({code,copay:cop,chargeback:cb,profit:cop-cb});
   }
   const totalCop=parts.reduce((a,x)=>a+x.copay,0);
   const totalCB =parts.reduce((a,x)=>a+x.chargeback,0);
   return {name:desc,code:codeStr,copay:totalCop,chargeback:totalCB,profit:totalCop-totalCB,parts};
 }
+
 function makeBundle(base,addOns){
   const rows=[base,...addOns.filter(Boolean)];
   const lines=rows.map(parseLine);
 
-  // Inject Materials Copay line (single, not per-item)
+  // Synthetic Materials Copay line (single copay applies once)
   const mat = Math.max(0, OCR_STATE.materialsCents/100);
   if(mat>0){
     lines.push({name:'Materials Copay', code:'MAT', copay:mat, chargeback:0, profit:mat, parts:[]});
@@ -517,6 +543,7 @@ function computeBundles(){
 /* ---------- rendering (no Holdback column in UI) ---------- */
 const tdMoney = (v, key) =>
   `<td class="cell-money" data-key="${key}" data-anim="${v.toFixed(2)}">$${v.toFixed(2)}</td>`;
+
 function breakdownDetails(li,rowKey){
   if(!li.parts?.length) return '';
   const rows = li.parts.map((p,pi) => `
@@ -540,6 +567,7 @@ function breakdownDetails(li,rowKey){
       </td>
     </tr>`;
 }
+
 function renderTier({name,cls,b}){
   const div=document.createElement('div'); div.className='tier';
   if(!b){
@@ -550,6 +578,7 @@ function renderTier({name,cls,b}){
       <div class="sub">No viable bundle</div>`; return div;
   }
   const stars=name==='Best'?'★★★':name==='Better'?'★★':name==='Good'?'★':'◎';
+
   const head=`<div class="tierHead">
     <div class="stars ${cls}"><div title="${name}" style="font-size:18px">${stars}</div><span class="sub" style="margin-left:6px">${b.label}</span></div>
     <div class="figures">
@@ -558,6 +587,7 @@ function renderTier({name,cls,b}){
       <div class="caption">Service Fee (Practice Profit): <span class="svc" data-key="${name}-profit" data-anim="${b.profit.toFixed(2)}">$${b.profit.toFixed(2)}</span></div>
     </div>
   </div>`;
+
   const lines=b.lines.map((li,i)=>{
     const rowKey=`${name}-line${i}`;
     const main=`<tr>
@@ -569,10 +599,14 @@ function renderTier({name,cls,b}){
     const parts=(li.parts&&li.parts.length)?breakdownDetails(li,rowKey):'';
     return main+parts;
   }).join('');
+
   div.innerHTML=head+`<table class="bundle">
     <colgroup><col><col><col><col></colgroup>
     <thead><tr>
-      <th>Item</th><th>Code</th><th>Copay</th><th>Service Fee</th>
+      <th>Item</th>
+      <th>Code</th>
+      <th>Copay</th>
+      <th>Service Fee</th>
     </tr></thead>
     <tbody>${lines}</tbody>
     <tfoot><tr><th colspan="2" style="text-align:right">Totals</th>
@@ -585,6 +619,8 @@ function renderStack(rows){
   rows.forEach(r=>stack.appendChild(renderTier(r)));
   fitHeroText(); fitViewportScale(); animateMoney(420);
 }
+
+/* fit & animation */
 function fitViewportScale() {
   const frame = document.getElementById('frame'); if (!frame) return;
   const vw = document.documentElement.clientWidth;
@@ -630,9 +666,11 @@ el('forceRefresh').onclick=()=>{ clearCacheStorage(); loadCSV(); };
 el('clearCache').onclick =()=>{ clearCacheStorage(); el('status').textContent=' cache cleared — click Force Refresh to reload'; };
 ['lensFamily','lensTint','includeAR','includeAspheric','includeOversize','includeGlass','includeCM']
   .forEach(id=>{ const n=el(id); if(n) n.onchange=computeBundles; });
+
+/* boot */
 (function boot(){ loadCSV(); })();
 
-/* -------------------- OCR/PDF wiring -------------------- */
+/* -------------------- OCR wiring -------------------- */
 const scanBtn   = el('scanBenefitsBtn');
 const scanInput = el('scanBenefitsFile');
 scanBtn?.addEventListener('click', ()=> scanInput?.click());
@@ -640,30 +678,20 @@ scanInput?.addEventListener('change', async ()=>{
   const file = scanInput.files?.[0]; if(!file) return;
   try{
     scanBtn.disabled = true; setStatus(`file received (${file.type||file.name})…`);
-    let text = '';
+    const canvas = (/pdf$/i.test(file.name) || file.type==='application/pdf')
+      ? await pdfFirstPageToCanvas(file)
+      : await fileToCanvas(file);
 
-    if (/pdf$/i.test(file.name) || file.type==='application/pdf') {
-      // 1) try native PDF text extraction (more accurate than OCR)
-      text = await pdfExtractText(file).catch(()=> '');
-      if (!text || text.trim().length < 40) {
-        // 2) fallback: render page 1 to canvas and OCR
-        const canvas = await pdfFirstPageToCanvas(file);
-        const prep = preprocess(canvas, {scale:1.8, grayscale:true, threshold:'otsu', unsharp:true});
-        setStatus('reading PDF (OCR fallback)…');
-        text = await runTess(prep, { psm: 4 });
-      }
-    } else {
-      // image path
-      const canvas = await fileToCanvas(file);
-      const prep1 = preprocess(canvas, {scale:1.8, grayscale:true, threshold:'otsu', unsharp:true});
-      const prep2 = preprocess(canvas, {scale:1.4, grayscale:true, threshold:'sauvola', unsharp:true});
-      setStatus('reading (pass 1/2)…');
-      const t1 = await runTess(prep1, { psm: 6 });
-      setStatus('reading (pass 2/2)…');
-      const t2 = await runTess(prep2, { psm: 4 });
-      text = chooseBestText(t1, t2);
-      if(!text.trim()){ setStatus('fallback read…'); text = await runTess(canvas, { psm: 3 }); }
-    }
+    setStatus('preprocessing…');
+    const prep1 = preprocess(canvas, {scale:1.8, grayscale:true, threshold:'otsu', unsharp:true});
+    const prep2 = preprocess(canvas, {scale:1.4, grayscale:true, threshold:'sauvola', unsharp:true});
+
+    setStatus('reading (pass 1/2)…');
+    const t1 = await runTess(prep1, { psm: 6 });
+    setStatus('reading (pass 2/2)…');
+    const t2 = await runTess(prep2, { psm: 4 });
+    let text = chooseBestText(t1, t2);
+    if(!text.trim()){ setStatus('fallback read…'); text = await runTess(canvas, { psm: 3 }); }
 
     el('ocrText').textContent = text || '—';
     if(!text.trim()){ setStatus('no text detected'); alert('No readable text — try a clearer photo or export the PDF.'); return; }
@@ -672,11 +700,12 @@ scanInput?.addEventListener('change', async ()=>{
     const b = parseBenefits(text);
     OCR_STATE.materialsCents = b.materialsCopay?.cents ?? 0;
     OCR_STATE.covered = new Set(b.coveredEnhancementsKeys);
+    OCR_STATE.glassMaterial = b.glassMaterialCovered;
 
     el('kv_materials').textContent = b.materialsCopay?.raw || '$0.00';
-    el('kv_cov').textContent = b.coveredEnhancements.length? b.coveredEnhancements.join(', ') : '—';
-    computeBundles();
+    el('kv_cov').textContent = b.coveredEnhancements.length? b.coveredEnhancements.join(', ') + (b.glassMaterialCovered?' (+Glass)':'') : (b.glassMaterialCovered?'Glass':'—');
 
+    computeBundles();
     setStatus('scan complete');
   }catch(e){
     console.error(e);
@@ -688,16 +717,7 @@ scanInput?.addEventListener('change', async ()=>{
   }
 });
 
-/* ---- PDF helpers (prefer text; fallback to image OCR) ---- */
-async function pdfExtractText(file){
-  setStatus('extracting PDF text…');
-  const buf = await file.arrayBuffer();
-  const pdf = await pdfjsLib.getDocument({data:buf}).promise;
-  const page = await pdf.getPage(1);
-  const content = await page.getTextContent();
-  const strings = content.items.map(i=>i.str).filter(Boolean);
-  return (strings.join('\n') || '').trim();
-}
+/* ---- OCR helpers (PDF, image, preprocess, OCR) ---- */
 async function pdfFirstPageToCanvas(file){
   setStatus('rendering PDF…');
   const buf = await file.arrayBuffer();
@@ -710,8 +730,6 @@ async function pdfFirstPageToCanvas(file){
   await page.render({canvasContext:ctx, viewport}).promise;
   return canvas;
 }
-
-/* ---- image OCR pipeline ---- */
 function fileToCanvas(file){
   setStatus('loading image…');
   return new Promise((resolve,reject)=>{
@@ -790,6 +808,7 @@ function preprocess(sourceCanvas, {scale=2, grayscale=true, threshold='otsu', un
       }
     }
   }
+
   ctx.putImageData(imgData,0,0);
   return canvas;
 }
@@ -874,9 +893,9 @@ function otsuThreshold(imgData){
   }
   return t;
 }
-async function runTess(canvasOrImage, {psm=6}={}){
+async function runTess(canvas, {psm=6}={}){
   const opts = { tessedit_pageseg_mode: String(psm) };
-  const out = await Tesseract.recognize(canvasOrImage, 'eng', opts);
+  const out = await Tesseract.recognize(canvas, 'eng', opts);
   return (out && out.data && out.data.text) ? out.data.text : '';
 }
 function chooseBestText(a,b){
@@ -884,9 +903,10 @@ function chooseBestText(a,b){
   return score(a)>=score(b)?a:b;
 }
 
-/* ----------- Parser tuned to VSP sheet ----------- */
+/* ----------- Parser tuned to your sheet ----------- */
 function centsOf(s){ if(!s) return null; const m=String(s).replace(/[^\d.]/g,''); if(!m) return null; const [a,b='0']=m.split('.'); return parseInt(a||'0',10)*100+parseInt((b+'00').slice(0,2),10); }
 function money(c){ return c==null?null:{cents:c,raw:`$${(c/100).toFixed(2)}`}; }
+
 function parseBenefits(raw){
   const text = (raw||'').replace(/\r/g,'');
   const lines = text.split('\n').map(s=>s.trim()).filter(Boolean);
@@ -912,7 +932,7 @@ function parseBenefits(raw){
   }
   if(!materials) materials = money(0);
 
-  // Covered enhancements bucket (strict “Covered”, not “Covered with Additional Copay”)
+  // Covered section (stop before "Covered with Additional Copay"/footer)
   const idxCovered = T.indexOf('covered');
   const idxAddl   = T.indexOf('covered with additional copay');
   const idxBottom = T.indexOf('confidential');
@@ -930,18 +950,11 @@ function parseBenefits(raw){
   if(isIn(bucketCovered, /standard\s+progress/)) coveredKeys.add('std_prog');
   if(isIn(bucketCovered, /premium\s+progress/)) coveredKeys.add('prem_prog');
 
+  // Glass material explicit coverage (not coatings/tints)
+  const glassMaterialCovered = /\bglass (?:lenses?|progressives?)\b.*covered|\bcovered\b.*\bglass (?:lenses?|progressives?)/i.test(bucketCovered);
+
   const coveredPretty = Array.from(coveredKeys).map(k=>{
-    for(const [nice,key] of Object.entries({
-      'Anti-Reflective':'ar',
-      'Photochromic / Transitions':'photochromic',
-      'Polarized':'polarized',
-      'Polycarbonate':'polycarbonate',
-      'High Index':'high_index',
-      'Scratch Resistant':'scratch',
-      'UV Protection':'uv',
-      'Standard Progressives':'std_prog',
-      'Premium Progressives':'prem_prog'
-    })) if(key===k) return nice;
+    for(const [nice,key] of Object.entries(COVERAGE_MAP)) if(key===k) return nice;
     return k;
   });
 
@@ -949,9 +962,16 @@ function parseBenefits(raw){
     materialsCopay: materials,
     coveredEnhancements: coveredPretty,
     coveredEnhancementsKeys: Array.from(coveredKeys),
+    glassMaterialCovered,
     rawText: text
   };
 }
+
+/* ---- wire up buttons ---- */
+const scanBtn=el('scanBenefitsBtn'); const scanInput=el('scanBenefitsFile');
+scanBtn?.addEventListener('click', ()=> scanInput?.click());
+
+} // guard
 </script>
 </body>
 </html>
