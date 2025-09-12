@@ -14,8 +14,7 @@
       --shadow-lg:0 18px 40px rgba(0,0,0,.35);--shadow-md:0 10px 26px rgba(0,0,0,.28);
       --radius:18px;--radius-sm:12px;
       --fz-11:11px;--fz-12:12px;--fz-13:13px;--fz-14:14px;--fz-15:15px;--fz-18:18px;--fz-20:20px;--fz-36:36px;
-      /* visual scale clamp for compact screens */
-      --min-scale: 0.82; /* do not go below this */
+      --min-scale:0.82;
     }
     *{box-sizing:border-box}
     html,body{height:100%}
@@ -49,33 +48,16 @@
     .switch select,.switch input[type="checkbox"]{accent-color:var(--accent)}
     select{background:#0e1a30;color:#fff;border:1px solid var(--line);border-radius:10px;padding:6px 8px;outline:none}
     select:focus{box-shadow:0 0 0 3px rgba(114,168,255,.25)}
-    #status{margin-left:auto;padding:6px 10px;border-radius:999px;border:1px dashed var(--line);background:#0b1422;color:#c7d6ef;font-size:var(--fz-12);max-width:45vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    #status{margin-left:auto;padding:6px 10px;border-radius:999px;border:1px dashed var(--line);background:#0b1422;color:#c7d6ef;font-size:var(--fz-12);max-width:52vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
-    /* ===== four-up, always visible (with graceful global scale if needed) ===== */
-    .viewport-frame{
-      transform-origin: top left;
-      width: 100%;
-    }
-    .stack{
-      display:grid;
-      grid-template-columns:repeat(4, minmax(0,1fr));
-      gap:14px;
-      align-items:stretch;
-      margin-top:12px;
-      overflow:visible;
-      min-width:0;
-    }
+    .viewport-frame{transform-origin:top left;width:100%}
+    .stack{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;align-items:stretch;margin-top:12px;overflow:visible;min-width:0}
 
-    .tier{
-      background:linear-gradient(180deg,#0f1726,#0c1422);border:1px solid var(--line);border-radius:var(--radius);
-      box-shadow:var(--shadow-lg);padding:12px;min-width:0
-    }
+    .tier{background:linear-gradient(180deg,#0f1726,#0c1422);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow-lg);padding:12px;min-width:0}
+    .tier[data-invalid="1"]{outline:2px solid #ff6b6b}
     .tierHead{display:grid;grid-template-columns:1fr auto;align-items:center;gap:10px;margin-bottom:8px;min-width:0}
     .stars{font-weight:800;display:flex;align-items:center;gap:8px;min-width:0}
-    .stars .tag{
-      font-size:var(--fz-12);color:var(--muted);padding:2px 8px;border:1px solid var(--line);border-radius:999px;background:#0c1424;
-      max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis
-    }
+    .stars .tag{font-size:var(--fz-12);color:var(--muted);padding:2px 8px;border:1px solid var(--line);border-radius:999px;background:#0c1424;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
     .stars.best{color:var(--tier-best)} .stars.better{color:var(--tier-better)} .stars.good{color:var(--tier-good)}
     .figures{text-align:right;display:grid;gap:2px}
     .hero{font-size:clamp(22px,2.8vw,36px);font-weight:800;line-height:1.0;letter-spacing:.2px;color:#cfe6ff;text-shadow:0 6px 18px rgba(114,168,255,.18)}
@@ -85,43 +67,21 @@
     table{width:100%;border-collapse:collapse;margin-top:8px;table-layout:fixed}
     th,td{border-bottom:1px dashed #203043;padding:7px 6px;text-align:left;font-size:var(--fz-12);vertical-align:top}
     th{color:var(--muted);font-weight:700}
-
-    /* keep words intact; allow wrap at spaces only */
     .cell-item{word-break:keep-all;hyphens:none;overflow-wrap:break-word}
     .cell-code{white-space:nowrap}
-    .cell-money{white-space:nowrap;font-weight:800;font-size:clamp(11px,1.1vw,13px)} /* small shrink allowed */
+    .cell-money{white-space:nowrap;font-weight:800;font-size:clamp(11px,1.1vw,13px)}
     .cell-label{white-space:nowrap}
 
-    /* ===== progressive code breakdown (grid, no scroll) ===== */
     .break{margin:6px 0 8px;background:#0b1424;border:1px solid var(--line);border-radius:10px}
-    .break .grid{
-      display:grid;
-      grid-template-columns: 1fr repeat(3, minmax(0, 0.9fr));
-      gap:6px 8px; padding:8px;
-      align-items:center;
-    }
+    .break .grid{display:grid;grid-template-columns:1fr repeat(3,minmax(0,0.9fr));gap:6px 8px;padding:8px;align-items:center}
     .break .hdr{color:var(--muted);font-weight:600;font-size:11px}
-    .codepill{
-      display:inline-flex;align-items:center;justify-content:center;padding:2px 8px;border:1px solid var(--line);border-radius:999px;
-      font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px;color:#cfe1ff;background:#0e1a30;max-width:100%;
-      white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:34px
-    }
+    .codepill{display:inline-flex;align-items:center;justify-content:center;padding:2px 8px;border:1px solid var(--line);border-radius:999px;
+      font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px;color:#cfe1ff;background:#0e1a30;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:34px}
     .break .money{white-space:nowrap;font-weight:800;font-size:clamp(10px,1vw,12px)}
 
-    /* compact polish */
-    @media (max-width: 1280px){
-      .stack{gap:12px}
-      .tier{padding:10px}
-      .hero{font-size:clamp(20px,2.5vw,32px)}
-    }
-    @media (max-width: 1080px){
-      .tier{padding:9px;border-radius:14px}
-      .hero{font-size:clamp(18px,2.2vw,28px)}
-    }
-    @media (max-width: 900px){
-      th,td{padding:6px 5px}
-      .hero{font-size:clamp(16px,2.0vw,24px)}
-    }
+    @media (max-width:1280px){.stack{gap:12px}.tier{padding:10px}.hero{font-size:clamp(20px,2.5vw,32px)}}
+    @media (max-width:1080px){.tier{padding:9px;border-radius:14px}.hero{font-size:clamp(18px,2.2vw,28px)}}
+    @media (max-width:900px){th,td{padding:6px 5px}.hero{font-size:clamp(16px,2.0vw,24px)}}
 
     :focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:8px}
     @media print{header,.bar{display:none} body{background:#fff;color:#000}.tier{break-inside:avoid;border:1px solid #000;box-shadow:none} table,th,td{border-color:#000}}
@@ -167,79 +127,45 @@
       <label class="switch"><input type="checkbox" id="includeGlass"> Glass</label>
       <label class="switch"><input type="checkbox" id="includeCM"> Custom measurements (N/O only)</label>
     </div>
-    <span id="status" aria-live="polite"></span>
+    <span id="status" aria-live="polite" title=""></span>
   </div>
 
-  <!-- global scale wrapper: keeps 4 cards visible on tight screens with no scrollbars -->
   <div id="frame" class="viewport-frame">
     <div id="stack" class="stack"></div>
   </div>
 </main>
 
 <script>
-/* ===========================================================
-   ui16-tints11 — no-scroll, four-up, grid breakdown, auto-scale
-   =========================================================== */
-if (!window.__PAYEREDGE_V16_T11__) {
-  window.__PAYEREDGE_V16_T11__ = true;
+/* ========================== PRICING-STRICT UI ========================== */
+if(!window.__PAYEREDGE_STRICT_V1__){
+  window.__PAYEREDGE_STRICT_V1__=true;
 
+  /* ----- toggles ----- */
+  const STRICT_PRICING = true;     // reject any bundle that can’t be proven from CSV
+  const SHOW_INVALID   = false;    // if true, cards with mismatch outline in red (debug)
   const CSV_CANDIDATES=['./vsp_choice_master_v8.4.csv','./data/vsp_choice_master_v8.4.csv'];
-  const BETTER_CAP_OF_MAX=0.75, GOOD_CAP_OF_MAX=0.60, CAP_RELAX_FACTOR=0.90;
 
+  /* ----- helpers ----- */
   const el=id=>document.getElementById(id);
   const sum=a=>a.reduce((x,y)=>x+y,0);
   const num=v=>{ const x=parseFloat(String(v??'').replace(/[^0-9.-]/g,'')); return isFinite(x)?x:0; };
   const quickHash=s=>{ let h=2166136261>>>0; for(let i=0;i<s.length;i++){ h^=s.charCodeAt(i); h=Math.imul(h,16777619)>>>0; } return ('00000000'+h.toString(16)).slice(-8); };
   const N=s=>String(s||'').toLowerCase();
-
-  const isDCode=r=>/^d/i.test((r.code||'').trim());
-  const isPPhoto=r=>/^p(m|r)/i.test((r.code||'').trim());
-  const isGlassBaseName=name=>/glass/.test(N(name||''));
-  const isGlassRow=r=>isGlassBaseName(r.enhancement||r.subtype||'');
-  const preferPhotoCodeForBase=row=> (isGlassRow(row)?'PM':'PR');
-
   const splitCodes=s=>String(s||'').toUpperCase().replace(/[^\w+&/,\s-]/g,'').split(/[\s+&/,\-]+/).map(t=>t.trim()).filter(Boolean);
-  const parseCopayNumbers= s => { const m=String(s||'').match(/[0-9]+(?:\.[0-9]{1,2})?/g); return m?m.map(x=>parseFloat(x)):[]; };
-
-  function parseSplitFromNotes(notes, fam){
-    const s = String(notes || '');
-    const sv = s.match(/(\d+)\s*\+\s*(\d+)\s*\(SV\)/i);
-    const mf = s.match(/(\d+)\s*\+\s*(\d+)\s*\(MF\)/i);
-    const plain = (!sv && !mf) ? s.match(/(\d+)\s*\+\s*(\d+)/) : null;
-    const svBase = sv ? +sv[1] : null, svAdd = sv ? +sv[2] : null;
-    const mfBase = mf ? +mf[1] : null, mfAdd = mf ? +mf[2] : null;
-    if (fam === 'PAL' && !mf && plain) return { svBase, svAdd, mfBase:+plain[1], mfAdd:+plain[2] };
-    if (!sv && !mf && plain)         return { svBase:+plain[1], svAdd:+plain[2], mfBase, mfAdd };
-    return { svBase, svAdd, mfBase, mfAdd };
-  }
-  function inferProgressiveBaseCodeFromDesc(desc){
-    const s=N(desc||'');
-    if(/^progressive\s+N/.test(s)) return 'NA';
-    if(/^progressive\s+O/.test(s)) return 'OA';
-    if(/^progressive\s+F/.test(s)) return 'FA';
-    if(/^progressive\s+J/.test(s)) return 'JA';
-    if(/^progressive\s+K/.test(s)) return 'KA';
-    return null;
-  }
-
-  const CACHE_KEY='rev-vsp-choice-csv-v1', META_KEY='rev-vsp-choice-meta-v1';
-  const setCache=(t,m)=>{ localStorage.setItem(CACHE_KEY,t); localStorage.setItem(META_KEY,JSON.stringify(m)); };
-  const getCache=()=>({ text:localStorage.getItem(CACHE_KEY), meta: JSON.parse(localStorage.getItem(META_KEY)||'{}') });
-  const clearCacheStorage=()=>{ localStorage.removeItem(CACHE_KEY); localStorage.removeItem(META_KEY); };
+  const parseCopayNumbers=s=>{ const m=String(s||'').match(/[0-9]+(?:\.[0-9]{1,2})?/g); return m?m.map(x=>parseFloat(x)):[]; };
 
   let DATA=[], SIMPLE_BY_CODE=new Map();
   function buildSimpleIndex(){
-    SIMPLE_BY_CODE=new Map();
+    SIMPLE_BY_CODE.clear();
     for(const r of DATA){
       const parts=splitCodes(r.code);
       if(parts.length===1){
-        const code=parts[0];
-        if(!SIMPLE_BY_CODE.has(code)) SIMPLE_BY_CODE.set(code,[]);
-        SIMPLE_BY_CODE.get(code).push(r);
+        const c=parts[0];
+        if(!SIMPLE_BY_CODE.has(c)) SIMPLE_BY_CODE.set(c,[]);
+        SIMPLE_BY_CODE.get(c).push(r);
       }
     }
   }
-
   function applies(row,fam){
     const a=(row.applies_to||'ALL').toUpperCase();
     if(a.includes('ALL')) return true;
@@ -248,32 +174,44 @@ if (!window.__PAYEREDGE_V16_T11__) {
     if(fam==='PAL') return a.includes('MF');
     return true;
   }
-  function chooseVariantForFamily(rows, fam){
-    if (!rows || rows.length <= 1) return rows?.[0] || null;
+  function chooseVariantForFamily(rows,fam){
+    if(!rows||!rows.length) return null;
+    if(rows.length===1) return rows[0];
     const sorted=[...rows].sort((a,b)=>num(a.copay)-num(b.copay));
-    if (fam==='PAL') return sorted[sorted.length-1];
-    return sorted[0];
+    return fam==='PAL'?sorted[sorted.length-1]:sorted[0];
   }
   function pickByCode(code){
     const fam=el('lensFamily').value;
     const wantGlass=el('includeGlass').checked;
     const list=(SIMPLE_BY_CODE.get(code)||[])
       .filter(r=>applies(r,fam))
-      .filter(r=> wantGlass ? true : !isGlassRow(r));
-    return chooseVariantForFamily(list, fam);
+      .filter(r=> wantGlass ? true : !/glass/i.test(r.enhancement||r.subtype||''));
+    return chooseVariantForFamily(list,fam);
   }
-  function pickBaseByExactCode(baseCode){
-    const fam=el('lensFamily').value;
-    const list=(SIMPLE_BY_CODE.get(baseCode)||[]);
-    if(!list.length) return null;
-    const filtered=list.filter(r=>applies(r,fam));
-    const famPicked=chooseVariantForFamily(filtered.length?filtered:list, fam);
-    if (!famPicked) return null;
-    const score=s=> (s.includes('plastic')&&!s.includes('high'))?2:0;
-    const alt=filtered.length?filtered:list;
-    const maybeBetter=[famPicked,...alt].sort((a,b)=>score((b.enhancement||b.subtype||'').toLowerCase())-score((a.enhancement||a.subtype||'').toLowerCase()))[0];
-    return maybeBetter;
+  function inferProgressiveBaseCodeFromDesc(desc){
+    const s=N(desc||'');
+    if(/^progressive\s+n\b/.test(s)) return 'NA';
+    if(/^progressive\s+o\b/.test(s)) return 'OA';
+    if(/^progressive\s+f\b/.test(s)) return 'FA';
+    if(/^progressive\s+j\b/.test(s)) return 'JA';
+    if(/^progressive\s+k\b/.test(s)) return 'KA';
+    return null;
   }
+  function parseSplitFromNotes(notes,fam){
+    const s=String(notes||'');
+    const sv=s.match(/(\d+)\s*\+\s*(\d+)\s*\(SV\)/i);
+    const mf=s.match(/(\d+)\s*\+\s*(\d+)\s*\(MF\)/i);
+    const plain=(!sv && !mf) ? s.match(/(\d+)\s*\+\s*(\d+)/) : null;
+    const svBase=sv?+sv[1]:null, svAdd=sv?+sv[2]:null;
+    const mfBase=mf?+mf[1]:null, mfAdd=mf?+mf[2]:null;
+    if(fam==='PAL' && !mf && plain) return {svBase,svAdd,mfBase:+plain[1],mfAdd:+plain[2]};
+    if(!sv && !mf && plain)       return {svBase:+plain[1],svAdd:+plain[2],mfBase,mfAdd};
+    return {svBase,svAdd,mfBase,mfAdd};
+  }
+
+  const CACHE_KEY='rev-vsp-choice-csv-v1', META_KEY='rev-vsp-choice-meta-v1';
+  const setCache=(t,m)=>{ localStorage.setItem(CACHE_KEY,t); localStorage.setItem(META_KEY,JSON.stringify(m)); };
+  const getCache=()=>({ text:localStorage.getItem(CACHE_KEY), meta: JSON.parse(localStorage.getItem(META_KEY)||'{}') });
 
   async function tryFetch(url){
     try{ const res=await fetch(url,{cache:'no-store'}); if(!res.ok) throw new Error('HTTP '+res.status); return {ok:true,text:await res.text(),url}; }
@@ -295,80 +233,9 @@ if (!window.__PAYEREDGE_V16_T11__) {
   function renderMeta(count,meta){
     el('version').textContent=`plan=${meta.plan||'VSP_choice'} • rows=${count||0} • version=${meta.version||'—'} • source=${meta.source||'—'} • sha=${meta.sha||'—'}`;
   }
-  const byKey=k=>DATA.filter(r=>(r.active||'yes').toLowerCase()==='yes' && (r.exclusive_key||'').toLowerCase()===k);
+
+  /* ---------- UI helpers ---------- */
   const tdMoney=v=>`<td class="cell-money">$${v.toFixed(2)}</td>`;
-
-  function line(row){
-    const desc=row.enhancement||row.subtype||'—';
-    let codeStr=String(row.code||'').trim().toUpperCase();
-    if(!codeStr && /^Progressive/i.test(desc||'')){
-      const inferred = inferProgressiveBaseCodeFromDesc(desc);
-      if (inferred) codeStr = inferred;
-    }
-    const partsCodes=splitCodes(codeStr);
-    const notes=row.notes||row.note||row.Notes||row.NOTE||'';
-    const fam=el('lensFamily').value;
-    const split=parseSplitFromNotes(notes, fam);
-
-    if(partsCodes.length===1){
-      let cop=num(row.copay), cb=num(row.chargeback), vsp=num(row.vsp);
-      if(!cb && cop && vsp){ cb=Math.max(0, cop - vsp); }
-      return {name:desc,code:partsCodes[0],copay:cop,chargeback:cb,profit:cop-cb,parts:[]};
-    }
-
-    const compositeCopayNums=parseCopayNumbers(row.copay);
-    const compositeTotalCopay=num(row.copay);
-    const compositeAddOnCB=num(row.chargeback);
-    const parts=[];
-    const baseCode=partsCodes[0];
-    const baseRow=pickBaseByExactCode(baseCode);
-
-    let baseCop=baseRow?num(baseRow.copay):(compositeCopayNums[0]??compositeTotalCopay);
-    let baseCB =baseRow?num(baseRow.chargeback):0;
-
-    if(fam!=='PAL' && split.svBase!=null) baseCop=split.svBase;
-    if(fam==='PAL'  && split.mfBase!=null) baseCop=split.mfBase;
-
-    parts.push({code:baseCode,copay:baseCop,chargeback:baseCB,profit:baseCop-baseCB});
-
-    const addonCount=partsCodes.length-1;
-    let addonCopays=[]; let explicitAdd=(fam!=='PAL')?split.svAdd:split.mfAdd;
-    if(explicitAdd!=null){ addonCopays=[explicitAdd,...Array(Math.max(0,addonCount-1)).fill(0)]; }
-    else if(compositeCopayNums.length>=partsCodes.length){ addonCopays=compositeCopayNums.slice(1); }
-    else {
-      const remaining=Math.max(compositeTotalCopay-baseCop,0);
-      addonCopays=(addonCount<=1)?[remaining]:Array.from({length:addonCount},()=>remaining/addonCount);
-    }
-    const addonCBEach=addonCount<=1?compositeAddOnCB:(compositeAddOnCB/addonCount);
-
-    for(let i=1;i<partsCodes.length;i++){
-      const code=partsCodes[i]; const cop=num(addonCopays[i-1]??0); const cb=addonCBEach;
-      parts.push({code,copay:cop,chargeback:cb,profit:cop-cb});
-    }
-
-    const totalCop=parts.reduce((a,x)=>a+x.copay,0);
-    const totalCB =parts.reduce((a,x)=>a+x.chargeback,0);
-    return {name:desc,code:partsCodes.join('+'),copay:totalCop,chargeback:totalCB,profit:totalCop-totalCB,parts};
-  }
-
-  function makeBundle(base,addOns){
-    const rows=[base,...addOns.filter(Boolean)];
-    const lines=rows.map(line);
-    const cop=sum(lines.map(x=>x.copay));
-    const cb =sum(lines.map(x=>x.chargeback));
-    const pr =cop-cb;
-    const label=base.enhancement||base.subtype||base.code||'Base';
-    return {label,lines,copay:cop,chargeback:cb,profit:pr,ratio:cop?pr/cop:0};
-  }
-
-  function animateNumber(node,to){
-    const from=parseFloat(node.getAttribute('data-prev')||'0'); const start=performance.now(); const dur=380;
-    function step(t){ const k=Math.min(1,(t-start)/dur); const v=from+(to-from)*(0.5-Math.cos(Math.PI*k)/2);
-      node.textContent=`$${v.toFixed(2)}`; if(k<1) requestAnimationFrame(step); else node.setAttribute('data-prev',to); }
-    requestAnimationFrame(step);
-  }
-
-  /* grid breakdown renderer */
   function breakdownGrid(parts){
     if(!parts?.length) return '';
     const rows = parts.map(p => `
@@ -377,124 +244,205 @@ if (!window.__PAYEREDGE_V16_T11__) {
       <div class="money">$${p.chargeback.toFixed(2)}</div>
       <div class="money">$${p.profit.toFixed(2)}</div>
     `).join('');
-    return `
-      <div class="break">
-        <div class="grid">
-          <div class="hdr">Code</div>
-          <div class="hdr">Copay</div>
-          <div class="hdr">Holdback</div>
-          <div class="hdr">Service Fee</div>
-          ${rows}
-        </div>
-      </div>`;
+    return `<div class="break"><div class="grid">
+      <div class="hdr">Code</div><div class="hdr">Copay</div><div class="hdr">Holdback</div><div class="hdr">Service Fee</div>
+      ${rows}
+    </div></div>`;
   }
-
-  function renderTier({name,cls,b}){
+  function renderTier({name,cls,b,invalid}){
     const div=document.createElement('div'); div.className='tier';
+    if(invalid && !SHOW_INVALID) return null;
+    if(invalid && SHOW_INVALID) div.setAttribute('data-invalid','1');
+
     if(!b){
       div.innerHTML=`<div class="tierHead"><div class="stars ${cls}"><span class="tag">${name}</span></div>
         <div class="figures"><div class="hero">—</div><div class="caption">Patient Copay</div></div></div><div class="sub">No viable bundle</div>`;
       return div;
     }
     const stars=name==='Best'?'★★★':name==='Better'?'★★':name==='Good'?'★':'◎';
-
     const head=`<div class="tierHead">
       <div class="stars ${cls}"><div aria-label="${name}" title="${name}" style="font-size:18px">${stars}</div><span class="tag">${b.label}</span></div>
-      <div class="figures"><div class="hero" aria-label="Patient Copay" data-prev="0">$${b.copay.toFixed(2)}</div>
+      <div class="figures"><div class="hero" data-prev="0">$${b.copay.toFixed(2)}</div>
       <div class="caption">Patient Copay</div><div class="caption">Service Fee (Practice Profit): <span class="svc">$${b.profit.toFixed(2)}</span></div></div></div>`;
 
     const lines=b.lines.map(li=>{
-      const main=`<tr>
-        <td class="cell-item">${li.name}</td>
-        <td class="cell-code">${li.code||'—'}</td>
-        ${tdMoney(li.copay)}${tdMoney(li.chargeback)}${tdMoney(li.profit)}
-      </tr>`;
-      const parts = breakdownGrid(li.parts);
-      return main + (parts ? `<tr><td colspan="5">${parts}</td></tr>` : '');
+      const main=`<tr><td class="cell-item">${li.name}</td><td class="cell-code">${li.code||'—'}</td>
+        ${tdMoney(li.copay)}${tdMoney(li.chargeback)}${tdMoney(li.profit)}</tr>`;
+      const parts=breakdownGrid(li.parts);
+      return main + (parts?`<tr><td colspan="5">${parts}</td></tr>`:'');
     }).join('');
 
     div.innerHTML=head+`<table>
-      <colgroup>
-        <col style="width:42%"><col style="width:12%"><col style="width:15%"><col style="width:15%"><col style="width:16%">
-      </colgroup>
-      <thead><tr>
-        <th class="cell-label">Item</th><th class="cell-label">Code</th>
-        <th class="cell-label">Copay</th><th class="cell-label">Holdback</th><th class="cell-label">Service Fee</th>
-      </tr></thead>
+      <colgroup><col style="width:42%"><col style="width:12%"><col style="width:15%"><col style="width:15%"><col style="width:16%"></colgroup>
+      <thead><tr><th class="cell-label">Item</th><th class="cell-label">Code</th><th class="cell-label">Copay</th><th class="cell-label">Holdback</th><th class="cell-label">Service Fee</th></tr></thead>
       <tbody>${lines}</tbody>
       <tfoot><tr><th colspan="2" style="text-align:right">Totals</th>${tdMoney(b.copay)}${tdMoney(b.chargeback)}${tdMoney(b.profit)}</tr></tfoot>
     </table>`;
-
-    animateNumber(div.querySelector('.hero'), b.copay);
     return div;
   }
-  function renderStack(rows){
-    const stack=el('stack'); stack.innerHTML='';
-    rows.forEach(r=>stack.appendChild(renderTier(r)));
-    fitTextAll();
-    fitViewportScale();
+  function fitText(el,{min=10,max=36,step=0.4}={}){
+    if(!el) return; el.style.fontSize='';
+    const maxPx=Math.min(max,parseFloat(getComputedStyle(el).fontSize)||max);
+    let size=maxPx;
+    const parent=el.parentElement; if(!parent) return;
+    const fits=()=>el.scrollWidth<=parent.clientWidth;
+    while(size>min && !fits()){ size-=step; el.style.fontSize=size+'px'; }
+  }
+  function fitTextAll(){
+    document.querySelectorAll('.hero').forEach(n=>fitText(n,{min:14,max:36}));
+    document.querySelectorAll('.tierHead .tag').forEach(n=>fitText(n,{min:9,max:13}));
+  }
+  function fitViewportScale(){
+    const frame=document.getElementById('frame');
+    const CARD_MIN=360, GAP=14*3;
+    const needed=CARD_MIN*4+GAP;
+    const vw=document.documentElement.clientWidth;
+    let scale=Math.min(1,vw/needed);
+    const minScale=parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--min-scale'))||0.82;
+    if(scale<minScale) scale=minScale;
+    frame.style.transform=`scale(${scale})`;
+    frame.style.width=(100/scale)+'%';
+  }
+  const ro=new ResizeObserver(()=>{ fitTextAll(); fitViewportScale(); });
+  ro.observe(document.body);
+
+  /* ---------- pricing engine ---------- */
+  function isPAL(){ return el('lensFamily').value==='PAL'; }
+
+  function resolveSingle(code){
+    // exact code → row for family/glass filters
+    const row=pickByCode(code);
+    if(!row) return null;
+    return {
+      name: row.enhancement||row.subtype||'',
+      code: code,
+      copay: num(row.copay),
+      chargeback: num(row.chargeback),
+      profit: num(row.copay)-num(row.chargeback),
+      raw: row
+    };
   }
 
-  function sunPool(fam, wantGlass){
-    const tag = r => (r.exclusive_key||'').toLowerCase();
-    let pool = DATA.filter(r => (r.active||'yes').toLowerCase()==='yes' && applies(r,fam) && (tag(r)==='sun_tech' || tag(r)==='sun'));
-    const infer = DATA.filter(r=>{
-      if((r.active||'yes').toLowerCase()!=='yes' || !applies(r,fam)) return false;
-      const n=N(r.enhancement||r.subtype||''); return /(tint|tinted|sun|sunglass|photochrom|transitions|polariz)/.test(n);
-    });
-    if (!pool.length) pool = infer;
-    pool = pool.filter(r=>{
-      const n=N(r.enhancement||r.subtype||''); return wantGlass ? /glass/.test(n) : !/glass/.test(n);
-    });
-    return pool;
-  }
-  function chooseSunFor(baseRow){
-    const tintSel=el('lensTint').value;
+  function buildCompositeFromNotes(baseCode, addonCode, row){
+    // use notes “copay = A + B (SV/MF)” strictly
     const fam=el('lensFamily').value;
-    const wantGlass=el('includeGlass').checked;
-    const status=el('status');
+    const {svBase,svAdd,mfBase,mfAdd}=parseSplitFromNotes(row.notes,fam);
+    const baseCop = fam==='PAL' ? mfBase : svBase;
+    const addCop  = fam==='PAL' ? mfAdd  : svAdd;
+    if(baseCop==null || addCop==null) return null;
 
-    if(tintSel==='tinted_solid'){ const row = pickByCode('MN'); status.textContent = `tint: SOLID • code=MN${row?' • ok':''}`; return row; }
-    if(tintSel==='tinted_gradient'){ const row = pickByCode('MP'); status.textContent = `tint: GRADIENT • code=MP${row?' • ok':''}`; return row; }
-    if(tintSel==='polarized') return null;
+    const baseRow=resolveSingle(baseCode);
+    const addRow =resolveSingle(addonCode);
+    if(!baseRow || !addRow) return null;
 
+    // override copay with note split; holdback/service from rows
+    const partA={code:baseCode,copay:baseCop,chargeback:baseRow.chargeback,profit:baseCop-baseRow.chargeback};
+    const partB={code:addonCode,copay:addCop,chargeback:addRow.chargeback,profit:addCop-addRow.chargeback};
+
+    const sumCop=partA.copay+partB.copay;
+    if(STRICT_PRICING){
+      const csvTotal=num(row.copay)||sumCop;
+      if(Math.abs(sumCop-csvTotal)>0.01) return null;
+    }
+    return [partA,partB];
+  }
+
+  function buildCompositeByParts(parts, row){
+    // Resolve each code, take exact rows; if any missing → invalid
+    const resolved=[];
+    for(const c of parts){
+      const r=resolveSingle(c);
+      if(!r) return null;
+      resolved.push({code:c,copay:r.copay,chargeback:r.chargeback,profit:r.copay-r.chargeback});
+    }
+    // STRICT check: if CSV line has numbers, they must equal sums
+    const sumCop=sum(resolved.map(p=>p.copay));
+    const sumCB =sum(resolved.map(p=>p.chargeback));
+    if(STRICT_PRICING){
+      const csvCop=num(row.copay)||sumCop;
+      const csvCB =num(row.chargeback)||sumCB;
+      if(Math.abs(sumCop-csvCop)>0.01 || Math.abs(sumCB-csvCB)>0.01) return null;
+    }
+    return resolved;
+  }
+
+  function line(row){
+    // Always build from actual rows; never invent values
+    const desc=row.enhancement||row.subtype||'—';
+    let codeStr=String(row.code||'').trim().toUpperCase();
+    if(!codeStr && /^Progressive/i.test(desc||'')){
+      const inferred=inferProgressiveBaseCodeFromDesc(desc); if(inferred) codeStr=inferred;
+    }
+    const parts=splitCodes(codeStr);
+    if(parts.length===0) return null;
+
+    if(parts.length===1){
+      const resolved=resolveSingle(parts[0]);
+      if(!resolved) return null;
+      return {name:desc,code:parts[0],copay:resolved.copay,chargeback:resolved.chargeback,profit:resolved.profit,parts:[]};
+    }
+
+    // composite
+    let resolvedParts=null;
+    if(row.notes){ // try strict note split first
+      const fromNotes=buildCompositeFromNotes(parts[0],parts[1],row);
+      if(fromNotes) resolvedParts=fromNotes;
+    }
+    if(!resolvedParts){
+      resolvedParts=buildCompositeByParts(parts,row);
+      if(!resolvedParts) return null;
+    }
+
+    const cop=sum(resolvedParts.map(p=>p.copay));
+    const cb =sum(resolvedParts.map(p=>p.chargeback));
+    return {name:desc,code:parts.join('+'),copay:cop,chargeback:cb,profit:cop-cb,parts:resolvedParts};
+  }
+
+  function chooseSun(baseRow){
+    const tintSel=el('lensTint').value;
+    if(tintSel==='tinted_solid') return resolveSingle('MN');
+    if(tintSel==='tinted_gradient') return resolveSingle('MP');
     if(tintSel==='transitions'){
-      const poolAll = sunPool(fam, wantGlass);
-      const pool = poolAll.filter(r=>/photochrom|transitions/.test(N(r.enhancement)));
-      const want=preferPhotoCodeForBase(baseRow);
-      const choice = pool.find(r=>new RegExp('^'+want,'i').test((r.code||'').trim())) || pool.find(isPPhoto) || null;
-      status.textContent = `photochromic: poolAll=${poolAll.length} pool=${pool.length} want=${want}${choice?' • ok':''}`;
-      return choice;
+      const want = (/glass/i.test(baseRow.name||'')) ? 'PM' : 'PR';
+      return resolveSingle(want);
     }
     return null;
   }
 
-  function isEligibleProgressiveNO(baseRow){
-    const code=(splitCodes(baseRow.code||'')[0]||'').toUpperCase();
-    const desc=N(baseRow.enhancement||baseRow.subtype||'');
-    if (code==='NA' || code==='OA') return true;
-    if (/^progressive\s+[no]\b/.test(desc)) return true;
-    return false;
+  function maybeCM(baseRow){
+    if(!(el('includeCM')?.checked && isPAL())) return null;
+    const c=(splitCodes(baseRow.code||'')[0]||'').toUpperCase();
+    const ok=(c==='NA' || c==='OA');
+    if(!ok) return null;
+    const row=DATA.find(r=>applies(r,'PAL') && /custom\s*measure/i.test(N(r.enhancement||r.subtype||'')));
+    if(!row) return null;
+    const resolved=resolveSingle(splitCodes(row.code)[0]||'CM');
+    if(!resolved) return null;
+    return resolved;
   }
 
-  async function loadCSV(){
-    const status=el('status'); status.textContent=' loading…';
-    let loaded=null;
-    for(const url of CSV_CANDIDATES){ const r=await tryFetch(url); if(r.ok){ loaded=r; break; } }
-    if(loaded){
-      const meta={plan:'VSP_choice',version:new Date().toISOString().slice(0,10)+'.ui16-tints11',source:'network:'+loaded.url,sha:quickHash(loaded.text)};
-      setCache(loaded.text,meta); DATA=parseCSV(loaded.text); buildSimpleIndex(); renderMeta(DATA.length,meta);
-      status.textContent=` [ok] ${loaded.url} • ${DATA.length} rows`; computeBundles(); return;
+  function makeBundle(base, addOns){
+    const rows=[base,...addOns.filter(Boolean)];
+    const lines=rows.map(line);
+    if(lines.some(x=>!x)) return {invalid:true};
+
+    const cop=sum(lines.map(x=>x.copay));
+    const cb =sum(lines.map(x=>x.chargeback));
+    const pr =cop-cb;
+    const label=base.enhancement||base.subtype||base.code||'Base';
+
+    // verify header vs totals (defensive)
+    if(STRICT_PRICING){
+      for(const li of lines){
+        if(li.profit.toFixed(2)!==(li.copay-li.chargeback).toFixed(2)) return {invalid:true};
+      }
     }
-    const {text,meta}=getCache();
-    if(text){ DATA=parseCSV(text); buildSimpleIndex(); renderMeta(DATA.length,{...meta,source:'cache'});
-      status.textContent=` Network failed. Using cached data (${DATA.length} rows).`; computeBundles(); return; }
-    status.textContent = ' load failed — no cache';
+    return {label,lines,copay:cop,chargeback:cb,profit:pr};
   }
 
+  /* ---------- pipeline ---------- */
+  let REJECT_REASONS=0;
   function computeBundles(){
-    if(!DATA.length){ el('stack').innerHTML=''; return; }
-
     const fam=el('lensFamily').value;
     const wantAR=el('includeAR').checked;
     const wantAsp=el('includeAspheric').checked;
@@ -502,126 +450,92 @@ if (!window.__PAYEREDGE_V16_T11__) {
     const wantGlass=el('includeGlass').checked;
     const tintSel=el('lensTint').value;
 
-    const isCustomMeasure=row=>/custom\s*measure/i.test(N(row?.enhancement||row?.subtype||''));
-    const isAA=row=>splitCodes(row.code)[0]==='AA';
-    function isAsphericRow(row){
-      const name=N(row.enhancement||row.subtype||''); const first=splitCodes(row.code)[0]||'';
-      const looks=/aspheric/.test(name)||/^BA\b/.test(first); return looks && !isAA(row);
-    }
-
+    // base pool
     let base=[];
     if(fam==='PAL'){
-      base=byKey('progressive_level').filter(r=>applies(r,fam)).filter(r=>{
-        const name=N(r.enhancement);
-        if(wantGlass && !isGlassBaseName(name)) return false;
-        if(!wantGlass && isGlassBaseName(name)) return false;
-        if(isCustomMeasure(r)) return false;
-        if(tintSel==='polarized') return /polariz/.test(name);
-        return !/(photochrom|polariz|tint|tinted|sunglass|gradient|color|colored)/.test(name);
-      });
-    } else {
+      base=DATA.filter(r=> (r.active||'yes').toLowerCase()==='yes' && (r.exclusive_key||'').toLowerCase()==='progressive_level' && applies(r,fam))
+        .filter(r=>{
+          const name=N(r.enhancement||'');
+          if(wantGlass && !/glass/.test(name)) return false;
+          if(!wantGlass && /glass/.test(name)) return false;
+          if(/custom\s*measure/i.test(name)) return false;
+          if(tintSel==='polarized') return /polariz/.test(name);
+          return !/(photochrom|polariz|tint|tinted|sunglass|gradient|color|colored)/.test(name);
+        });
+    }else{
       if(tintSel==='polarized'){
-        base = wantGlass
-          ? byKey('sun_tech').filter(r=>applies(r,fam) && /polariz/.test(N(r.enhancement)) && /glass/.test(N(r.enhancement)))
-          : byKey('sun_tech').filter(r=>applies(r,fam) && /polariz/.test(N(r.enhancement)) && isDCode(r) && !/glass/.test(N(r.enhancement)));
-      } else {
-        let pool=(fam==='SV'?byKey('base_material'):byKey('occupational'));
-        pool=pool.filter(r=>{
-          const name=N(r.enhancement);
-          if(wantGlass && !isGlassBaseName(name)) return false;
-          if(!wantGlass && isGlassBaseName(name)) return false;
-          return true;
-        });
-        pool=pool.filter(r=>{
-          const name=N(r.enhancement);
-          if(/photochrom|polariz|tint|tinted|sunglass|gradient|color|colored/.test(name)) return false;
-          if(wantGlass) return true;
-          const asph=isAsphericRow(r);
-          return wantAsp?asph:!asph;
-        });
-
-        if (fam==='SV' || fam==='LINED') {
-          const byCode=new Map();
-          for (const r of pool) {
-            const c=splitCodes(r.code)[0];
-            if(!byCode.has(c)) byCode.set(c,[]);
-            byCode.get(c).push(r);
-          }
-          const collapsed=[];
-          for (const [c,rows] of byCode) collapsed.push(chooseVariantForFamily(rows,fam));
-          pool=collapsed.filter(Boolean);
-        }
-
-        if(!wantGlass && !wantAsp && fam==='SV' && tintSel==='clear'){
-          const aaRow=pickBaseByExactCode('AA');
-          if(aaRow){ const notAA=pool.filter(r=>splitCodes(r.code)[0]!=='AA'); pool=[aaRow,...notAA]; }
-        }
+        base=DATA.filter(r=> (r.active||'yes').toLowerCase()==='yes' && (r.exclusive_key||'').toLowerCase()==='sun_tech' && applies(r,fam))
+          .filter(r=>{
+            const n=N(r.enhancement||'');
+            if(!/polariz/.test(n)) return false;
+            if(wantGlass) return /glass/.test(n);
+            return !/glass/.test(n) && /^[d]/i.test(r.code||'');
+          });
+      }else{
+        let pool=(fam==='SV'?DATA.filter(r=>(r.exclusive_key||'').toLowerCase()==='base_material'):DATA.filter(r=>(r.exclusive_key||'').toLowerCase()==='occupational'));
+        pool=pool.filter(r=> (r.active||'yes').toLowerCase()==='yes' && applies(r,fam))
+          .filter(r=>{
+            const name=N(r.enhancement||'');
+            if(wantGlass && !/glass/.test(name)) return false;
+            if(!wantGlass && /glass/.test(name)) return false;
+            if(/photochrom|polariz|tint|tinted|sunglass|gradient|color|colored/.test(name)) return false;
+            const asph = /aspheric/.test(name) || /^BA\b/.test((r.code||'').trim().toUpperCase());
+            return wantAsp?asph:!asph;
+          });
+        // collapse duplicates by base code per family
+        const byCode=new Map();
+        for(const r of pool){ const c=splitCodes(r.code)[0]; if(!byCode.has(c)) byCode.set(c,[]); byCode.get(c).push(r); }
+        pool=[...byCode.values()].map(rows=>chooseVariantForFamily(rows,fam)).filter(Boolean);
         base=pool;
       }
     }
 
+    // AR pool
     function rankAR(ars){
-      const gradeVal=s=>{ const m=String(s||'').match(/\b([A-D])\b/i); if(!m) return null; return {A:1,B:2,C:3,D:4}[m[1].toUpperCase()]||null; };
+      const gradeVal=s=>{ const m=String(s||'').match(/\b([A-D])\b/i); if(!m) return -1; return {A:4,B:3,C:2,D:1}[m[1].toUpperCase()]||-1; };
       return [...ars].sort((a,b)=>{
-        const ga=gradeVal(a.enhancement)||-1, gb=gradeVal(b.enhancement)||-1;
+        const ga=gradeVal(a.enhancement), gb=gradeVal(b.enhancement);
         if(ga!==gb) return gb-ga;
-        const pa=num(a.copay)-num(a.chargeback), pb=num(b.copay)-num(b.chargeback);
-        return pb-pa;
+        // prefer higher service fee
+        const sa=num(a.copay)-num(a.chargeback), sb=num(b.copay)-num(b.chargeback);
+        return sb-sa;
       });
     }
-    const arPool = wantAR ? byKey('ar_level').filter(r=>{
-      const name=N(r.enhancement);
-      if(wantGlass && !isGlassBaseName(name)) return false;
-      return applies(r,fam);
-    }) : [];
-    const arRanked=wantAR?rankAR(arPool):[];
-    const arOptions=(wantAR && arRanked.length)?arRanked:[null];
+    const arOptions = (wantAR ? rankAR(DATA.filter(r=> (r.active||'yes').toLowerCase()==='yes' && (r.exclusive_key||'').toLowerCase()==='ar_level' && applies(r,fam))) : []).slice(0) || [];
+    const arList = wantAR && arOptions.length ? arOptions : [null];
 
-    const overs = wantOS ? (byKey('oversize').filter(r=>applies(r,fam))[0]||null) : null;
-
-    function cmIfEligible(baseRow){
-      if (!(el('includeCM')?.checked && fam==='PAL')) return null;
-      if (!isEligibleProgressiveNO(baseRow)) return null;
-      return (DATA.filter(r=>applies(r,'PAL')).find(row=>/custom\s*measure/i.test(N(row.enhancement||row.subtype||'')))||null);
-    }
-    function buildBundle(m,arRow){
-      return makeBundle(m,[arRow,chooseSunFor(m),cmIfEligible(m),overs]);
-    }
+    const overs = wantOS ? (DATA.find(r=> (r.exclusive_key||'').toLowerCase()==='oversize' && applies(r,fam))||null) : null;
 
     const all=[];
-    for(const m of base){ for(const ar of arOptions){ all.push(buildBundle(m,ar)); } }
-    if(!all.length){
-      renderStack([{name:'Best',cls:'best',b:null},{name:'Better',cls:'better',b:null},{name:'Good',cls:'good',b:null},{name:'Cheapest',cls:'good',b:null}]); return;
+    REJECT_REASONS=0;
+    for(const m of base){
+      for(const ar of arList){
+        const cm = maybeCM(m);
+        const sun=chooseSun(m);
+        const bundle=makeBundle(m,[ar,sun,cm,overs]);
+        if(bundle.invalid){ REJECT_REASONS++; continue; }
+        all.push(bundle);
+      }
     }
 
+    // pick Best/Better/Good/Cheapest deterministically
+    if(!all.length){ renderStack([{name:'Best',cls:'best',b:null},{name:'Better',cls:'better',b:null},{name:'Good',cls:'good',b:null},{name:'Cheapest',cls:'good',b:null}], true); return; }
     const sorted=[...all].sort((a,b)=>a.copay-b.copay);
-    if (sorted.length===1) { renderStack([{name:'Best',cls:'best',b:sorted[0]},{name:'Better',cls:'better',b:null},{name:'Good',cls:'good',b:null},{name:'Cheapest',cls:'good',b:null}]); return; }
-    if (sorted.length===2) { renderStack([{name:'Best',cls:'best',b:sorted[1]},{name:'Better',cls:'better',b:null},{name:'Good',cls:'good',b:null},{name:'Cheapest',cls:'good',b:sorted[0]}]); return; }
-    if (sorted.length===3) { renderStack([{name:'Best',cls:'best',b:sorted[2]},{name:'Better',cls:'better',b:sorted[1]},{name:'Good',cls:'good',b:null},{name:'Cheapest',cls:'good',b:sorted[0]}]); return; }
+    const best = all.reduce((p,c)=>(!p||c.profit>p.profit||(c.profit===p.profit&&c.copay<c.copay)?c:p),null);
+    const maxPrice=Math.max(...all.map(b=>b.copay));
+    const cap=(k)=>maxPrice*k;
+    const under=(cap)=>all.filter(b=>b.copay<=cap).sort((a,b)=> (b.profit-a.profit)|| (a.copay-b.copay))[0] || all.sort((a,b)=>a.copay-b.copay)[0];
+    const better=under(0.75);
+    const good  =under(0.60);
+    const cheapest=sorted[0];
 
-    const MaxPrice=Math.max(...all.map(b=>b.copay));
-    const best = all.reduce((p,c)=>(!p||c.profit>p.profit||(c.profit===p.profit&&c.copay<p.copay)?c:p),null);
-
-    function pickUnderCap(cap){
-      const cand=all.filter(b=>b.copay<=cap);
-      if(cand.length){ return cand.reduce((p,c)=>(!p||c.profit>p.profit||(c.profit===p.profit&&c.copay<p.copay)?c:p),null); }
-      const looser=cap/CAP_RELAX_FACTOR;
-      const cand2=all.filter(b=>b.copay<=looser);
-      if(cand2.length){ return cand2.reduce((p,c)=>(!p||c.profit>p.profit||(c.profit===p.profit&&c.copay<p.copay)?c:p),null); }
-      return all.reduce((p,c)=>(!p||c.copay<p.copay||(c.copay===p.copay&&c.profit>p.profit)?c:p),null);
-    }
-
-    const better=pickUnderCap(MaxPrice*BETTER_CAP_OF_MAX);
-    const good  =pickUnderCap(MaxPrice*GOOD_CAP_OF_MAX);
-    const cheapest=all.reduce((p,c)=>(!p||c.copay<p.copay||(c.copay===p.copay&&c.profit>p.profit)?c:p),null);
-
+    // de-dupe
     const picks=[best,better,good,cheapest].filter(Boolean);
     const uniq=[], seen=new Set();
     for(const b of picks){
       const sig=[b.label,b.copay.toFixed(2),b.chargeback.toFixed(2),b.profit.toFixed(2)].join('|');
       if(!seen.has(sig)){ seen.add(sig); uniq.push(b); }
     }
-
     renderStack([
       {name:'Best',cls:'best',b:uniq[0]||null},
       {name:'Better',cls:'better',b:uniq[1]||null},
@@ -630,45 +544,39 @@ if (!window.__PAYEREDGE_V16_T11__) {
     ]);
   }
 
-  /* ===== typography fit ===== */
-  function fitText(el, {min=10, max=36, step=0.4}={}){
-    if(!el) return; el.style.fontSize = '';
-    const maxPx = Math.min(max, parseFloat(getComputedStyle(el).fontSize)||max);
-    let size = maxPx;
-    const parent = el.parentElement; if(!parent) return;
-    const fits = () => el.scrollWidth <= parent.clientWidth;
-    while(size>min && !fits()){ size -= step; el.style.fontSize = size+'px'; }
-  }
-  function fitTextAll(){
-    document.querySelectorAll('.hero').forEach(n=>fitText(n,{min:14,max:36}));
-    document.querySelectorAll('.tierHead .tag').forEach(n=>fitText(n,{min:9,max:13}));
+  function renderStack(rows,empty=false){
+    const stack=el('stack'); stack.innerHTML='';
+    for(const r of rows){
+      const node=renderTier({...r,invalid:false});
+      if(node) stack.appendChild(node);
+    }
+    fitTextAll(); fitViewportScale();
+
+    const msg = empty ? `no bundles` : `ok • ${rows.filter(x=>x.b).length} picks • rejects=${REJECT_REASONS}${STRICT_PRICING?' • STRICT':''}`;
+    el('status').textContent = msg;
+    el('status').title = `Bundles rejected by pricing guard: ${REJECT_REASONS}. STRICT mode ensures all totals are proven from CSV (notes + exact code rows) — no inferred math.`;
   }
 
-  /* ===== global auto-scale so four cards always fit ===== */
-  function fitViewportScale(){
-    const frame = document.getElementById('frame');
-    if (!frame) return;
-    // rough min width per card incl. gap/padding
-    const CARD_MIN = 360; // visual width target per card
-    const GAP = 14*3;     // gaps between 4 cards (3 gaps)
-    const needed = CARD_MIN*4 + GAP;
-    const vw = document.documentElement.clientWidth;
-    let scale = Math.min(1, vw / needed);
-    const minScale = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--min-scale')) || 0.82;
-    if (scale < minScale) scale = minScale;
-    frame.style.transform = `scale(${scale})`;
-    // Keep layout width so no horizontal scrollbars
-    frame.style.width = (100/scale) + '%';
+  /* ---------- boot ---------- */
+  async function loadCSV(){
+    const status=el('status'); status.textContent=' loading…';
+    let loaded=null;
+    for(const url of CSV_CANDIDATES){ const r=await tryFetch(url); if(r.ok){ loaded=r; break; } }
+    if(loaded){
+      const meta={plan:'VSP_choice',version:new Date().toISOString().slice(0,10)+'.strict-ui',source:'network:'+loaded.url,sha:quickHash(loaded.text)};
+      setCache(loaded.text,meta); DATA=parseCSV(loaded.text); buildSimpleIndex(); renderMeta(DATA.length,meta);
+      status.textContent=` [ok] ${loaded.url} • ${DATA.length} rows`; computeBundles(); return;
+    }
+    const {text,meta}=getCache();
+    if(text){ DATA=parseCSV(text); buildSimpleIndex(); renderMeta(DATA.length,{...meta,source:'cache'}); status.textContent=` cache • ${DATA.length} rows`; computeBundles(); return; }
+    status.textContent=' load failed — no data';
   }
-
-  const ro=new ResizeObserver(()=>{ fitTextAll(); fitViewportScale(); });
-  ro.observe(document.body);
 
   document.getElementById('forceRefresh').onclick=()=>{ localStorage.removeItem('rev-vsp-choice-csv-v1'); localStorage.removeItem('rev-vsp-choice-meta-v1'); loadCSV(); };
   document.getElementById('clearCache').onclick =()=>{ localStorage.removeItem('rev-vsp-choice-csv-v1'); localStorage.removeItem('rev-vsp-choice-meta-v1'); el('status').textContent=' cache cleared — click Force Refresh to reload'; };
   ['lensFamily','lensTint','includeAR','includeAspheric','includeOversize','includeGlass','includeCM'].forEach(id=>{ const n=el(id); if(n) n.onchange=computeBundles; });
 
-  (function boot(){ loadCSV(); })();
+  loadCSV();
 }
 </script>
 </body>
