@@ -1,294 +1,159 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>RevSight — Pricing Card</title>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>PayerEdge — VSP Bundles</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#090e16;--bg-elev:#0c1320;--fg:#eaf1ff;--muted:#9fb0c9;--line:#263448;--accent:#72a8ff;--accent-2:#7be0c3;
+  --tier-best:#ffd166;--tier-better:#a9c2ff;--tier-good:#7be0c3;
+  --shadow-lg:0 18px 40px rgba(0,0,0,.35);--shadow-md:0 10px 26px rgba(0,0,0,.28);
+  --radius:18px;--radius-sm:12px;
+  --fz-11:11px;--fz-12:12px;--fz-13:13px;--fz-14:14px;--fz-15:15px;--fz-18:18px;--fz-20:20px;--fz-36:36px;
+}
+*{box-sizing:border-box} html,body{height:100%}
+body{
+  margin:0;background:
+    radial-gradient(1200px 600px at 20% -10%, rgba(90,168,255,.12), transparent 60%),
+    radial-gradient(900px 500px at 110% 10%, rgba(123,224,195,.10), transparent 60%),
+    var(--bg);
+  color:var(--fg);font:var(--fz-15)/1.45 Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;font-variant-numeric:tabular-nums
+}
+header{
+  position:sticky;top:0;z-index:20;display:flex;justify-content:space-between;align-items:center;gap:14px;padding:12px 16px;
+  background:linear-gradient(180deg, rgba(9,14,22,.95), rgba(9,14,22,.78));border-bottom:1px solid var(--line);backdrop-filter:blur(10px)
+}
+h1{margin:0;font-weight:800;font-size:clamp(16px,1.8vw,20px);letter-spacing:.2px}
+.sub{color:var(--muted);font-size:var(--fz-12)} .version{color:var(--muted)}
+main{padding:14px}
 
-  <style>
-    :root{
-      --bg:#0b1321; --card:#0f1a2b; --card-2:#101d31; --fg:#e8f0ff; --muted:#9fb0c9;
-      --line:#24354e; --accent:#7bb7ff; --ok:#7be0c3; --warn:#ffd166;
-      --shadow:0 18px 40px rgba(0,0,0,.35);
-      --pad-1:10px; --pad-2:14px; --pad-3:18px; --radius:22px;
-      --num: clamp(40px, 7vw, 76px);
-    }
-    *{box-sizing:border-box}
-    html,body{height:100%}
-    body{
-      margin:0; background:linear-gradient(180deg,#0a1220,#0b1321 60%,#09101a);
-      color:var(--fg); font:15px/1.45 Inter,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
-      -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
-    }
-    .wrap{
-      max-width:980px; margin:28px auto; padding:0 16px;
-    }
-    .card{
-      background:radial-gradient(1200px 600px at 70% -200px,rgba(114,168,255,.14),transparent 60%) , var(--card);
-      border:1px solid rgba(255,255,255,.06);
-      border-radius:var(--radius); box-shadow:var(--shadow);
-      overflow:hidden;
-    }
+/* toolbar */
+.bar{display:flex;align-items:center;flex-wrap:wrap;gap:10px 12px;background:linear-gradient(180deg,var(--bg-elev),#0b1220);
+  border:1px solid var(--line);border-radius:var(--radius);padding:10px;box-shadow:var(--shadow-md)}
+.group{display:flex;gap:8px;align-items:center;padding:6px 8px;border-radius:999px;background:#0b1424}
+.btn{background:#121f35;border:1px solid var(--line);color:var(--fg);padding:6px 9px;border-radius:var(--radius-sm);cursor:pointer;font-weight:600;transition:.15s}
+.btn:hover{background:#162844;border-color:#2e4260}
+.switch{display:inline-flex;align-items:center;gap:8px}
+select{background:#0e1a30;color:#fff;border:1px solid var(--line);border-radius:10px;padding:6px 8px;outline:none}
+select:focus{box-shadow:0 0 0 3px rgba(114,168,255,.25)}
+#status{margin-left:auto;padding:6px 10px;border-radius:999px;border:1px dashed var(--line);background:#0b1422;color:#c7d6ef;font-size:var(--fz-12);max-width:52vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
-    /* Header */
-    .head{
-      display:grid; grid-template-columns:1fr auto; gap:16px;
-      padding:22px clamp(16px, 3.5vw, 28px) 10px;
-      align-items:center;
-    }
-    .tier-stars{ color:var(--warn); font-size:20px; letter-spacing:2px; }
-    .title{ margin-top:6px; }
-    .title h1{ font-size:20px; margin:0 0 2px 0; }
-    .title .sub{ font-size:13px; color:var(--muted); }
-    .price{
-      text-align:right;
-    }
-    .kicker{ font-size:12px; color:var(--muted); margin-top:6px; }
-    .profit{ color:var(--ok); font-weight:700; }
+/* card grid */
+.viewport-frame { transform-origin: top left; width: 100%; }
+.stack{display:grid;grid-template-columns:repeat(4,minmax(320px,1fr));gap:14px;align-items:stretch;margin-top:12px;overflow:visible;min-width:0}
 
-    /* Flip number */
-    .flip{
-      display:inline-grid; grid-auto-flow:column; gap:2px; align-items:end;
-      font-weight:800; font-size:var(--num); line-height:1; letter-spacing:1px;
-      font-variant-numeric:tabular-nums;
-    }
-    .flip .d{
-      position:relative; overflow:hidden; display:inline-block; width:ch; min-width:0.65em;
-    }
-    .flip .d > span{
-      display:block; transform:translateY(0);
-    }
-    .flip.animate .d > span{
-      animation:flip 420ms ease-in-out;
-    }
-    @keyframes flip{
-      0%{ transform:translateY(0) }
-      49%{ transform:translateY(100%) }
-      50%{ transform:translateY(-100%) }
-      100%{ transform:translateY(0) }
-    }
-    @media (prefers-reduced-motion:reduce){
-      .flip.animate .d > span{ animation:none }
-    }
+/* tier card */
+.tier{background:linear-gradient(180deg,#0f1726,#0c1422);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow-lg);padding:12px;min-width:0}
+.tierHead{display:grid;grid-template-columns:1fr auto;align-items:center;gap:10px;margin-bottom:8px;min-width:0}
+.stars{font-weight:800;display:flex;align-items:center;gap:8px;min-width:0}
+.stars.best{color:var(--tier-best)} .stars.better{color:var(--tier-better)} .stars.good{color:var(--tier-good)}
+.figures{text-align:right;display:grid;gap:2px}
+.hero{font-size:clamp(20px,2.6vw,36px);font-weight:800;line-height:1.0;letter-spacing:.2px;color:#cfe6ff;text-shadow:0 6px 18px rgba(114,168,255,.18)}
+.caption{color:var(--muted);font-size:var(--fz-12)} .svc{font-weight:800;color:var(--accent-2)}
 
-    /* Table (gridless, airy) */
-    .section{
-      padding:8px clamp(16px, 3.5vw, 28px) 18px;
-    }
-    .section .label{
-      display:flex; align-items:center; gap:10px; color:var(--muted); font-weight:600;
-      margin:8px 0 10px; user-select:none; cursor:default;
-    }
-    .hr{
-      height:1px; background:var(--line); margin:6px 0 8px;
-      box-shadow:0 1px 0 rgba(0,0,0,.25) inset;
-    }
-    .tbl{
-      width:100%;
-      border-collapse:separate; border-spacing:0 6px; /* space between rows */
-    }
-    .tbl th{
-      text-align:left; color:var(--muted); font-size:12px; font-weight:600;
-      padding:8px 10px 6px; white-space:nowrap;
-    }
-    .tbl td{
-      padding:10px; background:var(--card-2);
-      border-radius:12px; border:1px solid rgba(255,255,255,.04);
-      vertical-align:middle;
-    }
-    .tbl .item{ font-weight:600 }
-    .tbl .code{ font-weight:700; color:#cfe1ff }
-    .tbl .num{ white-space:nowrap; font-variant-numeric:tabular-nums; }
-    .tbl .muted{ color:var(--muted) }
+/* table */
+table.bundle{width:100%;border-collapse:collapse;margin-top:8px;table-layout:fixed}
+table.bundle th,td{padding:6px 6px;text-align:left;font-size:var(--fz-12);vertical-align:top;overflow:hidden;text-overflow:ellipsis}
+table.bundle thead th{color:var(--muted);font-weight:700;white-space:nowrap;padding-top:4px;padding-bottom:5px}
+.cell-item{overflow-wrap:break-word}
+.cell-item .label{-webkit-line-clamp:2;-webkit-box-orient:vertical;display:-webkit-box;overflow:hidden;text-overflow:ellipsis;line-height:1.32}
+.cell-code{white-space:nowrap}
+.cell-money{white-space:nowrap;font-weight:800;font-size:clamp(11px,1.1vw,13px);font-variant-numeric:tabular-nums;padding-left:18px;min-width:116px;text-align:right}
 
-    /* Subtle row separation between groups without grid bars */
-    .group-gap{ height:10px }
+/* row rules */
+table.bundle tbody td{border-bottom:1px dashed #203043}
+table.bundle tfoot th,table.bundle tfoot td{border-top:1px solid rgba(255,255,255,.08);border-bottom:0;padding-top:9px;padding-bottom:8px}
 
-    /* Totals row */
-    .totals td{
-      background:linear-gradient(180deg,rgba(123,224,195,.08),rgba(123,224,195,.03));
-      border-color:rgba(123,224,195,.22);
-      font-weight:800;
-    }
+/* breakdown */
+details.break summary{cursor:pointer;opacity:.85;font-size:12px;letter-spacing:.1px}
+.breakbox{padding:4px 8px 8px}
+.breakgrid{display:grid;grid-template-columns:1fr repeat(3,minmax(0,0.9fr));gap:4px 8px;align-items:center}
+.breakgrid .money{text-align:right;font-variant-numeric:tabular-nums;padding-left:8px;font-weight:800;font-size:12px}
+.codepill{display:inline-flex;align-items:center;justify-content:center;padding:2px 8px;border:1px solid var(--line);border-radius:999px;
+  font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px;color:#cfe1ff;background:#0e1a30;white-space:nowrap;max-width:84px;overflow:hidden;text-overflow:ellipsis}
 
-    /* Column sizing & wrapping */
-    .col-item{ width:42% }
-    .col-code{ width:13% }
-    .col-copay,.col-hold,.col-fee{ width:15% }
-    .code{ white-space:normal } /* allow NA+NJ without truncation */
-    .item{ white-space:normal }
-    .num{ text-align:right }
-
-    /* Mobile stack tweaks */
-    @media (max-width:720px){
-      .head{ grid-template-columns:1fr }
-      .price{ text-align:left }
-      .tbl th{ display:none }
-      .tbl td{
-        display:grid; grid-template-columns: 1fr auto; gap:10px;
-        padding:12px;
-      }
-      .tbl td[data-h="Item"]{ grid-template-columns: 1fr }
-      .tbl .num{ justify-self:end }
-      .col-item,.col-code,.col-copay,.col-hold,.col-fee{ width:auto }
-    }
-  </style>
+/* responsive text */
+@media (max-width:1280px){.hero{font-size:clamp(18px,2.2vw,30px)}}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:8px}
+@media print{header,.bar{display:none} body{background:#fff;color:#000}.tier{break-inside:avoid;border:1px solid #000;box-shadow:none} table,th,td{border-color:#000}}
+</style>
 </head>
 <body>
-  <div class="wrap">
-    <div class="card" id="pricingCard">
-      <!-- Header -->
-      <div class="head">
-        <div>
-          <div class="tier-stars">★ ★ ★</div>
-          <div class="title">
-            <h1>Progressive</h1>
-            <div class="sub">Hi-Index <strong>1.70+</strong></div>
-          </div>
-        </div>
-        <div class="price">
-          <div id="patientCopay" class="flip" aria-label="Patient Copay">$<span class="d"><span>3</span></span><span class="d"><span>8</span></span><span class="d"><span>5</span></span><span class="d"><span>.</span></span><span class="d"><span>0</span></span><span class="d"><span>0</span></span></div>
-          <div class="kicker">Patient Copay</div>
-          <div class="kicker">Service Fee (Practice Profit): <span id="profit" class="profit">$161.00</span></div>
-        </div>
-      </div>
-
-      <!-- Main Line -->
-      <div class="section">
-        <table class="tbl" role="table" aria-label="Pricing breakdown">
-          <thead>
-            <tr>
-              <th class="col-item">Item</th>
-              <th class="col-code">Code</th>
-              <th class="col-copay">Copay</th>
-              <th class="col-hold">Holdback</th>
-              <th class="col-fee">Service Fee</th>
-            </tr>
-          </thead>
-          <tbody id="rows">
-            <tr>
-              <td class="item col-item" data-h="Item">Progressive Hi-Index 1.70+</td>
-              <td class="code col-code" data-h="Code">NA+NJ</td>
-              <td class="num col-copay" data-h="Copay"><strong id="mainCopay">$300.00</strong></td>
-              <td class="num col-hold" data-h="Holdback"><strong id="mainHold">$172.00</strong></td>
-              <td class="num col-fee" data-h="Service Fee"><strong id="mainFee">$128.00</strong></td>
-            </tr>
-
-            <tr><td class="group-gap" colspan="5" aria-hidden="true"></td></tr>
-
-            <!-- Breakdown header -->
-            <tr>
-              <td class="muted" colspan="5" style="padding:6px 10px 4px;background:none;border:none">
-                ▼ Breakdown for NA+NJ
-              </td>
-            </tr>
-
-            <!-- NA row -->
-            <tr>
-              <td class="item col-item" data-h="Item">Progressive N – Plastic</td>
-              <td class="code col-code" data-h="Code">NA</td>
-              <td class="num col-copay" data-h="Copay">$175.00</td>
-              <td class="num col-hold" data-h="Holdback">$95.00</td>
-              <td class="num col-fee" data-h="Service Fee">$80.00</td>
-            </tr>
-
-            <!-- NJ row -->
-            <tr>
-              <td class="item col-item" data-h="Item">High-Index 1.70 and Above (add-on)</td>
-              <td class="code col-code" data-h="Code">NJ</td>
-              <td class="num col-copay" data-h="Copay">$125.00</td>
-              <td class="num col-hold" data-h="Holdback">$77.00</td>
-              <td class="num col-fee" data-h="Service Fee">$48.00</td>
-            </tr>
-
-            <!-- AR row -->
-            <tr>
-              <td class="item col-item" data-h="Item">Anti-reflective Coating D</td>
-              <td class="code col-code" data-h="Code">QV</td>
-              <td class="num col-copay" data-h="Copay"><strong>$85.00</strong></td>
-              <td class="num col-hold" data-h="Holdback"><strong>$52.00</strong></td>
-              <td class="num col-fee" data-h="Service Fee"><strong>$33.00</strong></td>
-            </tr>
-
-            <!-- Totals -->
-            <tr class="totals">
-              <td class="item col-item" data-h="Item"><strong>Totals</strong></td>
-              <td class="code col-code" data-h="Code"> </td>
-              <td class="num col-copay" data-h="Copay"><strong id="totCopay">$385.00</strong></td>
-              <td class="num col-hold" data-h="Holdback"><strong id="totHold">$224.00</strong></td>
-              <td class="num col-fee" data-h="Service Fee"><strong id="totFee">$161.00</strong></td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-
-    <!-- Demo buttons (safe to remove). They show the flip animation on change. -->
-    <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:14px;opacity:.8">
-      <button id="btnRandom" style="background:#16263f;color:#cfe1ff;border:1px solid #2a3d5b;border-radius:12px;padding:10px 14px;cursor:pointer">Demo: Randomize Numbers</button>
-      <button id="btnReset"  style="background:#16263f;color:#cfe1ff;border:1px solid #2a3d5b;border-radius:12px;padding:10px 14px;cursor:pointer">Reset</button>
-    </div>
+<header>
+  <div>
+    <h1>PayerEdge — VSP Bundles</h1>
+    <div class="sub">Scoreboard shows <b>patient copay</b> and <b>service fee</b> (Copay − Holdback). Sun choices are exclusive.</div>
   </div>
+  <div class="version sub" id="version">loading…</div>
+</header>
+<main>
+  <div class="bar">
+    <div class="group"><button class="btn" id="forceRefresh">Force Refresh</button><button class="btn" id="clearCache">Clear Cache</button></div>
+    <div class="group">
+      <label class="switch">Lens family
+        <select id="lensFamily"><option value="SV">Single Vision</option><option value="LINED">Lined Bi/Tri</option><option value="PAL" selected>Progressive</option></select>
+      </label>
+      <label class="switch">Lens tint
+        <select id="lensTint"><option value="clear" selected>Clear</option><option value="tinted_solid">Tinted — Solid</option><option value="tinted_gradient">Tinted — Gradient</option><option value="polarized">Polarized</option><option value="transitions">Transitions®</option></select>
+      </label>
+    </div>
+    <div class="group">
+      <label class="switch"><input type="checkbox" id="includeAR" checked> Include AR</label>
+      <label class="switch"><input type="checkbox" id="includeAspheric"> Aspheric</label>
+      <label class="switch"><input type="checkbox" id="includeOversize"> Oversize</label>
+      <label class="switch"><input type="checkbox" id="includeGlass"> Glass</label>
+      <label class="switch"><input type="checkbox" id="includeCM"> Custom measurements (N/O only)</label>
+    </div>
+    <span id="status"></span>
+  </div>
+  <div id="frame" class="viewport-frame"><div id="stack" class="stack"></div></div>
+</main>
 
-  <script>
-    /* ===== Flip number utility =====
-       Call setFlipValue(el, "$385.00") to update with animation.
-       Attach to any .flip element built as digits (see header value). */
+<script>
+if(!window.__PAYEREDGE_V16_9_1__){
+  window.__PAYEREDGE_V16_9_1__=true;
+  const CSV_CANDIDATES=['./vsp_choice_master_v8.4.csv','./data/vsp_choice_master_v8.4.csv'];
+  const el=id=>document.getElementById(id);
+  const num=v=>{const x=parseFloat(String(v??'').replace(/[^0-9.-]/g,''));return isFinite(x)?x:0;};
+  const quickHash=s=>{let h=2166136261>>>0;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619)>>>0;}return ('00000000'+h.toString(16)).slice(-8);};
 
-    function formatMoney(n){
-      return n.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2});
+  function parseCSV(text){const rows=[];let row=[],field='',q=false;for(let i=0;i<text.length;i++){const ch=text[i];if(ch==='\"'){if(q&&text[i+1]==='\"'){field+='\"';i++;}else{q=!q;}continue;}if(!q&&ch===','){row.push(field);field='';continue;}if(!q&&(ch==='\n'||ch==='\r')){if(field!==''||row.length){row.push(field);rows.push(row);row=[];field='';}continue;}field+=ch;}if(field!==''||row.length){row.push(field);rows.push(row);}const headers=rows.shift().map(h=>h.replace(/^\"|\"$/g,''));return rows.filter(r=>r.length>=headers.length).map(r=>{const o={};headers.forEach((h,i)=>o[h]=(r[i]||'').replace(/^\"|\"$/g,''));return o;});}
+  let DATA=[];
+
+  async function loadCSV(){
+    const status=el('status');status.textContent=' loading…';
+    for(const url of CSV_CANDIDATES){
+      try{const res=await fetch(url,{cache:'no-store'});if(res.ok){const text=await res.text();DATA=parseCSV(text);renderMeta(DATA.length,{url,sha:quickHash(text)});computeBundles();return;}}catch(e){}
     }
+    status.textContent=' load failed';
+  }
+  function renderMeta(count,meta){el('version').textContent=`rows=${count} • sha=${meta.sha||'—'} • ${meta.url||''}`;}
 
-    function buildFlipFromString(str){
-      const frag = document.createDocumentFragment();
-      for(const ch of str){
-        const d = document.createElement('span'); d.className='d';
-        const s = document.createElement('span'); s.textContent = ch;
-        d.appendChild(s); frag.appendChild(d);
-      }
-      return frag;
-    }
+  function computeBundles(){ // dummy demo
+    renderStack([{name:'Best',cls:'best',b:{label:'Demo',copay:200,chargeback:100,profit:100,lines:[{name:'NA Progressive N – Plastic',code:'NA',copay:175,chargeback:80,profit:95,parts:[]},{name:'Add-on',code:'NJ',copay:125,chargeback:48,profit:77,parts:[]}]}},
+                 {name:'Better',cls:'better',b:null},{name:'Good',cls:'good',b:null},{name:'Cheapest',cls:'good',b:null}]);}
 
-    function setFlipValue(el, text){
-      // If content differs, rebuild digit spans and animate
-      const current = Array.from(el.querySelectorAll('.d > span')).map(s=>s.textContent).join('');
-      if(current === text) return;
-
-      // Rebuild content
-      el.textContent = '';
-      el.appendChild(buildFlipFromString(text));
-      el.classList.remove('animate'); void el.offsetWidth; // restart animation
-      el.classList.add('animate');
-      // remove animate flag after anim completes
-      setTimeout(()=>el.classList.remove('animate'), 500);
-    }
-
-    // Public API for your app: updateHeaderTotals({copay, hold, fee})
-    function updateHeaderTotals({copay, hold, fee}){
-      const flipEl = document.getElementById('patientCopay');
-      setFlipValue(flipEl, '$' + formatMoney(copay));
-
-      // Update profit text (no flip needed here but easy to add)
-      document.getElementById('profit').textContent = '$' + formatMoney(fee);
-
-      // Update totals row numbers too (no flip by default; add if you want)
-      document.getElementById('totCopay').textContent = '$' + formatMoney(copay);
-      document.getElementById('totHold').textContent = '$' + formatMoney(hold);
-      document.getElementById('totFee').textContent  = '$' + formatMoney(fee);
-    }
-
-    /* ===== Demo controls (remove in production) ===== */
-    const base = {copay:385, hold:224, fee:161};
-    document.getElementById('btnReset').addEventListener('click', ()=>updateHeaderTotals(base));
-    document.getElementById('btnRandom').addEventListener('click', ()=>{
-      const c = 300 + Math.round(Math.random()*200);
-      const h = 180 + Math.round(Math.random()*90);
-      const f = c - h; // demo math only
-      updateHeaderTotals({copay:c, hold:h, fee:f});
-    });
-
-    // Initialize with base values
-    updateHeaderTotals(base);
-  </script>
+  function tdMoney(v){return `<td class="cell-money">$${v.toFixed(2)}</td>`;}
+  function renderTier({name,cls,b}){
+    const div=document.createElement('div');div.className='tier';
+    if(!b){div.innerHTML=`<div class="tierHead"><div class="stars ${cls}"><span>${name}</span></div><div class="figures"><div class="hero">—</div><div class="caption">Patient Copay</div></div></div>`;return div;}
+    const stars=name==='Best'?'★★★':name==='Better'?'★★':name==='Good'?'★':'◎';
+    const head=`<div class="tierHead"><div class="stars ${cls}"><div style="font-size:18px">${stars}</div><span class="tag">${b.label}</span></div>
+      <div class="figures"><div class="hero">$${b.copay.toFixed(2)}</div><div class="caption">Patient Copay</div><div class="caption">Profit: <span class="svc">$${b.profit.toFixed(2)}</span></div></div></div>`;
+    const lines=b.lines.map(li=>`<tr><td class="cell-item"><span class="label" title="${li.name}">${li.name}</span></td><td class="cell-code">${li.code}</td>${tdMoney(li.copay)}${tdMoney(li.chargeback)}${tdMoney(li.profit)}</tr>`).join('');
+    div.innerHTML=head+`<table class="bundle"><colgroup><col style="width:35%"><col style="width:10%"><col style="width:19%"><col style="width:18%"><col style="width:18%"></colgroup>
+      <thead><tr><th>Item</th><th>Code</th><th>Copay</th><th>Holdback</th><th>Service Fee</th></tr></thead>
+      <tbody>${lines}</tbody><tfoot><tr><th colspan="2" style="text-align:right">Totals</th>${tdMoney(b.copay)}${tdMoney(b.chargeback)}${tdMoney(b.profit)}</tr></tfoot></table>`;
+    return div;
+  }
+  function renderStack(rows){const stack=el('stack');stack.innerHTML='';rows.forEach(r=>stack.appendChild(renderTier(r)));}
+  loadCSV();
+}
+</script>
 </body>
 </html>
