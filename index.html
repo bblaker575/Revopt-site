@@ -145,12 +145,19 @@
   </div>
 </main>
 
-<!-- OCR library -->
+<!-- PDF.js (for PDF text extraction & image rendering) -->
+<script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@4.3.136/build/pdf.min.js"></script>
+<script>
+  pdfjsLib.GlobalWorkerOptions.workerSrc =
+    "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.3.136/build/pdf.worker.min.js";
+</script>
+
+<!-- Tesseract (OCR fallback) -->
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 
 <script>
-if(!window.__PAYEREDGE_BUNDLES_V1699__){
-window.__PAYEREDGE_BUNDLES_V1699__=true;
+if(!window.__PAYEREDGE_BUNDLES_V1703__){
+window.__PAYEREDGE_BUNDLES_V1703__=true;
 
 /* ---------- helpers ---------- */
 const CSV_CANDIDATES=[
@@ -225,7 +232,7 @@ async function loadCSV(){
   let loaded=null, tried=[];
   for(const url of CSV_CANDIDATES){ const r=await tryFetch(url); tried.push(url); if(r.ok){ loaded=r; break; } }
   if(loaded){
-    const meta={plan:'VSP_choice',version:new Date().toISOString().slice(0,10)+'.v1699',source:'network:'+loaded.url,sha:quickHash(loaded.text)};
+    const meta={plan:'VSP_choice',version:new Date().toISOString().slice(0,10)+'.v1703',source:'network:'+loaded.url,sha:quickHash(loaded.text)};
     setCache(loaded.text,meta); DATA=parseCSV(loaded.text); buildSimpleIndex(); renderMeta(DATA.length,meta);
     status.textContent=`[ok] ${loaded.url} • ${DATA.length} rows`; computeBundles(); return;
   }
@@ -291,7 +298,7 @@ function chooseSunFor(baseRow){
   return null;
 }
 
-/* ---------- OCR ---------- */
+/* ---------- OCR / PDF intake (hybrid) ---------- */
 const btn   = document.getElementById('scanBenefitsBtn');
 const input = document.getElementById('scanBenefitsFile');
 const statusPill = document.getElementById('status');
@@ -299,45 +306,139 @@ const ocrText = document.getElementById('ocrText');
 const ocrDetected = document.getElementById('ocrDetected');
 function setStatus(s){ statusPill.textContent = s; }
 
+/* Tesseract helpers */
+async function ocrImageBitmap(bitmap){
+  const { data } = await Tesseract.recognize(bitmap, 'eng');
+  return data.text || '';
+}
+async function imageFileToText(file){
+  setStatus('Reading image…');
+  const url = URL.createObjectURL(file);
+  try{
+    const img = new Image(); img.src = url; await img.decode();
+    const MAX = 2200, s = Math.min(1, MAX/img.width, MAX/img.height);
+    const cw = Math.round(img.width*s), ch = Math.round(img.height*s);
+    const c = document.createElement('canvas'); c.width=cw; c.height=ch;
+    c.getContext('2d', { willReadFrequently:true }).drawImage(img,0,0,cw,ch);
+    const bm = await createImageBitmap(c);
+    return await ocrImageBitmap(bm);
+  } finally { URL.revokeObjectURL(url); }
+}
+
+/* PDF.js text extraction — preferred (fast & accurate on digital PDFs) */
+async function pdfToPlainText(file, maxPages=8){
+  setStatus('Reading PDF (text)…');
+  const buf = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
+  const pages = Math.min(pdf.numPages, maxPages);
+  let out = '';
+  for(let i=1;i<=pages;i++){
+    setStatus(`Extracting text from PDF page ${i}/${pages}…`);
+    const page = await pdf.getPage(i);
+    const content = await page.getTextContent();
+    const strings = content.items.map(it => it.str);
+    out += '\n' + strings.join(' ');
+  }
+  return out.trim();
+}
+
+/* PDF.js → canvas → Tesseract (fallback if text extraction fails, e.g., scanned images) */
+async function pdfToOCRText(file, maxPages=6, scale=1.6){
+  setStatus('Rendering PDF (images)…');
+  const buf = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
+  const pages = Math.min(pdf.numPages, maxPages);
+  let text = '';
+  for (let i=1;i<=pages;i++){
+    setStatus(`OCR page ${i}/${pages}…`);
+    const page = await pdf.getPage(i);
+    const viewport = page.getViewport({ scale });
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d', { willReadFrequently:true });
+    canvas.width = viewport.width; canvas.height = viewport.height;
+    await page.render({ canvasContext: ctx, viewport }).promise;
+    const bm = await createImageBitmap(canvas);
+    text += '\n' + await ocrImageBitmap(bm);
+  }
+  return text.trim();
+}
+
+/* File intake */
 btn.addEventListener('click', ()=> input.click());
 input.addEventListener('change', async ()=>{
   const file = input.files?.[0]; if(!file) return;
+  const kind = (file.type || '').toLowerCase();
+  const isPDF = kind.includes('pdf') || /\.pdf$/i.test(file.name);
+  const isImage = kind.startsWith('image/');
+
   try{
-    btn.disabled = true; setStatus('Reading…');
-    const url = URL.createObjectURL(file);
-    const { data } = await Tesseract.recognize(url, 'eng');
-    URL.revokeObjectURL(url);
-    const text = data.text || '';
+    btn.disabled = true;
+    setStatus(isPDF ? 'Loading PDF…' : 'Loading image…');
+
+    let text = '';
+    if (isPDF){
+      // try direct text first
+      text = await pdfToPlainText(file);
+      if (!text || text.replace(/\s+/g,'').length < 50){
+        // fallback: OCR
+        text = await pdfToOCRText(file);
+      }
+    } else if (isImage){
+      text = await imageFileToText(file);
+    } else {
+      setStatus('Unsupported file type. Please attach a PDF or an image.');
+      return;
+    }
+
     ocrText.textContent = text || '—';
+
     const benefits = parseBenefits(text);
     window.lastBenefits = benefits;
+
     const coveredList = [...(benefits.coveredEnhancements||[])].map(k =>
-      k==='standard_progressive' ? 'Standard Progressives' : k==='pink_i_ii' ? 'Solid Tints (Pink I & II)' : k
+      k==='standard_progressive' ? 'Standard Progressives' :
+      k==='pink_i_ii' ? 'Solid Tints (Pink I & II)' : k
     ).join(', ') || '—';
+
     ocrDetected.textContent =
       `Materials Copay: ${fmt(benefits.materialsCopay)}\nCovered Enhancements: ${coveredList}`;
-    setStatus('Done');
+
+    setStatus('Scan complete');
     computeBundles();
-  }catch(e){ console.error(e); setStatus('Scan failed. Try another photo or export the PDF to images and retry.'); }
-  finally{ btn.disabled = false; input.value=''; }
+  } catch(e){
+    console.error(e);
+    setStatus('Scan failed. If this is a scan, try a flatter photo or export pages to images.');
+  } finally {
+    btn.disabled = false;
+    input.value = '';
+  }
 });
 
+/* ---------- benefit parsing ---------- */
 function centsOf(s){ if(!s) return null; const m=String(s).replace(/[^\d.]/g,''); if(!m) return null; const [a,b='0']=m.split('.'); return parseInt(a||'0')*100+parseInt((b+'00').slice(0,2)); }
 function money(c){ if(c==null) return null; return {cents:c,raw:`$${(c/100).toFixed(2)}`}; }
 function fmt(m){ return m?.raw||'—'; }
-function parseBenefits(text){
-  const T=text.toLowerCase().replace(/\s+/g,' ');
-  const find=re=>{const m=T.match(re);return m?.[1]||null;};
 
-  const material = centsOf(find(/material[^$]{0,15}\$?(\d[\d.,]*)/i));
-  const coveredSet = new Set();
-  if (/standard\s+progressive/.test(T)) coveredSet.add('standard_progressive');
-  if (/solid\s+tints?[^.]*pink\s*i\s*&?\s*ii/.test(T)) coveredSet.add('pink_i_ii');
+function parseBenefits(text){
+  // normalize
+  const T = String(text||'').toLowerCase().replace(/\s+/g,' ').trim();
+  const find = re => { const m=T.match(re); return m?.[1]||null; };
+
+  // Materials copay (handles “Co-payments Exam $15.00 Material $25.00”)
+  const material = centsOf(find(/co-?payments?[^$]*?\bmaterial\b[^$]*?\$?(\d[\d.,]*)/i)
+                  || find(/\bmaterial(?:s)?\s*copay\w*\s*\$?(\d[\d.,]*)/i));
+
+  // Coverage flags from benefits layout
+  const covered = new Set();
+  // Standard progressives marked “Covered”
+  if (/\bstandard\s+progressives?\b[^\.]*\bcovered\b/.test(T)) covered.add('standard_progressive');
+  // Pink I/II solid tints listed as covered
+  if (/solid\s+tints?[^\.]*pink\s*i\s*&?\s*ii[^\.]*\bcovered\b/.test(T)) covered.add('pink_i_ii');
 
   return {
     materialsCopay: money(material),
-    coveredEnhancements: coveredSet,
-    rawText:text
+    coveredEnhancements: covered,
+    rawText: text
   };
 }
 
@@ -347,8 +448,8 @@ function parseLine(row){
   const codeStr=String(row.code||'').trim().toUpperCase();
   const partsCodes=splitCodes(codeStr);
 
-  // Standard Progressive (Plastic/Glass) is covered per plan doc → KA/KE $0
-  const isStdProg = /^KA\b|^KE\b/.test(codeStr);
+  // Standard Progressive (Plastic/Glass) is covered per benefits doc → KA/KE $0
+  const isStdProg = /^KA\b|^KE\b/.test(codeStr) && (window.lastBenefits?.coveredEnhancements?.has('standard_progressive') ?? false);
 
   // single-code line
   if(partsCodes.length===1){
@@ -372,6 +473,10 @@ function parseLine(row){
   let baseCB =baseRow?num(baseRow.chargeback):0;
   if(fam!=='PAL' && split.svBase!=null) baseCop=split.svBase;
   if(fam==='PAL' && split.mfBase!=null) baseCop=split.mfBase;
+  // covered KA/KE part becomes 0
+  if ((/^KA\b|^KE\b/).test(baseCode) && (window.lastBenefits?.coveredEnhancements?.has('standard_progressive') ?? false)) {
+    baseCop = 0; baseCB = 0;
+  }
   parts.push({code:baseCode,copay:baseCop,chargeback:baseCB,profit:baseCop-baseCB});
 
   const addonCount=partsCodes.length-1;
@@ -381,9 +486,10 @@ function parseLine(row){
   else { const remaining=Math.max(compositeTotalCopay-baseCop,0);
          if(addonCount<=1){ addonCopays=[remaining]; } else { const each=remaining/addonCount; addonCopays=Array.from({length:addonCount},()=>each); } }
   const addonCBEach=addonCount<=1?compositeAddOnCB:(compositeAddOnCB/addonCount);
+
   for(let i=1;i<partsCodes.length;i++){
     const pcode=partsCodes[i].toUpperCase();
-    const partIsStdProg = /^KA\b|^KE\b/.test(pcode);
+    const partIsStdProg = /^KA\b|^KE\b/.test(pcode) && (window.lastBenefits?.coveredEnhancements?.has('standard_progressive') ?? false);
     const cop = partIsStdProg ? 0 : num(addonCopays[i-1]??0);
     const cb  = partIsStdProg ? 0 : addonCBEach;
     parts.push({code:partsCodes[i],copay:cop,chargeback:cb,profit:cop-cb});
@@ -404,7 +510,7 @@ function makeBundle(base,addOns){
   const rows=[base,...addOns.filter(Boolean)];
   const lines=rows.map(parseLine);
 
-  // Inject Materials Copay exactly once per bundle (if OCR found it)
+  // Inject Materials Copay exactly once per bundle (profit-neutral line)
   const matCents = window.lastBenefits?.materialsCopay?.cents ?? null;
   if (matCents != null) {
     const mat = (matCents/100);
@@ -512,7 +618,6 @@ function computeBundles(){
   for(const m of base){ for(const ar of arOptions){ all.push(buildBundle(m,ar)); } }
   if(!all.length){ renderStack([{name:'Best',cls:'best',b:null},{name:'Better',cls:'better',b:null},{name:'Good',cls:'good',b:null},{name:'Cheapest',cls:'good',b:null}]); return; }
 
-  // Picks are based on adjusted numbers (covered items & materials already applied)
   const MaxPrice=Math.max(...all.map(b=>b.copay));
   const best = all.reduce((p,c)=>(!p||c.profit>p.profit||(c.profit===p.profit&&c.copay<p.copay)?c:p),null);
   function pickUnderCap(cap){
@@ -521,7 +626,7 @@ function computeBundles(){
     const looser=cap/CAP_RELAX_FACTOR;
     const cand2=all.filter(b=>b.copay<=looser);
     if(cand2.length){ return cand2.reduce((p,c)=>(!p||c.profit>p.profit||(c.profit===p.profit&&c.copay<p.copay)?c:p),null); }
-    return all.reduce((p,c)=>(!p||c.copay<c.copay||(c.copay===p.copay&&c.profit>p.profit)?c:p),null);
+    return all.reduce((p,c)=>(!p||c.copay<p.copay||(c.copay===p.copay&&c.profit>p.profit)?c:p),null);
   }
   const better=pickUnderCap(MaxPrice*BETTER_CAP_OF_MAX);
   const good  =pickUnderCap(MaxPrice*GOOD_CAP_OF_MAX);
