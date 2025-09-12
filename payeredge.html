@@ -13,7 +13,7 @@
       --tier-best:#ffd166;--tier-better:#a9c2ff;--tier-good:#7be0c3;
       --shadow-lg:0 18px 40px rgba(0,0,0,.35);--shadow-md:0 10px 26px rgba(0,0,0,.28);
       --radius:18px;
-      /* column widths used by both main table and subtables */
+      /* column widths shared by main table and subtables */
       --col-item:33%;
       --col-code:12%;
       --col-copay:19%;
@@ -100,7 +100,7 @@
 
     /* breakdown subtable (aligns with parent columns) */
     .subtable{width:100%;border-collapse:collapse;table-layout:fixed;margin:0}
-    .subtable col:nth-child(1){width:var(--col-item)}  /* blank spacer to align with Item column */
+    .subtable col:nth-child(1){width:var(--col-item)}  /* blank spacer to align under Item column */
     .subtable col:nth-child(2){width:var(--col-code)}
     .subtable col:nth-child(3){width:var(--col-copay)}
     .subtable col:nth-child(4){width:var(--col-hold)}
@@ -141,6 +141,8 @@
     <div class="group">
       <button class="btn" id="forceRefresh">Force Refresh</button>
       <button class="btn" id="clearCache">Clear Cache</button>
+      <input id="filePicker" type="file" accept=".csv" style="display:none">
+      <button class="btn" id="btnUpload">Load CSV…</button>
     </div>
     <div class="group">
       <label class="switch">Lens family
@@ -176,11 +178,16 @@
 </main>
 
 <script>
-if(!window.__PAYEREDGE_UI16_9_2__){
-window.__PAYEREDGE_UI16_9_2__=true;
+if(!window.__PAYEREDGE_UI16_9_3__){
+window.__PAYEREDGE_UI16_9_3__=true;
 
 /* ---------- helpers ---------- */
-const CSV_CANDIDATES=['./vsp_choice_master_v8.4.csv','./data/vsp_choice_master_v8.4.csv'];
+const CSV_CANDIDATES=[
+  './vsp_choice_master_v8.4.csv',
+  './data/vsp_choice_master_v8.4.csv',
+  './vsp_choice_master_v7_full_fixed.csv',
+  './data/vsp_choice_master_v7_full_fixed.csv'
+];
 const BETTER_CAP_OF_MAX=0.75, GOOD_CAP_OF_MAX=0.60, CAP_RELAX_FACTOR=0.90;
 
 const el=id=>document.getElementById(id);
@@ -250,18 +257,38 @@ async function tryFetch(url){
 }
 async function loadCSV(){
   const status=el('status'); status.textContent=' loading…';
+  const tried=[];
   let loaded=null;
-  for(const url of CSV_CANDIDATES){ const r=await tryFetch(url); if(r.ok){ loaded=r; break; } }
+  for(const url of CSV_CANDIDATES){
+    const r=await tryFetch(url); tried.push(r);
+    if(r.ok){ loaded=r; break; }
+  }
   if(loaded){
-    const meta={plan:'VSP_choice',version:new Date().toISOString().slice(0,10)+'.ui16.9.2',source:'network:'+loaded.url,sha:quickHash(loaded.text)};
+    const meta={plan:'VSP_choice',version:new Date().toISOString().slice(0,10)+'.ui16.9.3',source:'network:'+loaded.url,sha:quickHash(loaded.text)};
     setCache(loaded.text,meta); DATA=parseCSV(loaded.text); buildSimpleIndex(); renderMeta(DATA.length,meta);
     status.textContent=` [ok] ${loaded.url} • ${DATA.length} rows`; computeBundles(); return;
   }
   const {text,meta}=getCache();
-  if(text){ DATA=parseCSV(text); buildSimpleIndex(); renderMeta(DATA.length,{...meta,source:'cache'});
-    status.textContent=` Network failed. Using cached data (${DATA.length} rows).`; computeBundles(); return; }
-  status.textContent = ' load failed — no cache';
+  if(text){
+    DATA=parseCSV(text); buildSimpleIndex(); renderMeta(DATA.length,{...meta,source:'cache'});
+    status.textContent=` network failed → using cached CSV (${DATA.length} rows)`; computeBundles(); return;
+  }
+  // show diagnostics
+  const report = tried.map(t=>`${t.url} → ${t.ok?'ok':'fail '+t.err}`).join(' | ');
+  status.textContent = ' load failed — no cache; tried: ' + report;
 }
+
+/* manual upload */
+el('btnUpload').onclick=()=>el('filePicker').click();
+el('filePicker').onchange=async (ev)=>{
+  const f=ev.target.files?.[0]; if(!f) return;
+  const text=await f.text();
+  const meta={plan:'VSP_choice',version:new Date().toISOString().slice(0,10)+'.ui16.9.3-upload',source:'file:'+f.name,sha:quickHash(text)};
+  setCache(text,meta); DATA=parseCSV(text); buildSimpleIndex(); renderMeta(DATA.length,meta);
+  el('status').textContent=` [ok] uploaded ${f.name} • ${DATA.length} rows`;
+  computeBundles();
+};
+
 function renderMeta(count,meta){
   el('version').textContent=`plan=${meta.plan||'VSP_choice'} • rows=${count||0} • version=${meta.version||'—'} • source=${meta.source||'—'} • sha=${meta.sha||'—'}`;
 }
@@ -314,7 +341,6 @@ function chooseSunFor(baseRow){
 }
 
 /* ---------- lines & bundles ---------- */
-function parseCopayNumbers(s){ const m=String(s||'').match(/[0-9]+(?:\.[0-9]{1,2})?/g); return m?m.map(x=>parseFloat(x)):[]; }
 function parseLine(row){
   const desc=row.enhancement||row.subtype||'—';
   const codeStr=String(row.code||'').trim().toUpperCase();
@@ -505,15 +531,9 @@ function breakdownRowSubtable(li,rowKey){
           <summary style="padding:6px 6px">Breakdown for <span style="border:1px solid var(--line);border-radius:999px;padding:2px 8px;background:#0e1a30">${li.code}</span></summary>
           <div style="padding:4px 0 8px">
             <table class="subtable">
-              <colgroup>
-                <col><col><col><col><col>
-              </colgroup>
-              <thead>
-                <tr><th></th><th>Code</th><th>Copay</th><th>Holdback</th><th>Service Fee</th></tr>
-              </thead>
-              <tbody>
-                ${rows}
-              </tbody>
+              <colgroup><col><col><col><col><col></colgroup>
+              <thead><tr><th></th><th>Code</th><th>Copay</th><th>Holdback</th><th>Service Fee</th></tr></thead>
+              <tbody>${rows}</tbody>
             </table>
           </div>
         </details>
