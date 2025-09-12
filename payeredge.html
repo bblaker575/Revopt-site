@@ -13,10 +13,11 @@
       --tier-best:#ffd166;--tier-better:#a9c2ff;--tier-good:#7be0c3;
       --shadow-lg:0 18px 40px rgba(0,0,0,.35);--shadow-md:0 10px 26px rgba(0,0,0,.28);
       --radius:18px;
-      /* adjusted column geometry to prevent code cutoffs */
-      --w-item:32%;
-      --w-code:20%;
-      --w-money:16%;
+
+      /* normalized column geometry (no Holdback column now) */
+      --w-item:40%;
+      --w-code:22%;
+      --w-money:19%;
     }
     *{box-sizing:border-box} html,body{height:100%}
     body{
@@ -34,6 +35,7 @@
     h1{margin:0;font-weight:800;font-size:clamp(16px,1.8vw,20px)}
     .sub{color:var(--muted);font-size:12px}
     main{padding:14px}
+
     /* toolbar */
     .bar{display:flex;align-items:center;flex-wrap:wrap;gap:10px 12px;background:linear-gradient(180deg,var(--bg-elev),#0b1220);
       border:1px solid var(--line);border-radius:18px;padding:10px;box-shadow:var(--shadow-md)}
@@ -44,6 +46,7 @@
     select{background:#0e1a30;color:#fff;border:1px solid var(--line);border-radius:10px;padding:6px 8px;outline:none}
     select:focus{box-shadow:0 0 0 3px rgba(114,168,255,.25)}
     #status{margin-left:auto;padding:6px 10px;border-radius:999px;border:1px dashed var(--line);background:#0b1422;color:#c7d6ef;font-size:12px;max-width:52vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
     /* grid */
     .viewport-frame{transform-origin:top left;width:100%}
     .stack{display:grid;grid-template-columns:repeat(4,minmax(320px,1fr));gap:14px;align-items:stretch;margin-top:12px}
@@ -54,6 +57,7 @@
     .figures{text-align:right;display:grid;gap:2px}
     .hero{font-size:clamp(20px,2.6vw,36px);font-weight:800;line-height:1;letter-spacing:.2px;color:#cfe6ff;text-shadow:0 6px 18px rgba(114,168,255,.18)}
     .caption{color:var(--muted);font-size:12px} .svc{font-weight:800;color:var(--accent-2)}
+
     /* table */
     table.bundle{width:100%;border-collapse:collapse;margin-top:8px;table-layout:fixed}
     th,td{border-bottom:1px dashed #203043;padding:8px 6px;font-size:12px;vertical-align:top}
@@ -62,45 +66,42 @@
     .bundle col:nth-child(2){width:var(--w-code)}
     .bundle col:nth-child(3){width:var(--w-money)}
     .bundle col:nth-child(4){width:var(--w-money)}
-    .bundle col:nth-child(5){width:var(--w-money)}
     .cell-item{line-height:1.32;padding-bottom:2px}
     .cell-item .label{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;font-size:.95em}
-    /* FIX: allow codes to wrap and show fully */
+
+    /* Codes: wrap, no clip */
     .cell-code{
-      white-space:normal;
-      overflow:visible;
-      text-overflow:clip;
-      word-break:break-word;
-      font-family:ui-monospace,Menlo,Consolas,monospace;
-      font-size:12px;
-      line-height:1.3;
+      white-space:normal; overflow:visible; text-overflow:clip; word-break:break-word;
+      font-family:ui-monospace,Menlo,Consolas,monospace; font-size:12px; line-height:1.3;
     }
+
     .cell-money{
       white-space:nowrap;font-weight:800;text-align:right;
       font-size:clamp(11px,1.05vw,13px);
       font-variant-numeric:tabular-nums;
       padding-left:16px;padding-right:6px;
       overflow:visible;text-overflow:clip;
-      min-width:110px; /* slightly reduced to free space for Code */
+      min-width:110px;
     }
     .bundle td:nth-child(3), .bundle th:nth-child(3),
-    .bundle td:nth-child(4), .bundle th:nth-child(4),
-    .bundle td:nth-child(5), .bundle th:nth-child(5){ text-align:right }
+    .bundle td:nth-child(4), .bundle th:nth-child(4){ text-align:right }
     tfoot th, tfoot td{border-top:1px solid rgba(255,255,255,.08);border-bottom:0;padding-top:9px;padding-bottom:8px}
-    /* breakdown aligned to headers */
+
+    /* breakdown aligned to headers (no Holdback column) */
     details.break summary{cursor:pointer;opacity:.9}
     .breakbox{padding:6px 8px 10px}
     .align-grid{
       display:grid;
-      grid-template-columns: var(--w-item) var(--w-code) var(--w-money) var(--w-money) var(--w-money);
+      grid-template-columns: var(--w-item) var(--w-code) var(--w-money) var(--w-money);
       column-gap:8px; row-gap:6px; align-items:center;
     }
     .align-grid .hdr{color:var(--muted);font-weight:600;font-size:11px}
     .align-grid .money{ text-align:right; font-variant-numeric:tabular-nums }
     .codepill{
       display:inline-flex;align-items:center;justify-content:center;padding:2px 8px;border:1px solid var(--line);border-radius:999px;
-      font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px;color:#cfe1ff;background:#0e1a30;white-space:nowrap;max-width:110px;overflow:hidden;text-overflow:ellipsis
+      font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px;color:#cfe1ff;background:#0e1a30;white-space:nowrap;max-width:140px;overflow:hidden;text-overflow:ellipsis
     }
+
     /* responsive */
     @media (max-width:1280px){ thead th{font-size:11px} .cell-money{font-size:12px} }
     @media (max-width:900px){
@@ -110,7 +111,7 @@
       .hero{font-size:32px}
       table.bundle{table-layout:auto}
       .cell-money{font-size:13px;min-width:unset;padding-left:12px}
-      .align-grid{grid-template-columns: 20% 20% 20% 20% 20%}
+      .align-grid{grid-template-columns: 25% 25% 25% 25%}
     }
     @media (max-width:560px){ body{font-size:14px} .hero{font-size:28px} th,td{padding:7px 6px} }
     @media print{header,.bar{display:none} body{background:#fff;color:#000}.tier{break-inside:avoid;border:1px solid #000;box-shadow:none} table,th,td{border-color:#000}}
@@ -252,7 +253,7 @@ async function loadCSV(){
   let loaded=null, tried=[];
   for(const url of CSV_CANDIDATES){ const r=await tryFetch(url); tried.push(url); if(r.ok){ loaded=r; break; } }
   if(loaded){
-    const meta={plan:'VSP_choice',version:new Date().toISOString().slice(0,10)+'.ui16.9.4-hotfix',source:'network:'+loaded.url,sha:quickHash(loaded.text)};
+    const meta={plan:'VSP_choice',version:new Date().toISOString().slice(0,10)+'.ui16.9.5-nohold',source:'network:'+loaded.url,sha:quickHash(loaded.text)};
     setCache(loaded.text,meta); DATA=parseCSV(loaded.text); buildSimpleIndex(); renderMeta(DATA.length,meta);
     status.textContent=` [ok] ${loaded.url} • ${DATA.length} rows`; computeBundles(); return;
   }
@@ -372,7 +373,7 @@ function computeBundles(){
   const wantGlass=el('includeGlass').checked;
   const tintSel=el('lensTint').value;
 
-  const isCustomMeasure=row=>/custom\s*measure/i.test(N(row?.enhancement||row?.subtype||'')); // FIXED: removed stray ")"
+  const isCustomMeasure=row=>/custom\s*measure/i.test(N(row?.enhancement||row?.subtype||'')); // FIXED
   const isAA=row=>splitCodes(row.code)[0]==='AA';
   function isAsphericRow(row){
     const name=N(row.enhancement||row.subtype||'');
@@ -467,7 +468,7 @@ function computeBundles(){
   const picks=[best,better,good,cheapest].filter(Boolean);
   const uniq=[], seen=new Set();
   for(const b of picks){
-    const sig=[b.label,b.copay.toFixed(2),b.chargeback.toFixed(2),b.profit.toFixed(2)].join('|');
+    const sig=[b.label,b.copay.toFixed(2),b.profit.toFixed(2)].join('|');
     if(!seen.has(sig)){ seen.add(sig); uniq.push(b); }
   }
 
@@ -483,24 +484,22 @@ function computeBundles(){
 const tdMoney = (v, key) =>
   `<td class="cell-money" data-key="${key}" data-anim="${v.toFixed(2)}">$${v.toFixed(2)}</td>`;
 
-/* breakdown header pill removed (no duplicate code badge) */
 function breakdownDetails(li,rowKey){
   if(!li.parts?.length) return '';
   const rows = li.parts.map((p,pi) => `
     <div></div>
     <div class="money"><span class="codepill" title="${p.code}">${p.code}</span></div>
     <div class="money" data-key="${rowKey}-p${pi}-c"  data-anim="${p.copay.toFixed(2)}">$${p.copay.toFixed(2)}</div>
-    <div class="money" data-key="${rowKey}-p${pi}-cb" data-anim="${p.chargeback.toFixed(2)}">$${p.chargeback.toFixed(2)}</div>
     <div class="money" data-key="${rowKey}-p${pi}-pr" data-anim="${p.profit.toFixed(2)}">$${p.profit.toFixed(2)}</div>
   `).join('');
   return `
     <tr>
-      <td colspan="5" style="padding:0;border:0">
+      <td colspan="4" style="padding:0;border:0">
         <details class="break" open>
           <summary>Breakdown</summary>
           <div class="breakbox">
             <div class="align-grid">
-              <div></div><div class="hdr">Code</div><div class="hdr">Copay</div><div class="hdr">Holdback</div><div class="hdr">Service Fee</div>
+              <div></div><div class="hdr">Code</div><div class="hdr">Copay</div><div class="hdr">Service Fee</div>
               ${rows}
             </div>
           </div>
@@ -535,7 +534,6 @@ function renderTier({name,cls,b}){
       <td class="cell-item"><span class="label" title="${li.name}">${li.name}</span></td>
       <td class="cell-code" title="${li.code||''}">${li.code||'—'}</td>
       ${tdMoney(li.copay,  `${rowKey}-c`)}
-      ${tdMoney(li.chargeback, `${rowKey}-cb`)}
       ${tdMoney(li.profit, `${rowKey}-pr`)}
     </tr>`;
     const parts=(li.parts&&li.parts.length)?breakdownDetails(li,rowKey):'';
@@ -543,17 +541,16 @@ function renderTier({name,cls,b}){
   }).join('');
 
   div.innerHTML=head+`<table class="bundle">
-    <colgroup><col><col><col><col><col></colgroup>
+    <colgroup><col><col><col><col></colgroup>
     <thead><tr>
       <th>Item</th>
       <th>Code</th>
       <th>Copay</th>
-      <th>Holdback</th>
       <th>Service Fee</th>
     </tr></thead>
     <tbody>${lines}</tbody>
     <tfoot><tr><th colspan="2" style="text-align:right">Totals</th>
-      ${tdMoney(b.copay,`${name}-tot-c`)}${tdMoney(b.chargeback,`${name}-tot-cb`)}${tdMoney(b.profit,`${name}-tot-pr`)}
+      ${tdMoney(b.copay,`${name}-tot-c`)}${tdMoney(b.profit,`${name}-tot-pr`)}
     </tr></tfoot></table>`;
   return div;
 }
