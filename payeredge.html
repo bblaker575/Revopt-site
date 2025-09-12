@@ -13,7 +13,9 @@
       --tier-best:#ffd166;--tier-better:#a9c2ff;--tier-good:#7be0c3;
       --shadow-lg:0 18px 40px rgba(0,0,0,.35);--shadow-md:0 10px 26px rgba(0,0,0,.28);
       --radius:18px;--radius-sm:12px;
-      --fz-11:11px;--fz-12:12px;--fz-13:13px;--fz-14:14px;--fz-15:15px;--fz-18:18px;--fz-20:20px;--fz-36:36px
+      --fz-11:11px;--fz-12:12px;--fz-13:13px;--fz-14:14px;--fz-15:15px;--fz-18:18px;--fz-20:20px;--fz-36:36px;
+      /* visual scale clamp for compact screens */
+      --min-scale: 0.82; /* do not go below this */
     }
     *{box-sizing:border-box}
     html,body{height:100%}
@@ -26,14 +28,14 @@
       -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;font-variant-numeric:tabular-nums
     }
     header{
-      position:sticky;top:0;z-index:20;display:flex;justify-content:space-between;align-items:center;gap:14px;padding:12px 16px;
+      position:sticky;top:0;z-index:20;display:flex;justify-content:space-between;align-items:center;gap:14px;padding:10px 14px;
       background:linear-gradient(180deg, rgba(9,14,22,.95), rgba(9,14,22,.78));
       border-bottom:1px solid var(--line);backdrop-filter:blur(10px)
     }
     h1{margin:0;font-weight:800;font-size:clamp(16px,1.8vw,20px);letter-spacing:.2px}
     .sub{color:var(--muted);font-size:var(--fz-12)}
     .version{color:var(--muted)}
-    main{padding:14px}
+    main{padding:12px}
 
     .bar{
       display:flex;align-items:center;flex-wrap:wrap;gap:10px 12px;
@@ -41,7 +43,7 @@
       border:1px solid var(--line);border-radius:var(--radius);padding:10px;box-shadow:var(--shadow-md)
     }
     .group{display:flex;gap:8px;align-items:center;padding:6px 8px;border-radius:999px;background:#0b1424}
-    .btn{background:#121f35;border:1px solid var(--line);color:var(--fg);padding:7px 10px;border-radius:var(--radius-sm);cursor:pointer;font-weight:600;transition:.15s}
+    .btn{background:#121f35;border:1px solid var(--line);color:var(--fg);padding:6px 9px;border-radius:var(--radius-sm);cursor:pointer;font-weight:600;transition:.15s}
     .btn:hover{background:#162844;border-color:#2e4260}
     .switch{display:inline-flex;align-items:center;gap:8px}
     .switch select,.switch input[type="checkbox"]{accent-color:var(--accent)}
@@ -49,22 +51,26 @@
     select:focus{box-shadow:0 0 0 3px rgba(114,168,255,.25)}
     #status{margin-left:auto;padding:6px 10px;border-radius:999px;border:1px dashed var(--line);background:#0b1422;color:#c7d6ef;font-size:var(--fz-12);max-width:45vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
-    /* ===== ALWAYS 4 VISIBLE CARDS, NO SCROLL ===== */
+    /* ===== four-up, always visible (with graceful global scale if needed) ===== */
+    .viewport-frame{
+      transform-origin: top left;
+      width: 100%;
+    }
     .stack{
       display:grid;
       grid-template-columns:repeat(4, minmax(0,1fr));
-      gap:16px;
+      gap:14px;
       align-items:stretch;
-      margin-top:14px;
+      margin-top:12px;
       overflow:visible;
       min-width:0;
     }
 
     .tier{
       background:linear-gradient(180deg,#0f1726,#0c1422);border:1px solid var(--line);border-radius:var(--radius);
-      box-shadow:var(--shadow-lg);padding:14px;min-width:0
+      box-shadow:var(--shadow-lg);padding:12px;min-width:0
     }
-    .tierHead{display:grid;grid-template-columns:1fr auto;align-items:center;gap:10px;margin-bottom:10px;min-width:0}
+    .tierHead{display:grid;grid-template-columns:1fr auto;align-items:center;gap:10px;margin-bottom:8px;min-width:0}
     .stars{font-weight:800;display:flex;align-items:center;gap:8px;min-width:0}
     .stars .tag{
       font-size:var(--fz-12);color:var(--muted);padding:2px 8px;border:1px solid var(--line);border-radius:999px;background:#0c1424;
@@ -72,66 +78,49 @@
     }
     .stars.best{color:var(--tier-best)} .stars.better{color:var(--tier-better)} .stars.good{color:var(--tier-good)}
     .figures{text-align:right;display:grid;gap:2px}
-    .hero{font-size:clamp(22px,3.0vw,36px);font-weight:800;line-height:1.0;letter-spacing:.2px;color:#cfe6ff;text-shadow:0 6px 18px rgba(114,168,255,.18)}
+    .hero{font-size:clamp(22px,2.8vw,36px);font-weight:800;line-height:1.0;letter-spacing:.2px;color:#cfe6ff;text-shadow:0 6px 18px rgba(114,168,255,.18)}
     .caption{color:var(--muted);font-size:var(--fz-12)}
     .svc{font-weight:800;color:var(--accent-2)}
 
-    /* ====== TABLES: fixed layout + predictable column widths ====== */
-    table{width:100%;border-collapse:collapse;margin-top:10px;table-layout:fixed}
-    th,td{border-bottom:1px dashed #203043;padding:8px 6px;text-align:left;font-size:var(--fz-13);vertical-align:top}
+    table{width:100%;border-collapse:collapse;margin-top:8px;table-layout:fixed}
+    th,td{border-bottom:1px dashed #203043;padding:7px 6px;text-align:left;font-size:var(--fz-12);vertical-align:top}
     th{color:var(--muted);font-weight:700}
 
-    /* Item column: allow wrap at spaces only (never mid-word / hyphens) */
+    /* keep words intact; allow wrap at spaces only */
     .cell-item{word-break:keep-all;hyphens:none;overflow-wrap:break-word}
+    .cell-code{white-space:nowrap}
+    .cell-money{white-space:nowrap;font-weight:800;font-size:clamp(11px,1.1vw,13px)} /* small shrink allowed */
+    .cell-label{white-space:nowrap}
 
-    /* No wrap for money, codes and header labels */
-    .cell-code,.cell-money,.cell-label{white-space:nowrap}
-
-    .code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;color:#cfe1ff}
-    .money{font-weight:800}
-    td:first-child,th:first-child{ /* already wider via colgroup; keep words intact */
-      hyphens:none;word-break:keep-all
+    /* ===== progressive code breakdown (grid, no scroll) ===== */
+    .break{margin:6px 0 8px;background:#0b1424;border:1px solid var(--line);border-radius:10px}
+    .break .grid{
+      display:grid;
+      grid-template-columns: 1fr repeat(3, minmax(0, 0.9fr));
+      gap:6px 8px; padding:8px;
+      align-items:center;
     }
-
-    /* ===== Code-pills breakdown block ===== */
-    .break{margin:6px 0 8px;background:#0b1424;border:1px solid var(--line);border-radius:10px;overflow:auto}
-    .break table{width:100%;min-width:520px;table-layout:fixed}
-    .break th,.break td{border:0;padding:6px 8px;text-align:left;font-size:12px}
-    .break .codepill{
-      display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:2px 8px;border:1px solid var(--line);border-radius:999px;
-      font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;color:#cfe1ff;background:#0e1a30;max-width:100%;
-      white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:40px
+    .break .hdr{color:var(--muted);font-weight:600;font-size:11px}
+    .codepill{
+      display:inline-flex;align-items:center;justify-content:center;padding:2px 8px;border:1px solid var(--line);border-radius:999px;
+      font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px;color:#cfe1ff;background:#0e1a30;max-width:100%;
+      white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:34px
     }
-    .break .colhed{color:var(--muted);font-weight:600}
+    .break .money{white-space:nowrap;font-weight:800;font-size:clamp(10px,1vw,12px)}
 
-    /* ====== COMPACT MODES (cards stay 4-up) ====== */
+    /* compact polish */
     @media (max-width: 1280px){
       .stack{gap:12px}
-      .tier{padding:12px}
-      th,td{font-size:var(--fz-12)}
-      .hero{font-size:clamp(20px,2.7vw,32px)}
-      .stars .tag{font-size:11px}
+      .tier{padding:10px}
+      .hero{font-size:clamp(20px,2.5vw,32px)}
     }
     @media (max-width: 1080px){
-      .tier{padding:10px;border-radius:14px}
-      .btn{padding:6px 8px}
-      .break th,.break td{font-size:var(--fz-11)}
-      .code{font-size:11px}
-      .hero{font-size:clamp(18px,2.4vw,28px)}
+      .tier{padding:9px;border-radius:14px}
+      .hero{font-size:clamp(18px,2.2vw,28px)}
     }
     @media (max-width: 900px){
-      .stack{gap:10px}
       th,td{padding:6px 5px}
-      .hero{font-size:clamp(16px,2.2vw,24px)}
-      .stars .tag{padding:2px 6px}
-    }
-    @media (max-width: 780px){
-      header{padding:10px 12px}
-      main{padding:12px}
-      .tier{padding:8px}
-      th,td{font-size:11px}
-      .code{font-size:10px}
-      .hero{font-size:clamp(15px,2.0vw,22px)}
+      .hero{font-size:clamp(16px,2.0vw,24px)}
     }
 
     :focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:8px}
@@ -181,15 +170,18 @@
     <span id="status" aria-live="polite"></span>
   </div>
 
-  <div id="stack" class="stack"></div>
+  <!-- global scale wrapper: keeps 4 cards visible on tight screens with no scrollbars -->
+  <div id="frame" class="viewport-frame">
+    <div id="stack" class="stack"></div>
+  </div>
 </main>
 
 <script>
 /* ===========================================================
-   ui16-tints10 — fixed 4-up + column widths + nowrap + pill fix
+   ui16-tints11 — no-scroll, four-up, grid breakdown, auto-scale
    =========================================================== */
-if (!window.__PAYEREDGE_V16_T10__) {
-  window.__PAYEREDGE_V16_T10__ = true;
+if (!window.__PAYEREDGE_V16_T11__) {
+  window.__PAYEREDGE_V16_T11__ = true;
 
   const CSV_CANDIDATES=['./vsp_choice_master_v8.4.csv','./data/vsp_choice_master_v8.4.csv'];
   const BETTER_CAP_OF_MAX=0.75, GOOD_CAP_OF_MAX=0.60, CAP_RELAX_FACTOR=0.90;
@@ -304,7 +296,7 @@ if (!window.__PAYEREDGE_V16_T10__) {
     el('version').textContent=`plan=${meta.plan||'VSP_choice'} • rows=${count||0} • version=${meta.version||'—'} • source=${meta.source||'—'} • sha=${meta.sha||'—'}`;
   }
   const byKey=k=>DATA.filter(r=>(r.active||'yes').toLowerCase()==='yes' && (r.exclusive_key||'').toLowerCase()===k);
-  const tdMoney=v=>`<td class="cell-money money">$${v.toFixed(2)}</td>`;
+  const tdMoney=v=>`<td class="cell-money">$${v.toFixed(2)}</td>`;
 
   function line(row){
     const desc=row.enhancement||row.subtype||'—';
@@ -376,6 +368,27 @@ if (!window.__PAYEREDGE_V16_T10__) {
     requestAnimationFrame(step);
   }
 
+  /* grid breakdown renderer */
+  function breakdownGrid(parts){
+    if(!parts?.length) return '';
+    const rows = parts.map(p => `
+      <div class="codepill" title="${p.code}">${p.code}</div>
+      <div class="money">$${p.copay.toFixed(2)}</div>
+      <div class="money">$${p.chargeback.toFixed(2)}</div>
+      <div class="money">$${p.profit.toFixed(2)}</div>
+    `).join('');
+    return `
+      <div class="break">
+        <div class="grid">
+          <div class="hdr">Code</div>
+          <div class="hdr">Copay</div>
+          <div class="hdr">Holdback</div>
+          <div class="hdr">Service Fee</div>
+          ${rows}
+        </div>
+      </div>`;
+  }
+
   function renderTier({name,cls,b}){
     const div=document.createElement('div'); div.className='tier';
     if(!b){
@@ -393,28 +406,13 @@ if (!window.__PAYEREDGE_V16_T10__) {
     const lines=b.lines.map(li=>{
       const main=`<tr>
         <td class="cell-item">${li.name}</td>
-        <td class="cell-code code">${li.code||'—'}</td>
+        <td class="cell-code">${li.code||'—'}</td>
         ${tdMoney(li.copay)}${tdMoney(li.chargeback)}${tdMoney(li.profit)}
       </tr>`;
-
-      const parts=(li.parts&&li.parts.length)?`<tr><td colspan="5"><div class="break"><table>
-        <colgroup>
-          <col style="width:120px"><col style="width:140px"><col style="width:140px"><col style="width:140px">
-        </colgroup>
-        <thead><tr>
-          <th class="colhed">Code</th><th class="colhed">Copay</th><th class="colhed">Holdback</th><th class="colhed">Service Fee</th>
-        </tr></thead>
-        <tbody>${li.parts.map(p=>`<tr>
-          <td><span class="codepill" title="${p.code}">${p.code}</span></td>
-          <td class="cell-money money">$${p.copay.toFixed(2)}</td>
-          <td class="cell-money money">$${p.chargeback.toFixed(2)}</td>
-          <td class="cell-money money">$${p.profit.toFixed(2)}</td>
-        </tr>`).join('')}</tbody>
-      </table></div></td></tr>`:'';
-      return main+parts;
+      const parts = breakdownGrid(li.parts);
+      return main + (parts ? `<tr><td colspan="5">${parts}</td></tr>` : '');
     }).join('');
 
-    /* colgroup for the main table so columns don’t squeeze weirdly */
     div.innerHTML=head+`<table>
       <colgroup>
         <col style="width:42%"><col style="width:12%"><col style="width:15%"><col style="width:15%"><col style="width:16%">
@@ -434,6 +432,7 @@ if (!window.__PAYEREDGE_V16_T10__) {
     const stack=el('stack'); stack.innerHTML='';
     rows.forEach(r=>stack.appendChild(renderTier(r)));
     fitTextAll();
+    fitViewportScale();
   }
 
   function sunPool(fam, wantGlass){
@@ -449,7 +448,6 @@ if (!window.__PAYEREDGE_V16_T10__) {
     });
     return pool;
   }
-
   function chooseSunFor(baseRow){
     const tintSel=el('lensTint').value;
     const fam=el('lensFamily').value;
@@ -484,7 +482,7 @@ if (!window.__PAYEREDGE_V16_T10__) {
     let loaded=null;
     for(const url of CSV_CANDIDATES){ const r=await tryFetch(url); if(r.ok){ loaded=r; break; } }
     if(loaded){
-      const meta={plan:'VSP_choice',version:new Date().toISOString().slice(0,10)+'.ui16-tints10',source:'network:'+loaded.url,sha:quickHash(loaded.text)};
+      const meta={plan:'VSP_choice',version:new Date().toISOString().slice(0,10)+'.ui16-tints11',source:'network:'+loaded.url,sha:quickHash(loaded.text)};
       setCache(loaded.text,meta); DATA=parseCSV(loaded.text); buildSimpleIndex(); renderMeta(DATA.length,meta);
       status.textContent=` [ok] ${loaded.url} • ${DATA.length} rows`; computeBundles(); return;
     }
@@ -632,14 +630,12 @@ if (!window.__PAYEREDGE_V16_T10__) {
     ]);
   }
 
-  /* ===== Auto-fit big numbers and tags (keeps within fixed card) ===== */
+  /* ===== typography fit ===== */
   function fitText(el, {min=10, max=36, step=0.4}={}){
-    if(!el) return;
-    el.style.fontSize = '';
+    if(!el) return; el.style.fontSize = '';
     const maxPx = Math.min(max, parseFloat(getComputedStyle(el).fontSize)||max);
     let size = maxPx;
-    const parent = el.parentElement;
-    if(!parent) return;
+    const parent = el.parentElement; if(!parent) return;
     const fits = () => el.scrollWidth <= parent.clientWidth;
     while(size>min && !fits()){ size -= step; el.style.fontSize = size+'px'; }
   }
@@ -647,11 +643,29 @@ if (!window.__PAYEREDGE_V16_T10__) {
     document.querySelectorAll('.hero').forEach(n=>fitText(n,{min:14,max:36}));
     document.querySelectorAll('.tierHead .tag').forEach(n=>fitText(n,{min:9,max:13}));
   }
-  const ro=new ResizeObserver(()=>fitTextAll());
+
+  /* ===== global auto-scale so four cards always fit ===== */
+  function fitViewportScale(){
+    const frame = document.getElementById('frame');
+    if (!frame) return;
+    // rough min width per card incl. gap/padding
+    const CARD_MIN = 360; // visual width target per card
+    const GAP = 14*3;     // gaps between 4 cards (3 gaps)
+    const needed = CARD_MIN*4 + GAP;
+    const vw = document.documentElement.clientWidth;
+    let scale = Math.min(1, vw / needed);
+    const minScale = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--min-scale')) || 0.82;
+    if (scale < minScale) scale = minScale;
+    frame.style.transform = `scale(${scale})`;
+    // Keep layout width so no horizontal scrollbars
+    frame.style.width = (100/scale) + '%';
+  }
+
+  const ro=new ResizeObserver(()=>{ fitTextAll(); fitViewportScale(); });
   ro.observe(document.body);
 
-  document.getElementById('forceRefresh').onclick=()=>{ clearCacheStorage(); loadCSV(); };
-  document.getElementById('clearCache').onclick =()=>{ clearCacheStorage(); el('status').textContent=' cache cleared — click Force Refresh to reload'; };
+  document.getElementById('forceRefresh').onclick=()=>{ localStorage.removeItem('rev-vsp-choice-csv-v1'); localStorage.removeItem('rev-vsp-choice-meta-v1'); loadCSV(); };
+  document.getElementById('clearCache').onclick =()=>{ localStorage.removeItem('rev-vsp-choice-csv-v1'); localStorage.removeItem('rev-vsp-choice-meta-v1'); el('status').textContent=' cache cleared — click Force Refresh to reload'; };
   ['lensFamily','lensTint','includeAR','includeAspheric','includeOversize','includeGlass','includeCM'].forEach(id=>{ const n=el(id); if(n) n.onchange=computeBundles; });
 
   (function boot(){ loadCSV(); })();
