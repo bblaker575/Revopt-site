@@ -7,13 +7,12 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
-
   <style>
     :root{
       --bg:#090e16;--bg-elev:#0c1320;--fg:#eaf1ff;--muted:#9fb0c9;--line:#263448;--accent:#72a8ff;--accent-2:#7be0c3;
       --tier-best:#ffd166;--tier-better:#a9c2ff;--tier-good:#7be0c3;
       --shadow-lg:0 18px 40px rgba(0,0,0,.35);--shadow-md:0 10px 26px rgba(0,0,0,.28);
-      --radius:18px;--radius-sm:12px;
+      --radius:18px;
     }
     *{box-sizing:border-box} html,body{height:100%}
     body{
@@ -43,7 +42,7 @@
     select:focus{box-shadow:0 0 0 3px rgba(114,168,255,.25)}
     #status{margin-left:auto;padding:6px 10px;border-radius:999px;border:1px dashed var(--line);background:#0b1422;color:#c7d6ef;font-size:12px;max-width:52vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
-    /* grid of cards */
+    /* grid */
     .viewport-frame{transform-origin:top left;width:100%}
     .stack{display:grid;grid-template-columns:repeat(4,minmax(320px,1fr));gap:14px;align-items:stretch;margin-top:12px}
 
@@ -52,74 +51,54 @@
     .stars{font-weight:800;display:flex;align-items:center;gap:8px}
     .stars.best{color:var(--tier-best)} .stars.better{color:var(--tier-better)} .stars.good{color:var(--tier-good)}
     .figures{text-align:right;display:grid;gap:2px}
-    .hero{font-size:clamp(20px,2.6vw,36px);font-weight:800;line-height:1.0;letter-spacing:.2px;color:#cfe6ff;text-shadow:0 6px 18px rgba(114,168,255,.18)}
+    .hero{font-size:clamp(20px,2.6vw,36px);font-weight:800;line-height:1;letter-spacing:.2px;color:#cfe6ff;text-shadow:0 6px 18px rgba(114,168,255,.18)}
     .caption{color:var(--muted);font-size:12px} .svc{font-weight:800;color:var(--accent-2)}
 
-    /* --- Table & cells --- */
-    table{width:100%;border-collapse:collapse;margin-top:8px;table-layout:fixed}
-    th,td{
-      border-bottom:1px dashed #203043;
-      padding:8px 6px;
-      text-align:left;
-      font-size:12px;
-      vertical-align:top;
-    }
-    th{
-      color:var(--muted);
-      font-weight:700;
-      line-height:1.15;
-      white-space:normal;
-      overflow:visible;
-      text-overflow:clip;
-    }
+    /* table & cells */
+    table.bundle{width:100%;border-collapse:collapse;margin-top:8px;table-layout:fixed}
+    th,td{border-bottom:1px dashed #203043;padding:8px 6px;font-size:12px;vertical-align:top}
+    th{color:var(--muted);font-weight:700;line-height:1.15}
     td{overflow:hidden;text-overflow:ellipsis}
+
+    /* Column widths (money gets more room): 36 / 10 / 18 / 18 / 18 */
+    .bundle col:nth-child(1){width:36%}
+    .bundle col:nth-child(2){width:10%}
+    .bundle col:nth-child(3){width:18%}
+    .bundle col:nth-child(4){width:18%}
+    .bundle col:nth-child(5){width:18%}
+
     .cell-item{line-height:1.28;padding-bottom:2px}
-    .cell-item .label{
-      display:-webkit-box;
-      -webkit-line-clamp:2;            /* clamp to 2 lines (desktop) */
-      -webkit-box-orient:vertical;
-      overflow:hidden;
-      font-size:.96em;                  /* tiny shrink to free width */
-    }
-    @media (min-width:1200px){
-      .cell-item .label{-webkit-line-clamp:3} /* give 3 lines on wide screens */
-    }
+    .cell-item .label{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-size:.95em}
+    @media (min-width:1200px){ .cell-item .label{-webkit-line-clamp:3} }
+
     .cell-code{white-space:nowrap}
+
+    /* Money columns: right-align + generous inner padding + min width. NO bars. */
     .cell-money{
-      white-space:nowrap;               /* never wrap dollars */
-      font-weight:800;
-      font-size:clamp(11px,1.1vw,13px);
-      overflow:visible;                 /* never ellipsize dollars */
-      text-overflow:clip;
+      white-space:nowrap;font-weight:800;text-align:right;
+      font-size:clamp(11px,1.05vw,13px);
+      padding-left:18px;padding-right:4px;   /* breathing room between columns */
+      overflow:visible;text-overflow:clip;
+      min-width:110px;                        /* prevents squeeze/crowding */
     }
+    .th-money{white-space:normal;text-align:right}
 
-    /* Inline breakdown (collapsible) */
-    details.break{margin:2px 0 8px}
-    details.break > summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:8px;color:#cfe6ff;font-weight:600}
-    details.break > summary::before{content:'▸';font-size:12px;transform:translateY(1px);opacity:.85}
-    details.break[open] > summary::before{content:'▾'}
-    .breakbox{margin-top:6px;background:#0b1424;border:1px solid var(--line);border-radius:10px}
-    .breakgrid{display:grid;grid-template-columns:1fr repeat(3,minmax(0,0.9fr));gap:6px 8px;padding:8px;align-items:center}
-    .hdr{color:var(--muted);font-weight:600;font-size:11px}
-    .codepill{display:inline-flex;align-items:center;justify-content:center;padding:2px 8px;border:1px solid var(--line);border-radius:999px;
-      font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px;color:#cfe6ff;background:#0e1a30;white-space:nowrap;max-width:84px;overflow:hidden;text-overflow:ellipsis}
-    .money{white-space:nowrap;font-weight:800;font-size:clamp(10px,1vw,12px)}
+    /* enforce right alignment even if class is missed */
+    .bundle td:nth-child(3), .bundle th:nth-child(3),
+    .bundle td:nth-child(4), .bundle th:nth-child(4),
+    .bundle td:nth-child(5), .bundle th:nth-child(5){ text-align:right }
 
-    /* ===== Mobile ===== */
-    @media (max-width: 900px){
-      .stack{grid-template-columns:1fr}            /* vertical stack */
+    /* mobile */
+    @media (max-width:1280px){ th{font-size:11px} .cell-money{font-size:12px} }
+    @media (max-width:900px){
+      .stack{grid-template-columns:1fr}
       .viewport-frame{transform:none !important;width:100% !important}
       header{position:static}
       .hero{font-size:32px}
-      table{table-layout:auto}
-      .cell-money{font-size:13px}
+      table.bundle{table-layout:auto}
+      .cell-money{font-size:13px;min-width:unset;padding-left:12px}
     }
-    @media (max-width: 560px){
-      body{font-size:14px}
-      .hero{font-size:28px}
-      th,td{padding:7px 6px}
-      .cell-money{font-size:13px}
-    }
+    @media (max-width:560px){ body{font-size:14px} .hero{font-size:28px} th,td{padding:7px 6px} }
 
     @media print{header,.bar{display:none} body{background:#fff;color:#000}.tier{break-inside:avoid;border:1px solid #000;box-shadow:none} table,th,td{border-color:#000}}
   </style>
@@ -173,9 +152,8 @@
 </main>
 
 <script>
-/* single include guard */
-if(!window.__PAYEREDGE_UI16_4_CLAMP__){
-window.__PAYEREDGE_UI16_4_CLAMP__=true;
+if(!window.__PAYEREDGE_UI16_8_NO_BARS__){
+window.__PAYEREDGE_UI16_8_NO_BARS__=true;
 
 /* ---------- helpers ---------- */
 const CSV_CANDIDATES=['./vsp_choice_master_v8.4.csv','./data/vsp_choice_master_v8.4.csv'];
@@ -251,7 +229,7 @@ async function loadCSV(){
   let loaded=null;
   for(const url of CSV_CANDIDATES){ const r=await tryFetch(url); if(r.ok){ loaded=r; break; } }
   if(loaded){
-    const meta={plan:'VSP_choice',version:new Date().toISOString().slice(0,10)+'.ui16.4-clamp',source:'network:'+loaded.url,sha:quickHash(loaded.text)};
+    const meta={plan:'VSP_choice',version:new Date().toISOString().slice(0,10)+'.ui16.8-no-bars',source:'network:'+loaded.url,sha:quickHash(loaded.text)};
     setCache(loaded.text,meta); DATA=parseCSV(loaded.text); buildSimpleIndex(); renderMeta(DATA.length,meta);
     status.textContent=` [ok] ${loaded.url} • ${DATA.length} rows`; computeBundles(); return;
   }
@@ -386,7 +364,7 @@ function computeBundles(){
       const name=N(r.enhancement);
       if(wantGlass && !isGlassName(name)) return false;
       if(!wantGlass && isGlassName(name)) return false;
-      if(isCustomMeasure(r)) return false;
+      if(/custom\s*measure/i.test(name)) return false;
       if(tintSel==='polarized') return /polariz/.test(name);
       return !/(photochrom|polariz|tint|tinted|sunglass|gradient|color|colored)/.test(name);
     });
@@ -479,8 +457,6 @@ function computeBundles(){
 }
 
 /* ---------- rendering ---------- */
-const LAST_NUM = new Map(); // animation state
-
 const tdMoney = (v, key) =>
   `<td class="cell-money" data-key="${key}" data-anim="${v.toFixed(2)}">$${v.toFixed(2)}</td>`;
 
@@ -510,8 +486,13 @@ function breakdownDetails(li,rowKey){
 
 function renderTier({name,cls,b}){
   const div=document.createElement('div'); div.className='tier';
-  if(!b){ div.innerHTML=`<div class="tierHead"><div class="stars ${cls}"><span>${name==='Best'?'★★★':name==='Better'?'★★':name==='Good'?'★':'◎'}</span><span class="sub" style="margin-left:8px">${name}</span></div>
-    <div class="figures"><div class="hero">—</div><div class="caption">Patient Copay</div></div></div><div class="sub">No viable bundle</div>`; return div; }
+  if(!b){
+    div.innerHTML=`<div class="tierHead"><div class="stars ${cls}">
+      <span>${name==='Best'?'★★★':name==='Better'?'★★':name==='Good'?'★':'◎'}</span>
+      <span class="sub" style="margin-left:8px">${name}</span></div>
+      <div class="figures"><div class="hero">—</div><div class="caption">Patient Copay</div></div></div>
+      <div class="sub">No viable bundle</div>`; return div;
+  }
   const stars=name==='Best'?'★★★':name==='Better'?'★★':name==='Good'?'★':'◎';
 
   const head=`<div class="tierHead">
@@ -536,16 +517,15 @@ function renderTier({name,cls,b}){
     return main+parts;
   }).join('');
 
-  div.innerHTML=head+`<table>
-    <!-- desktop widths; mobile relaxes via media query -->
-    <colgroup>
-      <col style="width:42%"><!-- Item (clamped) -->
-      <col style="width:12%"><!-- Code -->
-      <col style="width:15%"><!-- Copay -->
-      <col style="width:15%"><!-- Holdback -->
-      <col style="width:16%"><!-- Service Fee -->
-    </colgroup>
-    <thead><tr><th>Item</th><th>Code</th><th>Copay</th><th>Holdback</th><th>Service Fee</th></tr></thead>
+  div.innerHTML=head+`<table class="bundle">
+    <colgroup><col><col><col><col><col></colgroup>
+    <thead><tr>
+      <th>Item</th>
+      <th>Code</th>
+      <th class="th-money">Copay</th>
+      <th class="th-money">Holdback</th>
+      <th class="th-money">Service Fee</th>
+    </tr></thead>
     <tbody>${lines}</tbody>
     <tfoot><tr><th colspan="2" style="text-align:right">Totals</th>
       ${tdMoney(b.copay,`${name}-tot-c`)}${tdMoney(b.chargeback,`${name}-tot-cb`)}${tdMoney(b.profit,`${name}-tot-pr`)}
@@ -558,11 +538,11 @@ function renderStack(rows){
   fitHeroText(); fitViewportScale(); animateMoney();
 }
 
-/* ---------- fit & animation ---------- */
+/* fit & animation */
 function fitViewportScale() {
   const frame = document.getElementById('frame'); if (!frame) return;
   const vw = document.documentElement.clientWidth;
-  if (vw <= 900){ frame.style.transform = 'none'; frame.style.width = '100%'; return; }  // mobile: no scaling
+  if (vw <= 900){ frame.style.transform = 'none'; frame.style.width = '100%'; return; }
   const needed = 360*4 + 14*3; let scale = Math.min(1, vw / needed); if (scale < 0.82) scale = 0.82;
   frame.style.transform = `scale(${scale})`; frame.style.width = (100 / scale) + '%';
 }
@@ -574,13 +554,10 @@ function fitHeroText() {
     while (size > 14 && !fits()) { size -= 0.4; n.style.fontSize = size + 'px'; }
   });
 }
-
-/* smooth count-up; remembers last values per data-key */
 function animateMoney(duration = 350) {
   const nodes = [...document.querySelectorAll('[data-anim]')];
   const frames = [];
   const LAST = window.__LAST_NUMS__ || (window.__LAST_NUMS__ = new Map());
-
   nodes.forEach(n => {
     const key = n.getAttribute('data-key') || Math.random().toString(36).slice(2);
     const toVal = parseFloat(n.getAttribute('data-anim')) || 0;
@@ -588,11 +565,10 @@ function animateMoney(duration = 350) {
     LAST.set(key, toVal);
     frames.push({ n, fromVal, toVal });
   });
-
   const start = performance.now();
   (function step(ts){
     const t = Math.min(1, (ts - start) / duration);
-    const k = 1 - Math.pow(1 - t, 3); // easeOutCubic
+    const k = 1 - Math.pow(1 - t, 3);
     frames.forEach(({ n, fromVal, toVal }) => {
       const v = fromVal + (toVal - fromVal) * k;
       n.textContent = '$' + v.toFixed(2);
@@ -600,20 +576,19 @@ function animateMoney(duration = 350) {
     if (t < 1) requestAnimationFrame(step);
   })(start);
 }
-
 const ro = new ResizeObserver(()=>{ fitHeroText(); fitViewportScale(); });
 ro.observe(document.body);
 
-/* ---------- controls ---------- */
+/* controls */
 el('forceRefresh').onclick=()=>{ clearCacheStorage(); loadCSV(); };
 el('clearCache').onclick =()=>{ clearCacheStorage(); el('status').textContent=' cache cleared — click Force Refresh to reload'; };
 ['lensFamily','lensTint','includeAR','includeAspheric','includeOversize','includeGlass','includeCM']
   .forEach(id=>{ const n=el(id); if(n) n.onchange=computeBundles; });
 
-/* ---------- boot ---------- */
+/* boot */
 (function boot(){ loadCSV(); })();
 
-} // guard
+}
 </script>
 </body>
 </html>
