@@ -6,7 +6,6 @@
   <title>PayerEdge — VSP Bundles</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <!-- Same family/weights as your original -->
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
   <style>
     :root{
@@ -14,11 +13,10 @@
       --tier-best:#ffd166;--tier-better:#a9c2ff;--tier-good:#7be0c3;
       --shadow-lg:0 18px 40px rgba(0,0,0,.35);--shadow-md:0 10px 26px rgba(0,0,0,.28);
       --radius:18px;
-
-      /* unified column geometry (Holdback removed) */
-      --w-item:40%;
-      --w-code:22%;
-      --w-money:19%;
+      /* unified column geometry */
+      --w-item:34%;
+      --w-code:20%;
+      --w-money:23%;
     }
     *{box-sizing:border-box} html,body{height:100%}
     body{
@@ -26,10 +24,8 @@
         radial-gradient(1200px 600px at 20% -10%, rgba(90,168,255,.12), transparent 60%),
         radial-gradient(900px 500px at 110% 10%, rgba(123,224,195,.10), transparent 60%),
         var(--bg);
-      color:var(--fg);
-      font:15px/1.45 Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
-      -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;
-      font-variant-numeric:tabular-nums
+      color:var(--fg);font:15px/1.45 Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+      -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;font-variant-numeric:tabular-nums
     }
     header{
       position:sticky;top:0;z-index:20;display:flex;justify-content:space-between;align-items:center;gap:14px;padding:12px 16px;
@@ -38,7 +34,6 @@
     h1{margin:0;font-weight:800;font-size:clamp(16px,1.8vw,20px)}
     .sub{color:var(--muted);font-size:12px}
     main{padding:14px}
-
     /* toolbar */
     .bar{display:flex;align-items:center;flex-wrap:wrap;gap:10px 12px;background:linear-gradient(180deg,var(--bg-elev),#0b1220);
       border:1px solid var(--line);border-radius:18px;padding:10px;box-shadow:var(--shadow-md)}
@@ -49,7 +44,6 @@
     select{background:#0e1a30;color:#fff;border:1px solid var(--line);border-radius:10px;padding:6px 8px;outline:none}
     select:focus{box-shadow:0 0 0 3px rgba(114,168,255,.25)}
     #status{margin-left:auto;padding:6px 10px;border-radius:999px;border:1px dashed var(--line);background:#0b1422;color:#c7d6ef;font-size:12px;max-width:52vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-
     /* grid */
     .viewport-frame{transform-origin:top left;width:100%}
     .stack{display:grid;grid-template-columns:repeat(4,minmax(320px,1fr));gap:14px;align-items:stretch;margin-top:12px}
@@ -58,9 +52,8 @@
     .stars{font-weight:800;display:flex;align-items:center;gap:8px}
     .stars.best{color:var(--tier-best)} .stars.better{color:var(--tier-better)} .stars.good{color:var(--tier-good)}
     .figures{text-align:right;display:grid;gap:2px}
-    .hero{font-size:clamp(20px,2.6vw,36px);font-weight:800;line-height:1;letter-spacing:.2px;color:#cfe6ff;text-shadow:0 6px 18px rgba(114,168,255,.18)}
-    .caption{color:var(--muted);font-size:12px} .svc{font-weight:800;color:var(--accent-2)}
-
+    .hero{font-size:clamp(20px,2.6vw,36px);font-weight:600;line-height:1;letter-spacing:.2px;color:#cfe6ff}
+    .caption{color:var(--muted);font-size:12px} .svc{font-weight:600;color:var(--accent-2)}
     /* table */
     table.bundle{width:100%;border-collapse:collapse;margin-top:8px;table-layout:fixed}
     th,td{border-bottom:1px dashed #203043;padding:8px 6px;font-size:12px;vertical-align:top}
@@ -69,35 +62,30 @@
     .bundle col:nth-child(2){width:var(--w-code)}
     .bundle col:nth-child(3){width:var(--w-money)}
     .bundle col:nth-child(4){width:var(--w-money)}
-
     .cell-item{line-height:1.32;padding-bottom:2px}
     .cell-item .label{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;font-size:.95em}
-
-    .cell-code{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .cell-code{white-space:normal;word-break:break-word;overflow:visible;text-overflow:clip}
+    .cell-money{
+      white-space:nowrap;font-weight:600;text-align:right;
+      font-size:clamp(11px,1.05vw,13px);
+      font-variant-numeric:tabular-nums;
+      padding-left:16px;padding-right:6px;min-width:110px;
+    }
+    tfoot th, tfoot td{border-top:1px solid rgba(255,255,255,.08);border-bottom:0;padding-top:9px;padding-bottom:8px}
+    /* breakdown aligned to headers */
+    details.break summary{cursor:pointer;opacity:.9}
+    .breakbox{padding:6px 8px 10px}
+    .align-grid{
+      display:grid;
+      grid-template-columns: var(--w-item) var(--w-code) var(--w-money) var(--w-money);
+      column-gap:8px; row-gap:6px; align-items:center;
+    }
+    .align-grid .hdr{color:var(--muted);font-weight:600;font-size:11px}
+    .align-grid .money{ text-align:right; font-variant-numeric:tabular-nums }
     .codepill{
       display:inline-flex;align-items:center;justify-content:center;padding:2px 8px;border:1px solid var(--line);border-radius:999px;
       font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px;color:#cfe1ff;background:#0e1a30;white-space:nowrap;max-width:110px;overflow:hidden;text-overflow:ellipsis
     }
-
-    .cell-money{
-      white-space:nowrap;font-weight:800;text-align:right;
-      font-size:clamp(11px,1.05vw,13px);
-      font-variant-numeric:tabular-nums;
-      padding-left:16px;padding-right:6px;
-      overflow:visible;text-overflow:clip;
-      min-width:120px;
-    }
-    .bundle td:nth-child(3), .bundle th:nth-child(3),
-    .bundle td:nth-child(4), .bundle th:nth-child(4){ text-align:right }
-
-    tfoot th, tfoot td{border-top:1px solid rgba(255,255,255,.08);border-bottom:0;padding-top:9px;padding-bottom:8px}
-
-    /* breakdown: nested table with matching colgroup for perfect alignment (Code | Copay | Service Fee) */
-    details.break summary{cursor:pointer;opacity:.9}
-    .breakbox{padding:6px 0 10px}
-    .break-table thead th{color:var(--muted);font-weight:700;font-size:11px}
-    .break-table .cell-money{min-width:auto}
-
     /* responsive */
     @media (max-width:1280px){ thead th{font-size:11px} .cell-money{font-size:12px} }
     @media (max-width:900px){
@@ -107,6 +95,7 @@
       .hero{font-size:32px}
       table.bundle{table-layout:auto}
       .cell-money{font-size:13px;min-width:unset;padding-left:12px}
+      .align-grid{grid-template-columns: 40% 20% 20% 20%}
     }
     @media (max-width:560px){ body{font-size:14px} .hero{font-size:28px} th,td{padding:7px 6px} }
     @media print{header,.bar{display:none} body{background:#fff;color:#000}.tier{break-inside:avoid;border:1px solid #000;box-shadow:none} table,th,td{border-color:#000}}
@@ -116,7 +105,7 @@
 <header>
   <div>
     <h1>PayerEdge — VSP Bundles</h1>
-    <div class="sub">Scoreboard shows <b>patient copay</b> and <b>service fee</b> (Copay − Holdback). Sun choices are exclusive.</div>
+    <div class="sub">Scoreboard shows <b>patient copay</b> and <b>service fee</b>. Sun choices are exclusive.</div>
   </div>
   <div class="sub" id="version">loading…</div>
 </header>
@@ -152,6 +141,12 @@
       <label class="switch"><input type="checkbox" id="includeGlass"> Glass</label>
       <label class="switch"><input type="checkbox" id="includeCM"> Custom measurements (N/O only)</label>
     </div>
+    <!-- OCR group -->
+    <div class="group">
+      <button class="btn" id="scanBenefitsBtn">Scan Benefits (Camera)</button>
+      <input id="scanBenefitsFile" type="file" accept=".pdf,image/*" capture="environment" style="display:none">
+    </div>
+
     <span id="status" aria-live="polite"></span>
   </div>
 
@@ -160,9 +155,12 @@
   </div>
 </main>
 
+<!-- In-browser OCR library -->
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+
 <script>
-if(!window.__PAYEREDGE_UI1696_FONTSBACK__){
-window.__PAYEREDGE_UI1696_FONTSBACK__=true;
+if(!window.__PAYEREDGE_UI1694_HOTFIX__){
+window.__PAYEREDGE_UI1694_HOTFIX__=true;
 
 /* show JS errors in the status pill so “blank” is diagnosable */
 window.onerror = function(msg, src, line, col){
@@ -174,7 +172,7 @@ window.onerror = function(msg, src, line, col){
 const CSV_CANDIDATES=[
   './vsp_choice_master_v8.4.csv',
   './data/vsp_choice_master_v8.4.csv',
-  './vsp_choice_master_v7_full_fixed.csv'       // fallback added
+  './vsp_choice_master_v7_full_fixed.csv'       // fallback
 ];
 const BETTER_CAP_OF_MAX=0.75, GOOD_CAP_OF_MAX=0.60, CAP_RELAX_FACTOR=0.90;
 
@@ -248,13 +246,13 @@ async function loadCSV(){
   let loaded=null, tried=[];
   for(const url of CSV_CANDIDATES){ const r=await tryFetch(url); tried.push(url); if(r.ok){ loaded=r; break; } }
   if(loaded){
-    const meta={plan:'VSP_choice',version:new Date().toISOString().slice(0,10)+'.ui16.9.6-fontsback',source:'network:'+loaded.url,sha:quickHash(loaded.text)};
+    const meta={plan:'VSP_choice',version:new Date().toISOString().slice(0,10)+'.ui16.9.4',source:'network:'+loaded.url,sha:quickHash(loaded.text)};
     setCache(loaded.text,meta); DATA=parseCSV(loaded.text); buildSimpleIndex(); renderMeta(DATA.length,meta);
-    status.textContent=` [ok] ${loaded.url} • ${DATA.length} rows`; computeBundles(); return;
+    status.textContent = ` [ok] ${loaded.url} • ${DATA.length} rows`; computeBundles(); return;
   }
   const {text,meta}=getCache();
   if(text){ DATA=parseCSV(text); buildSimpleIndex(); renderMeta(DATA.length,{...meta,source:'cache'});
-    status.textContent=` Network failed. Using cached data (${DATA.length} rows).`; computeBundles(); return; }
+    status.textContent = ` Network failed. Using cached data (${DATA.length} rows).`; computeBundles(); return; }
   status.textContent = ' load failed — no cache (tried: ' + tried.join(', ') + ')';
 }
 function renderMeta(count,meta){
@@ -368,7 +366,7 @@ function computeBundles(){
   const wantGlass=el('includeGlass').checked;
   const tintSel=el('lensTint').value;
 
-  const isCustomMeasure=row=>/custom\s*measure/i.test(N(row?.enhancement||row?.subtype||'')); 
+  const isCustomMeasure=row=>/custom\s*measure/i.test(N(row?.enhancement||row?.subtype||''));
   const isAA=row=>splitCodes(row.code)[0]==='AA';
   function isAsphericRow(row){
     const name=N(row.enhancement||row.subtype||'');
@@ -463,7 +461,7 @@ function computeBundles(){
   const picks=[best,better,good,cheapest].filter(Boolean);
   const uniq=[], seen=new Set();
   for(const b of picks){
-    const sig=[b.label,b.copay.toFixed(2),b.profit.toFixed(2)].join('|');
+    const sig=[b.label,b.copay.toFixed(2),b.chargeback.toFixed(2),b.profit.toFixed(2)].join('|');
     if(!seen.has(sig)){ seen.add(sig); uniq.push(b); }
   }
 
@@ -475,19 +473,18 @@ function computeBundles(){
   ]);
 }
 
-/* ---------- rendering ---------- */
+/* ---------- rendering (Holdback column removed) ---------- */
 const tdMoney = (v, key) =>
   `<td class="cell-money" data-key="${key}" data-anim="${v.toFixed(2)}">$${v.toFixed(2)}</td>`;
 
-function breakdownTable(li,rowKey){
+/* breakdown aligned to headers (Code, Copay, Service Fee) */
+function breakdownDetails(li,rowKey){
   if(!li.parts?.length) return '';
-  const rows = li.parts.map((p,pi)=>`
-      <tr>
-        <td></td>
-        <td><span class="codepill" title="${p.code}">${p.code}</span></td>
-        <td class="cell-money" data-key="${rowKey}-p${pi}-c"  data-anim="${p.copay.toFixed(2)}">$${p.copay.toFixed(2)}</td>
-        <td class="cell-money" data-key="${rowKey}-p${pi}-pr" data-anim="${p.profit.toFixed(2)}">$${p.profit.toFixed(2)}</td>
-      </tr>
+  const rows = li.parts.map((p,pi) => `
+    <div></div>
+    <div class="money"><span class="codepill" title="${p.code}">${p.code}</span></div>
+    <div class="money" data-key="${rowKey}-p${pi}-c"  data-anim="${p.copay.toFixed(2)}">$${p.copay.toFixed(2)}</div>
+    <div class="money" data-key="${rowKey}-p${pi}-pr" data-anim="${p.profit.toFixed(2)}">$${p.profit.toFixed(2)}</div>
   `).join('');
   return `
     <tr>
@@ -495,23 +492,10 @@ function breakdownTable(li,rowKey){
         <details class="break" open>
           <summary>Breakdown</summary>
           <div class="breakbox">
-            <table class="bundle break-table" aria-label="Breakdown rows" style="margin-top:6px">
-              <colgroup>
-                <col style="width:var(--w-item)">
-                <col style="width:var(--w-code)">
-                <col style="width:var(--w-money)">
-                <col style="width:var(--w-money)">
-              </colgroup>
-              <thead>
-                <tr>
-                  <th></th>
-                  <th>Code</th>
-                  <th>Copay</th>
-                  <th>Service Fee</th>
-                </tr>
-              </thead>
-              <tbody>${rows}</tbody>
-            </table>
+            <div class="align-grid">
+              <div></div><div class="hdr">Code</div><div class="hdr">Copay</div><div class="hdr">Service Fee</div>
+              ${rows}
+            </div>
           </div>
         </details>
       </td>
@@ -540,14 +524,13 @@ function renderTier({name,cls,b}){
 
   const lines=b.lines.map((li,i)=>{
     const rowKey=`${name}-line${i}`;
-    const code = li.code ? `<span class="codepill" title="${li.code}">${li.code}</span>` : '—';
     const main=`<tr>
       <td class="cell-item"><span class="label" title="${li.name}">${li.name}</span></td>
-      <td class="cell-code">${code}</td>
+      <td class="cell-code" title="${li.code||''}">${li.code||'—'}</td>
       ${tdMoney(li.copay,  `${rowKey}-c`)}
       ${tdMoney(li.profit, `${rowKey}-pr`)}
     </tr>`;
-    const parts=(li.parts&&li.parts.length)?breakdownTable(li,rowKey):'';
+    const parts=(li.parts&&li.parts.length)?breakdownDetails(li,rowKey):'';
     return main+parts;
   }).join('');
 
@@ -618,10 +601,93 @@ el('clearCache').onclick =()=>{ clearCacheStorage(); el('status').textContent=' 
 ['lensFamily','lensTint','includeAR','includeAspheric','includeOversize','includeGlass','includeCM']
   .forEach(id=>{ const n=el(id); if(n) n.onchange=computeBundles; });
 
+/* ---------- OCR: Scan Benefits (Camera) ---------- */
+const scanBtn   = document.getElementById('scanBenefitsBtn');
+const scanInput = document.getElementById('scanBenefitsFile');
+scanBtn?.addEventListener('click', ()=> scanInput?.click());
+scanInput?.addEventListener('change', async ()=>{
+  const file = scanInput.files?.[0]; if(!file) return;
+  try{
+    scanBtn.disabled = true; el('status').textContent=' scanning benefits…';
+    const url = URL.createObjectURL(file);
+    const { data } = await Tesseract.recognize(url, 'eng', {
+      tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789$.,:-/() '
+    });
+    URL.revokeObjectURL(url);
+    const text = data.text || '';
+    const benefits = parseBenefits(text);
+    window.lastBenefits = benefits;
+
+    // Simple confirmation for staff
+    alert([
+      `Frame Allowance: ${fmt(benefits.frameAllowance)}`,
+      `Exam Copay: ${fmt(benefits.examCopay)}`,
+      `PAL (Progressive) Copay: ${fmt(benefits.progressiveCopay)}`,
+      `AR: ${benefits.arTier ? 'Tier '+benefits.arTier : fmt(benefits.arCopay)}`,
+      `Photochromic: ${fmt(benefits.photochromicCopay)}`,
+      `Polarized: ${fmt(benefits.polarizedCopay)}`
+    ].join('\n'));
+
+    el('status').textContent=' scan complete';
+    // Optional: hook into your engine later
+    // if (typeof window.applyBenefitsToBundles === 'function') window.applyBenefitsToBundles(benefits);
+
+  }catch(e){
+    console.error(e);
+    el('status').textContent=' scan failed';
+    alert('Sorry — I could not read that image. Try a clearer, flatter photo with good light.');
+  }finally{
+    scanBtn.disabled = false;
+    scanInput.value='';
+  }
+});
+function centsOf(s){
+  if(!s) return null;
+  const m = String(s).replace(/[^\d.]/g,'');
+  if(!m) return null;
+  const [a,b='0']=m.split('.');
+  return parseInt(a||'0',10)*100 + parseInt((b+'00').slice(0,2),10);
+}
+function money(c){ if(c==null) return null; return {cents:c,raw:`$${(c/100).toFixed(2)}`}; }
+function fmt(m){ return m?.raw || '—'; }
+function parseBenefits(text){
+  const T=text.toLowerCase().replace(/\s+/g,' ');
+  const find=re=>{const m=T.match(re);return m?.[1]||null;};
+  const yesZero = s => s && /(included|covered|no cost|\$0|zero)/i.test(s);
+
+  const frame  = find(/frame[^\.]{0,40}allowance[^$]{0,12}(\$?\d[\d,]*(?:\.\d{2})?)/i) || find(/allowance[^$]{0,12}(\$?\d[\d,]*(?:\.\d{2})?).{0,20}frame/i);
+  const exam   = find(/exam[^$]{0,20}(included|covered|\$?\d[\d,]*(?:\.\d{2})?)/i);
+  const sv     = find(/single\s*vision[^$]{0,25}(\$?\d[\d,]*(?:\.\d{2})?)/i);
+  const pal    = find(/(?:progressive|pal)[^$]{0,25}(\$?\d[\d,]*(?:\.\d{2})?)/i);
+  const arTxt  = find(/anti[\s-]*reflective[^$]{0,25}((?:tier\s*[abcd])|\$?\d[\d,]*(?:\.\d{2})?|included|covered|no cost|\$0)/i) || find(/\bar\b[^$]{0,20}((?:tier\s*[abcd])|\$?\d[\d,]*(?:\.\d{2})?|included|covered|no cost|\$0)/i);
+  const photo  = find(/photochrom|transitions[^$]{0,25}(\$?\d[\d,]*(?:\.\d{2})?|included|covered|no cost|\$0)/i);
+  const polar  = find(/polariz(?:ed|e)[^$]{0,25}(\$?\d[\d,]*(?:\.\d{2})?|included|covered|no cost|\$0)/i);
+
+  let arTier = null, arCopay = null;
+  if(arTxt){
+    const m = /tier\s*([abcd])/i.exec(arTxt);
+    if(m) arTier = m[1].toUpperCase();
+    else arCopay = yesZero(arTxt) ? money(0) : money(centsOf(arTxt));
+  }
+
+  return {
+    source: 'VSP',
+    frameAllowance: frame ? money(centsOf(frame)) : null,
+    examCopay: exam ? (yesZero(exam) ? money(0) : money(centsOf(exam))) : null,
+    svLensCopay: sv ? money(centsOf(sv)) : null,
+    progressiveCopay: pal ? money(centsOf(pal)) : null,
+    arTier,
+    arCopay,
+    photochromicCopay: photo ? (yesZero(photo) ? money(0) : money(centsOf(photo))) : null,
+    polarizedCopay: polar ? (yesZero(polar) ? money(0) : money(centsOf(polar))) : null,
+    rawText: text
+  };
+}
+
 /* boot */
 (function boot(){ loadCSV(); })();
 
-}
+} // end guard
 </script>
 </body>
 </html>
