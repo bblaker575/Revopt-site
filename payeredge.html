@@ -13,12 +13,11 @@
       --tier-best:#ffd166;--tier-better:#a9c2ff;--tier-good:#7be0c3;
       --shadow-lg:0 18px 40px rgba(0,0,0,.35);--shadow-md:0 10px 26px rgba(0,0,0,.28);
       --radius:18px;
-      /* column widths shared by main table and subtables */
-      --col-item:33%;
-      --col-code:12%;
-      --col-copay:19%;
-      --col-hold:18%;
-      --col-fee:18%;
+
+      /* unified column geometry */
+      --w-item:34%;
+      --w-code:14%;
+      --w-money:17%; /* 3 money columns */
     }
     *{box-sizing:border-box} html,body{height:100%}
     body{
@@ -52,7 +51,6 @@
     .viewport-frame{transform-origin:top left;width:100%}
     .stack{display:grid;grid-template-columns:repeat(4,minmax(320px,1fr));gap:14px;align-items:stretch;margin-top:12px}
 
-    /* card */
     .tier{background:linear-gradient(180deg,#0f1726,#0c1422);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow-lg);padding:12px}
     .tierHead{display:grid;grid-template-columns:1fr auto;align-items:center;gap:10px;margin-bottom:8px}
     .stars{font-weight:800;display:flex;align-items:center;gap:8px}
@@ -64,56 +62,50 @@
     /* table & cells */
     table.bundle{width:100%;border-collapse:collapse;margin-top:8px;table-layout:fixed}
     th,td{border-bottom:1px dashed #203043;padding:8px 6px;font-size:12px;vertical-align:top}
-    th{color:var(--muted);font-weight:700;line-height:1.15}
-    td{overflow:hidden;text-overflow:ellipsis}
+    thead th{color:var(--muted);font-weight:700;line-height:1.15;white-space:nowrap}
 
-    /* colgroup driven by CSS vars (shared with subtables) */
-    .bundle col:nth-child(1){width:var(--col-item)}
-    .bundle col:nth-child(2){width:var(--col-code)}
-    .bundle col:nth-child(3){width:var(--col-copay)}
-    .bundle col:nth-child(4){width:var(--col-hold)}
-    .bundle col:nth-child(5){width:var(--col-fee)}
+    /* unified widths via CSS vars */
+    .bundle col:nth-child(1){width:var(--w-item)}
+    .bundle col:nth-child(2){width:var(--w-code)}
+    .bundle col:nth-child(3){width:var(--w-money)}
+    .bundle col:nth-child(4){width:var(--w-money)}
+    .bundle col:nth-child(5){width:var(--w-money)}
 
     .cell-item{line-height:1.32;padding-bottom:2px}
-    .cell-item .label{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-size:.95em}
-    @media (min-width:1200px){ .cell-item .label{-webkit-line-clamp:3} }
-    .cell-code{white-space:nowrap}
+    .cell-item .label{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;font-size:.95em}
+    .cell-code{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
-    /* Money columns */
     .cell-money{
       white-space:nowrap;font-weight:800;text-align:right;
       font-size:clamp(11px,1.05vw,13px);
-      font-variant-numeric: tabular-nums;
+      font-variant-numeric:tabular-nums;
       padding-left:16px;padding-right:6px;
       overflow:visible;text-overflow:clip;
-      min-width:112px;
+      min-width:120px;
     }
-    .th-money{white-space:normal;text-align:right}
     .bundle td:nth-child(3), .bundle th:nth-child(3),
     .bundle td:nth-child(4), .bundle th:nth-child(4),
     .bundle td:nth-child(5), .bundle th:nth-child(5){ text-align:right }
 
-    table.bundle thead th{white-space:nowrap;letter-spacing:.1px;padding-top:6px;padding-bottom:6px}
-    table.bundle tfoot tr th, table.bundle tfoot tr td{
-      border-top:1px solid rgba(255,255,255,.08);border-bottom:0;padding-top:9px;padding-bottom:8px
+    tfoot th, tfoot td{border-top:1px solid rgba(255,255,255,.08);border-bottom:0;padding-top:9px;padding-bottom:8px}
+
+    /* breakdown: align perfectly under table header using the SAME 5 columns, first is spacer */
+    details.break summary{cursor:pointer;opacity:.9}
+    .breakbox{padding:6px 8px 10px}
+    .align-grid{
+      display:grid;
+      grid-template-columns: var(--w-item) var(--w-code) var(--w-money) var(--w-money) var(--w-money);
+      column-gap:8px; row-gap:6px; align-items:center;
+    }
+    .align-grid .hdr{color:var(--muted);font-weight:600;font-size:11px}
+    .align-grid .money{ text-align:right; font-variant-numeric:tabular-nums }
+    .codepill{
+      display:inline-flex;align-items:center;justify-content:center;padding:2px 8px;border:1px solid var(--line);border-radius:999px;
+      font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px;color:#cfe1ff;background:#0e1a30;white-space:nowrap;max-width:110px;overflow:hidden;text-overflow:ellipsis
     }
 
-    /* breakdown subtable (aligns with parent columns) */
-    .subtable{width:100%;border-collapse:collapse;table-layout:fixed;margin:0}
-    .subtable col:nth-child(1){width:var(--col-item)}  /* blank spacer to align under Item column */
-    .subtable col:nth-child(2){width:var(--col-code)}
-    .subtable col:nth-child(3){width:var(--col-copay)}
-    .subtable col:nth-child(4){width:var(--col-hold)}
-    .subtable col:nth-child(5){width:var(--col-fee)}
-    .subtable th,.subtable td{font-size:12px;padding:6px 6px;border:0}
-    .subtable thead th{color:var(--muted);font-weight:700;padding-top:2px;padding-bottom:4px}
-    .subtable td.money{font-weight:800;text-align:right;font-variant-numeric:tabular-nums;padding-left:16px}
-
-    details.break summary{cursor:pointer;opacity:.9}
-    .breakrow{border-top:1px dashed #203043}
-
-    /* mobile */
-    @media (max-width:1280px){ th{font-size:11px} .cell-money{font-size:12px} }
+    /* responsive */
+    @media (max-width:1280px){ thead th{font-size:11px} .cell-money{font-size:12px} }
     @media (max-width:900px){
       .stack{grid-template-columns:1fr}
       .viewport-frame{transform:none !important;width:100% !important}
@@ -121,6 +113,7 @@
       .hero{font-size:32px}
       table.bundle{table-layout:auto}
       .cell-money{font-size:13px;min-width:unset;padding-left:12px}
+      .align-grid{grid-template-columns: 20% 20% 20% 20% 20%}
     }
     @media (max-width:560px){ body{font-size:14px} .hero{font-size:28px} th,td{padding:7px 6px} }
 
@@ -141,8 +134,6 @@
     <div class="group">
       <button class="btn" id="forceRefresh">Force Refresh</button>
       <button class="btn" id="clearCache">Clear Cache</button>
-      <input id="filePicker" type="file" accept=".csv" style="display:none">
-      <button class="btn" id="btnUpload">Load CSV…</button>
     </div>
     <div class="group">
       <label class="switch">Lens family
@@ -178,16 +169,11 @@
 </main>
 
 <script>
-if(!window.__PAYEREDGE_UI16_9_3__){
-window.__PAYEREDGE_UI16_9_3__=true;
+if(!window.__PAYEREDGE_UI1693_CLEAN__){
+window.__PAYEREDGE_UI1693_CLEAN__=true;
 
 /* ---------- helpers ---------- */
-const CSV_CANDIDATES=[
-  './vsp_choice_master_v8.4.csv',
-  './data/vsp_choice_master_v8.4.csv',
-  './vsp_choice_master_v7_full_fixed.csv',
-  './data/vsp_choice_master_v7_full_fixed.csv'
-];
+const CSV_CANDIDATES=['./vsp_choice_master_v8.4.csv','./data/vsp_choice_master_v8.4.csv'];
 const BETTER_CAP_OF_MAX=0.75, GOOD_CAP_OF_MAX=0.60, CAP_RELAX_FACTOR=0.90;
 
 const el=id=>document.getElementById(id);
@@ -257,38 +243,18 @@ async function tryFetch(url){
 }
 async function loadCSV(){
   const status=el('status'); status.textContent=' loading…';
-  const tried=[];
   let loaded=null;
-  for(const url of CSV_CANDIDATES){
-    const r=await tryFetch(url); tried.push(r);
-    if(r.ok){ loaded=r; break; }
-  }
+  for(const url of CSV_CANDIDATES){ const r=await tryFetch(url); if(r.ok){ loaded=r; break; } }
   if(loaded){
-    const meta={plan:'VSP_choice',version:new Date().toISOString().slice(0,10)+'.ui16.9.3',source:'network:'+loaded.url,sha:quickHash(loaded.text)};
+    const meta={plan:'VSP_choice',version:new Date().toISOString().slice(0,10)+'.ui16.9.3-clean',source:'network:'+loaded.url,sha:quickHash(loaded.text)};
     setCache(loaded.text,meta); DATA=parseCSV(loaded.text); buildSimpleIndex(); renderMeta(DATA.length,meta);
     status.textContent=` [ok] ${loaded.url} • ${DATA.length} rows`; computeBundles(); return;
   }
   const {text,meta}=getCache();
-  if(text){
-    DATA=parseCSV(text); buildSimpleIndex(); renderMeta(DATA.length,{...meta,source:'cache'});
-    status.textContent=` network failed → using cached CSV (${DATA.length} rows)`; computeBundles(); return;
-  }
-  // show diagnostics
-  const report = tried.map(t=>`${t.url} → ${t.ok?'ok':'fail '+t.err}`).join(' | ');
-  status.textContent = ' load failed — no cache; tried: ' + report;
+  if(text){ DATA=parseCSV(text); buildSimpleIndex(); renderMeta(DATA.length,{...meta,source:'cache'});
+    status.textContent=` Network failed. Using cached data (${DATA.length} rows).`; computeBundles(); return; }
+  status.textContent = ' load failed — no cache';
 }
-
-/* manual upload */
-el('btnUpload').onclick=()=>el('filePicker').click();
-el('filePicker').onchange=async (ev)=>{
-  const f=ev.target.files?.[0]; if(!f) return;
-  const text=await f.text();
-  const meta={plan:'VSP_choice',version:new Date().toISOString().slice(0,10)+'.ui16.9.3-upload',source:'file:'+f.name,sha:quickHash(text)};
-  setCache(text,meta); DATA=parseCSV(text); buildSimpleIndex(); renderMeta(DATA.length,meta);
-  el('status').textContent=` [ok] uploaded ${f.name} • ${DATA.length} rows`;
-  computeBundles();
-};
-
 function renderMeta(count,meta){
   el('version').textContent=`plan=${meta.plan||'VSP_choice'} • rows=${count||0} • version=${meta.version||'—'} • source=${meta.source||'—'} • sha=${meta.sha||'—'}`;
 }
@@ -400,7 +366,7 @@ function computeBundles(){
   const wantGlass=el('includeGlass').checked;
   const tintSel=el('lensTint').value;
 
-  const isCustomMeasure=row=>/custom\s*measure/i.test(N(row?.enhancement||row?.subtype||''));
+  const isCustomMeasure=row=>/custom\s*measure/i.test(N(row?.enhancement||row?.subtype||'')));
   const isAA=row=>splitCodes(row.code)[0]==='AA';
   function isAsphericRow(row){
     const name=N(row.enhancement||row.subtype||'');
@@ -476,9 +442,7 @@ function computeBundles(){
 
   const all=[];
   for(const m of base){ for(const ar of arOptions){ all.push(buildBundle(m,ar)); } }
-  if(!all.length){
-    renderStack([{name:'Best',cls:'best',b:null},{name:'Better',cls:'better',b:null},{name:'Good',cls:'good',b:null},{name:'Cheapest',cls:'good',b:null}]); return;
-  }
+  if(!all.length){ renderStack([{name:'Best',cls:'best',b:null},{name:'Better',cls:'better',b:null},{name:'Good',cls:'good',b:null},{name:'Cheapest',cls:'good',b:null}]); return; }
 
   const MaxPrice=Math.max(...all.map(b=>b.copay));
   const best = all.reduce((p,c)=>(!p||c.profit>p.profit||(c.profit===p.profit&&c.copay<p.copay)?c:p),null);
@@ -513,28 +477,26 @@ function computeBundles(){
 const tdMoney = (v, key) =>
   `<td class="cell-money" data-key="${key}" data-anim="${v.toFixed(2)}">$${v.toFixed(2)}</td>`;
 
-function breakdownRowSubtable(li,rowKey){
+/* NOTE: header pill removed per request */
+function breakdownDetails(li,rowKey){
   if(!li.parts?.length) return '';
-  const rows = li.parts.map((p,pi)=>`
-    <tr>
-      <td></td>
-      <td>${p.code}</td>
-      <td class="money" data-key="${rowKey}-p${pi}-c"  data-anim="${p.copay.toFixed(2)}">$${p.copay.toFixed(2)}</td>
-      <td class="money" data-key="${rowKey}-p${pi}-cb" data-anim="${p.chargeback.toFixed(2)}">$${p.chargeback.toFixed(2)}</td>
-      <td class="money" data-key="${rowKey}-p${pi}-pr" data-anim="${p.profit.toFixed(2)}">$${p.profit.toFixed(2)}</td>
-    </tr>
+  const rows = li.parts.map((p,pi) => `
+    <div></div> <!-- spacer for Item column -->
+    <div class="money"><span class="codepill" title="${p.code}">${p.code}</span></div>
+    <div class="money" data-key="${rowKey}-p${pi}-c"  data-anim="${p.copay.toFixed(2)}">$${p.copay.toFixed(2)}</div>
+    <div class="money" data-key="${rowKey}-p${pi}-cb" data-anim="${p.chargeback.toFixed(2)}">$${p.chargeback.toFixed(2)}</div>
+    <div class="money" data-key="${rowKey}-p${pi}-pr" data-anim="${p.profit.toFixed(2)}">$${p.profit.toFixed(2)}</div>
   `).join('');
   return `
-    <tr class="breakrow">
+    <tr>
       <td colspan="5" style="padding:0;border:0">
         <details class="break" open>
-          <summary style="padding:6px 6px">Breakdown for <span style="border:1px solid var(--line);border-radius:999px;padding:2px 8px;background:#0e1a30">${li.code}</span></summary>
-          <div style="padding:4px 0 8px">
-            <table class="subtable">
-              <colgroup><col><col><col><col><col></colgroup>
-              <thead><tr><th></th><th>Code</th><th>Copay</th><th>Holdback</th><th>Service Fee</th></tr></thead>
-              <tbody>${rows}</tbody>
-            </table>
+          <summary>Breakdown</summary>
+          <div class="breakbox">
+            <div class="align-grid">
+              <div></div><div class="hdr">Code</div><div class="hdr">Copay</div><div class="hdr">Holdback</div><div class="hdr">Service Fee</div>
+              ${rows}
+            </div>
           </div>
         </details>
       </td>
@@ -565,12 +527,12 @@ function renderTier({name,cls,b}){
     const rowKey=`${name}-line${i}`;
     const main=`<tr>
       <td class="cell-item"><span class="label" title="${li.name}">${li.name}</span></td>
-      <td class="cell-code">${li.code||'—'}</td>
+      <td class="cell-code" title="${li.code||''}">${li.code||'—'}</td>
       ${tdMoney(li.copay,  `${rowKey}-c`)}
       ${tdMoney(li.chargeback, `${rowKey}-cb`)}
       ${tdMoney(li.profit, `${rowKey}-pr`)}
     </tr>`;
-    const parts=(li.parts&&li.parts.length)?breakdownRowSubtable(li,rowKey):'';
+    const parts=(li.parts&&li.parts.length)?breakdownDetails(li,rowKey):'';
     return main+parts;
   }).join('');
 
@@ -579,9 +541,9 @@ function renderTier({name,cls,b}){
     <thead><tr>
       <th>Item</th>
       <th>Code</th>
-      <th class="th-money">Copay</th>
-      <th class="th-money">Holdback</th>
-      <th class="th-money">Service Fee</th>
+      <th>Copay</th>
+      <th>Holdback</th>
+      <th>Service Fee</th>
     </tr></thead>
     <tbody>${lines}</tbody>
     <tfoot><tr><th colspan="2" style="text-align:right">Totals</th>
@@ -592,7 +554,7 @@ function renderTier({name,cls,b}){
 function renderStack(rows){
   const stack=el('stack'); stack.innerHTML='';
   rows.forEach(r=>stack.appendChild(renderTier(r)));
-  fitHeroText(); fitViewportScale(); animateMoney(480);
+  fitHeroText(); fitViewportScale(); animateMoney(420);
 }
 
 /* fit & animation */
