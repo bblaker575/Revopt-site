@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>PayerEdge — VSP Bundles</title>
+  <title>PayerEdge — VSP Bundles + OCR</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
@@ -13,9 +13,11 @@
       --tier-best:#ffd166;--tier-better:#a9c2ff;--tier-good:#7be0c3;
       --shadow-lg:0 18px 40px rgba(0,0,0,.35);--shadow-md:0 10px 26px rgba(0,0,0,.28);
       --radius:18px;
-      --w-item:34%; --w-code:20%; --w-money:23%;
+      /* unified column geometry (no Holdback column in UI) */
+      --w-item:38%; --w-code:18%; --w-money:22%;
     }
-    *{box-sizing:border-box} html,body{height:100%}
+    *{box-sizing:border-box}
+    html,body{height:100%}
     body{
       margin:0;background:
         radial-gradient(1200px 600px at 20% -10%, rgba(90,168,255,.12), transparent 60%),
@@ -24,18 +26,24 @@
       color:var(--fg);font:15px/1.45 Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
       -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;font-variant-numeric:tabular-nums
     }
-    header{position:sticky;top:0;z-index:20;display:flex;justify-content:space-between;align-items:center;gap:14px;padding:12px 16px;
-      background:linear-gradient(180deg, rgba(9,14,22,.95), rgba(9,14,22,.78));border-bottom:1px solid var(--line);backdrop-filter:blur(10px)}
+    header{
+      position:sticky;top:0;z-index:20;display:flex;justify-content:space-between;align-items:center;gap:14px;padding:12px 16px;
+      background:linear-gradient(180deg, rgba(9,14,22,.95), rgba(9,14,22,.78));border-bottom:1px solid var(--line);backdrop-filter:blur(10px)
+    }
     h1{margin:0;font-weight:800;font-size:clamp(16px,1.8vw,20px)}
     .sub{color:var(--muted);font-size:12px}
     main{padding:14px}
+    /* toolbar */
     .bar{display:flex;align-items:center;flex-wrap:wrap;gap:10px 12px;background:linear-gradient(180deg,var(--bg-elev),#0b1220);
       border:1px solid var(--line);border-radius:18px;padding:10px;box-shadow:var(--shadow-md)}
     .group{display:flex;gap:8px;align-items:center;padding:6px 8px;border-radius:999px;background:#0b1424}
     .btn{background:#121f35;border:1px solid var(--line);color:var(--fg);padding:6px 9px;border-radius:12px;cursor:pointer;font-weight:600;transition:.15s}
     .btn:hover{background:#162844;border-color:#2e4260}
+    .switch{display:inline-flex;align-items:center;gap:8px}
+    select{background:#0e1a30;color:#fff;border:1px solid var(--line);border-radius:10px;padding:6px 8px;outline:none}
+    select:focus{box-shadow:0 0 0 3px rgba(114,168,255,.25)}
     #status{margin-left:auto;padding:6px 10px;border-radius:999px;border:1px dashed var(--line);background:#0b1422;color:#c7d6ef;font-size:12px;max-width:52vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-
+    /* grid */
     .viewport-frame{transform-origin:top left;width:100%}
     .stack{display:grid;grid-template-columns:repeat(4,minmax(320px,1fr));gap:14px;align-items:stretch;margin-top:12px}
     .tier{background:linear-gradient(180deg,#0f1726,#0c1422);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow-lg);padding:12px}
@@ -44,28 +52,46 @@
     .stars.best{color:var(--tier-best)} .stars.better{color:var(--tier-better)} .stars.good{color:var(--tier-good)}
     .figures{text-align:right;display:grid;gap:2px}
     .hero{font-size:clamp(20px,2.6vw,36px);font-weight:600;line-height:1;letter-spacing:.2px;color:#cfe6ff}
-    .caption{color:var(--muted);font-size:12px}
-    .svc{font-weight:600;color:var(--accent-2)}
+    .caption{color:var(--muted);font-size:12px} .svc{font-weight:600;color:var(--accent-2)}
+    /* table (no Holdback column in UI) */
     table.bundle{width:100%;border-collapse:collapse;margin-top:8px;table-layout:fixed}
     th,td{border-bottom:1px dashed #203043;padding:8px 6px;font-size:12px;vertical-align:top}
     thead th{color:var(--muted);font-weight:700;line-height:1.15;white-space:nowrap}
-    .bundle col:nth-child(1){width:var(--w-item)} .bundle col:nth-child(2){width:var(--w-code)}
-    .bundle col:nth-child(3),.bundle col:nth-child(4){width:var(--w-money)}
+    .bundle col:nth-child(1){width:var(--w-item)}
+    .bundle col:nth-child(2){width:var(--w-code)}
+    .bundle col:nth-child(3){width:var(--w-money)}
+    .bundle col:nth-child(4){width:var(--w-money)}
     .cell-item{line-height:1.32;padding-bottom:2px}
     .cell-item .label{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;font-size:.95em}
     .cell-code{white-space:normal;word-break:break-word;overflow:visible;text-overflow:clip}
     .cell-money{white-space:nowrap;font-weight:600;text-align:right;font-size:clamp(11px,1.05vw,13px);
       font-variant-numeric:tabular-nums;padding-left:16px;padding-right:6px;min-width:110px}
-    @media (max-width:900px){.stack{grid-template-columns:1fr}}
-
-    /* OCR preview panel */
-    .ocr-panel{margin-top:12px;display:grid;grid-template-columns:1.2fr 1fr;gap:12px}
+    .bundle td:nth-child(3), .bundle th:nth-child(3),
+    .bundle td:nth-child(4), .bundle th:nth-child(4){ text-align:right }
+    tfoot th, tfoot td{border-top:1px solid rgba(255,255,255,.08);border-bottom:0;padding-top:9px;padding-bottom:8px}
+    /* breakdown aligned to headers */
+    details.break summary{cursor:pointer;opacity:.9}
+    .breakbox{padding:6px 8px 10px}
+    .align-grid{
+      display:grid;
+      grid-template-columns: var(--w-item) var(--w-code) var(--w-money) var(--w-money);
+      column-gap:8px; row-gap:6px; align-items:center;
+    }
+    .align-grid .hdr{color:var(--muted);font-weight:600;font-size:11px}
+    .align-grid .money{ text-align:right; font-variant-numeric:tabular-nums }
+    .codepill{
+      display:inline-flex;align-items:center;justify-content:center;padding:2px 8px;border:1px solid var(--line);border-radius:999px;
+      font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px;color:#cfe1ff;background:#0e1a30;white-space:nowrap;max-width:110px;overflow:hidden;text-overflow:ellipsis
+    }
+    /* OCR panel */
+    .panel{display:grid;grid-template-columns:1.2fr 1fr;gap:12px;margin-top:12px}
     .card{background:linear-gradient(180deg,#0f1726,#0c1422);border:1px solid var(--line);border-radius:14px;padding:10px}
     .card h3{margin:0 0 6px 0;font-size:13px;color:#cfe6ff}
     .card pre{white-space:pre-wrap;word-break:break-word;font:12px/1.35 ui-monospace,Menlo,Consolas,monospace;color:#bcd3ff;max-height:260px;overflow:auto;margin:0}
     .kv{display:grid;grid-template-columns:1fr auto;gap:6px 10px}
     .kv .k{color:#9fb0c9}
     .kv .v{font-weight:700}
+    @media (max-width:900px){ .stack{grid-template-columns:1fr} .panel{grid-template-columns:1fr} }
   </style>
 </head>
 <body>
@@ -83,13 +109,33 @@
       <button class="btn" id="forceRefresh">Force Refresh</button>
       <button class="btn" id="clearCache">Clear Cache</button>
     </div>
+    <div class="group">
+      <label class="switch">Lens family
+        <select id="lensFamily" aria-label="Lens family">
+          <option value="SV" selected>Single Vision</option>
+          <option value="LINED">Lined Bi/Tri</option>
+          <option value="PAL">Progressive</option>
+        </select>
+      </label>
+      <label class="switch">Lens tint
+        <select id="lensTint" aria-label="Lens tint">
+          <option value="clear" selected>Clear</option>
+          <option value="tinted_solid">Tinted — Solid</option>
+          <option value="tinted_gradient">Tinted — Gradient</option>
+          <option value="polarized">Polarized</option>
+          <option value="transitions">Transitions®</option>
+        </select>
+      </label>
+      <label class="switch"><input type="checkbox" id="includeAR" checked> Include AR (tiered)</label>
+      <label class="switch"><input type="checkbox" id="includeAspheric"> Aspheric</label>
+      <label class="switch"><input type="checkbox" id="includeOversize"> Oversize</label>
+      <label class="switch"><input type="checkbox" id="includeGlass"> Glass</label>
+      <label class="switch"><input type="checkbox" id="includeCM"> Custom measurements (N/O only)</label>
+    </div>
 
-    <!-- your other controls here... -->
-
-    <!-- OCR group -->
+    <!-- OCR controls -->
     <div class="group">
       <button class="btn" id="scanBenefitsBtn">Scan Benefits (Camera / PDF)</button>
-      <!-- Accept BOTH image/* and application/pdf explicitly -->
       <input id="scanBenefitsFile" type="file" accept="application/pdf,image/*" capture="environment" style="display:none">
     </div>
 
@@ -100,22 +146,17 @@
     <div id="stack" class="stack"></div>
   </div>
 
-  <!-- OCR preview and extracted values -->
-  <div class="ocr-panel">
+  <!-- OCR debug -->
+  <div class="panel">
     <div class="card">
       <h3>OCR Text Preview</h3>
       <pre id="ocrText">—</pre>
     </div>
     <div class="card">
-      <h3>Detected Benefits</h3>
-      <div class="kv" id="ocrKV">
-        <div class="k">Frame Allowance</div><div class="v" id="kv_frame">—</div>
-        <div class="k">Exam Copay</div><div class="v" id="kv_exam">—</div>
-        <div class="k">SV Lens Copay</div><div class="v" id="kv_sv">—</div>
-        <div class="k">PAL Copay</div><div class="v" id="kv_pal">—</div>
-        <div class="k">AR</div><div class="v" id="kv_ar">—</div>
-        <div class="k">Photochromic</div><div class="v" id="kv_photo">—</div>
-        <div class="k">Polarized</div><div class="v" id="kv_polar">—</div>
+      <h3>Detected (used in bundles)</h3>
+      <div class="kv">
+        <div class="k">Materials Copay</div><div class="v" id="kv_materials">—</div>
+        <div class="k">Covered Enhancements → $0 copay</div><div class="v" id="kv_cov">—</div>
       </div>
     </div>
   </div>
@@ -123,44 +164,519 @@
 
 <!-- OCR + PDF libs -->
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
-
-<!-- Use PDF.js v3 (UMD) for widest compatibility on GitHub Pages -->
 <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
-<script>
-  // Worker for v3
-  pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js";
-</script>
+<script>pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js";</script>
 
 <script>
-/* ============ Base app: status & error surfacing ============ */
-window.onerror = function(msg, src, line, col){
-  const s=document.getElementById('status');
-  if(s) s.textContent = ' script error: ' + msg + ' @' + (src||'') + ':' + (line||'?');
-};
+/* -------------------- shared helpers -------------------- */
 const el=id=>document.getElementById(id);
+const sum=a=>a.reduce((x,y)=>x+y,0);
+const num=v=>{ const x=parseFloat(String(v??'').replace(/[^0-9.-]/g,'')); return isFinite(x)?x:0; };
+const N=s=>String(s||'').toLowerCase();
 function setStatus(s){ const n=el('status'); if(n) n.textContent=s; }
+window.onerror = (m,src,line)=> setStatus(' script error: '+m+' @'+(src||'')+':'+(line||'?'));
 
-/* ============ OCR UI bindings ============ */
+/* -------------------- CSV + base app -------------------- */
+const CSV_CANDIDATES=[
+  './vsp_choice_master_v8.4.csv',
+  './data/vsp_choice_master_v8.4.csv',
+  './vsp_choice_master_v7_full_fixed.csv'
+];
+const BETTER_CAP_OF_MAX=0.75, GOOD_CAP_OF_MAX=0.60, CAP_RELAX_FACTOR=0.90;
+
+function quickHash(s){ let h=2166136261>>>0; for(let i=0;i<s.length;i++){ h^=s.charCodeAt(i); h=Math.imul(h,16777619)>>>0; } return ('00000000'+h.toString(16)).slice(-8); }
+function parseCSV(text){
+  const rows=[]; let row=[], field='', q=false;
+  for(let i=0;i<text.length;i++){
+    const ch=text[i];
+    if(ch==='\"'){ if(q && text[i+1]==='\"'){ field+='\"'; i++; } else { q=!q; } continue; }
+    if(!q && ch===','){ row.push(field); field=''; continue; }
+    if(!q && (ch==='\n'||ch==='\r')){ if(field!==''||row.length){ row.push(field); rows.push(row); row=[]; field=''; } continue; }
+    field+=ch;
+  }
+  if(field!==''||row.length){ row.push(field); rows.push(row); }
+  const headers=rows.shift().map(h=>h.replace(/^\"|\"$/g,'').trim());
+  return rows.filter(r=>r.length>=headers.length).map(r=>{ const o={}; headers.forEach((h,i)=>o[h]=(r[i]||'').replace(/^\"|\"$/g,'').trim()); return o; });
+}
+const CACHE_KEY='rev-vsp-choice-csv-v1', META_KEY='rev-vsp-choice-meta-v1';
+const setCache=(t,m)=>{ localStorage.setItem(CACHE_KEY,t); localStorage.setItem(META_KEY,JSON.stringify(m)); };
+const getCache=()=>({ text:localStorage.getItem(CACHE_KEY), meta: JSON.parse(localStorage.getItem(META_KEY)||'{}') });
+const clearCacheStorage=()=>{ localStorage.removeItem(CACHE_KEY); localStorage.removeItem(META_KEY); };
+
+let DATA=[], SIMPLE_BY_CODE=new Map();
+function buildSimpleIndex(){
+  SIMPLE_BY_CODE=new Map();
+  for(const r of DATA){
+    const parts=splitCodes(r.code);
+    if(parts.length===1){
+      const code=parts[0];
+      if(!SIMPLE_BY_CODE.has(code)) SIMPLE_BY_CODE.set(code,[]);
+      SIMPLE_BY_CODE.get(code).push(r);
+    }
+  }
+}
+async function tryFetch(url){
+  try{ const res=await fetch(url,{cache:'no-store'}); if(!res.ok) throw new Error('HTTP '+res.status); return {ok:true,text:await res.text(),url}; }
+  catch(e){ return {ok:false,err:String(e),url}; }
+}
+async function loadCSV(){
+  const status=el('status'); status.textContent=' loading…';
+  let loaded=null, tried=[];
+  for(const url of CSV_CANDIDATES){ const r=await tryFetch(url); tried.push(url); if(r.ok){ loaded=r; break; } }
+  if(loaded){
+    const meta={plan:'VSP_choice',version:new Date().toISOString().slice(0,10)+'.ui1694-ocr',source:'network:'+loaded.url,sha:quickHash(loaded.text)};
+    setCache(loaded.text,meta); DATA=parseCSV(loaded.text); buildSimpleIndex(); renderMeta(DATA.length,meta);
+    status.textContent=`[ok] ${loaded.url} • ${DATA.length} rows`; computeBundles(); return;
+  }
+  const {text,meta}=getCache();
+  if(text){ DATA=parseCSV(text); buildSimpleIndex(); renderMeta(DATA.length,{...meta,source:'cache'});
+    status.textContent=` Network failed. Using cached data (${DATA.length} rows).`; computeBundles(); return; }
+  status.textContent = ' load failed — no cache (tried: ' + tried.join(', ') + ')';
+}
+function renderMeta(count,meta){
+  el('version').textContent=`plan=${meta.plan||'VSP_choice'} • rows=${count||0} • version=${meta.version||'—'} • source=${meta.source||'—'} • sha=${meta.sha||'—'}`;
+}
+
+/* ---------- filters/pools ---------- */
+const splitCodes=s=>String(s||'').toUpperCase().replace(/[^\w+&/,\s-]/g,'').split(/[\s+&/,\-]+/).map(t=>t.trim()).filter(Boolean);
+const byKey=k=>DATA.filter(r=>(r.active||'yes').toLowerCase()==='yes' && (r.exclusive_key||'').toLowerCase()===k);
+function applies(row,fam){
+  const a=(row.applies_to||'ALL').toUpperCase();
+  if(a.includes('ALL')) return true;
+  if(fam==='SV') return a.includes('SV');
+  if(fam==='LINED') return a.includes('OCC');
+  if(fam==='PAL') return a.includes('MF');
+  return true;
+}
+const isGlassName=name=>/glass/.test(N(name||''));
+
+/* ---------- OCR → coverage overrides ---------- */
+/* Holds last scan results used by bundles */
+let OCR_STATE = {
+  materialsCents: 0,                    // e.g. 1000 for $10.00
+  covered: new Set()                    // e.g. 'ar','photochromic','polarized', 'polycarbonate', 'high_index', 'scratch', 'uv', 'std_prog','prem_prog'
+};
+/* Human → internal keys */
+const COVERAGE_MAP = {
+  'Anti-Reflective':'ar',
+  'Photochromic / Transitions':'photochromic',
+  'Polarized':'polarized',
+  'Polycarbonate':'polycarbonate',
+  'High Index':'high_index',
+  'Scratch Resistant':'scratch',
+  'UV Protection':'uv',
+  'Standard Progressives':'std_prog',
+  'Premium Progressives':'prem_prog'
+};
+
+/* ---------- choose sun add-on ---------- */
+function preferPhotoCodeForBase(row){ return isGlassName(row.enhancement||row.subtype)?'PM':'PR'; }
+function sunPool(fam, wantGlass){
+  const tag = r => (r.exclusive_key||'').toLowerCase();
+  let pool = DATA.filter(r => (r.active||'yes').toLowerCase()==='yes' && applies(r,fam) && (tag(r)==='sun_tech' || tag(r)==='sun'));
+  const infer = DATA.filter(r=>{
+    if((r.active||'yes').toLowerCase()!=='yes' || !applies(r,fam)) return false;
+    const n=N(r.enhancement||r.subtype||'');
+    return /(tint|tinted|sun|sunglass|photochrom|transitions|polariz)/.test(n);
+  });
+  if (!pool.length) pool = infer;
+  pool = pool.filter(r=>{
+    const n=N(r.enhancement||r.subtype||'');
+    return el('includeGlass').checked ? /glass/.test(n) : !/glass/.test(n);
+  });
+  return pool;
+}
+function chooseSunFor(baseRow){
+  const tintSel=el('lensTint').value;
+  const fam=el('lensFamily').value;
+  const wantGlass=el('includeGlass').checked;
+  if(tintSel==='tinted_solid'){ return pickByCode('MN'); }
+  if(tintSel==='tinted_gradient'){ return pickByCode('MP'); }
+  if(tintSel==='polarized') return null;
+  if(tintSel==='transitions'){
+    const poolAll = sunPool(fam, wantGlass);
+    const pool = poolAll.filter(r=>/photochrom|transitions/.test(N(r.enhancement)));
+    const want=preferPhotoCodeForBase(baseRow);
+    return pool.find(r=>new RegExp('^'+want,'i').test((r.code||'').trim())) || pool.find(r=>/^p(m|r)/i.test((r.code||'').trim())) || null;
+  }
+  return null;
+}
+
+/* ---------- simple code pickers ---------- */
+function buildSimpleIndexOnce(){ if(!SIMPLE_BY_CODE.size) buildSimpleIndex(); }
+function pickByCode(code){
+  buildSimpleIndexOnce();
+  const fam=el('lensFamily').value;
+  const wantGlass=el('includeGlass').checked;
+  const list=(SIMPLE_BY_CODE.get(code)||[])
+    .filter(r=>applies(r,fam))
+    .filter(r=> wantGlass ? true : !isGlassName(r.enhancement||r.subtype));
+  return list[0]||null;
+}
+function pickBaseByExactCode(baseCode){
+  buildSimpleIndexOnce();
+  const list=SIMPLE_BY_CODE.get(baseCode)||[];
+  if(!list.length) return null;
+  const score=s=> (s.includes('plastic')&&!s.includes('high'))?2:0;
+  return list.map(r=>({r,s:(r.enhancement||r.subtype||'').toLowerCase()})).sort((a,b)=>score(b.s)-score(a.s))[0].r;
+}
+
+/* ---------- line parsing + coverage overrides ---------- */
+function parseCopayNumbers(s){ const m=String(s||'').match(/[0-9]+(?:\.[0-9]{1,2})?/g); return m?m.map(x=>parseFloat(x)):[]; }
+function parseSplitFromNotes(notes){
+  const s=String(notes||'');
+  const sv=s.match(/(\d+)\s*\+\s*(\d+)\s*\(SV\)/i);
+  const mf=s.match(/(\d+)\s*\+\s*(\d+)\s*\(MF\)/i);
+  return { svBase: sv?num(sv[1]):null, svAdd: sv?num(sv[2]):null, mfBase: mf?num(mf[1]):null, mfAdd: mf?num(mf[2]):null };
+}
+function enhanceKeyFromName(name){
+  const n=N(name);
+  if(/anti[\s-]*reflect/.test(n) || /\bar\b/.test(n)) return 'ar';
+  if(/photochrom|transitions/.test(n)) return 'photochromic';
+  if(/polariz/.test(n)) return 'polarized';
+  if(/polycarbonate/.test(n)) return 'polycarbonate';
+  if(/high\s*index|1\.6|1\.67|1\.7/.test(n)) return 'high_index';
+  if(/scratch/.test(n)) return 'scratch';
+  if(/\buv\b/.test(n) || /uv\s*pro/.test(n)) return 'uv';
+  if(/standard.*progress|standard\s+progressive/.test(n)) return 'std_prog';
+  if(/premium.*progress|premium\s+progressive/.test(n)) return 'prem_prog';
+  return null;
+}
+
+function parseLine(row){
+  const desc=row.enhancement||row.subtype||'—';
+  const codeStr=String(row.code||'').trim().toUpperCase();
+  const partsCodes=splitCodes(codeStr);
+  const notes=row.notes||row.note||row.Notes||row.NOTE||'';
+
+  // Build line(s)
+  if(partsCodes.length===1){
+    let cop=num(row.copay), cb=num(row.chargeback);
+    // Apply coverage override → if covered, copay = 0
+    const k = enhanceKeyFromName(desc);
+    if(k && OCR_STATE.covered.has(k)){ cop = 0; cb = 0; }
+    return {name:desc,code:codeStr,copay:cop,chargeback:cb,profit:cop-cb,parts:[]};
+  }
+
+  // Composite lines
+  const fam=el('lensFamily').value;
+  const split=parseSplitFromNotes(notes);
+  const compositeCopayNums=parseCopayNumbers(row.copay);
+  const compositeTotalCopay=num(row.copay);
+  const compositeAddOnCB=num(row.chargeback);
+
+  const parts=[];
+  const baseCode=partsCodes[0];
+  const baseRow=pickBaseByExactCode(baseCode);
+  let baseCop=baseRow?num(baseRow.copay):(compositeCopayNums[0]??compositeTotalCopay);
+  let baseCB =baseRow?num(baseRow.chargeback):0;
+  if(fam!=='PAL' && split.svBase!=null) baseCop=split.svBase;
+  if(fam==='PAL' && split.mfBase!=null) baseCop=split.mfBase;
+
+  // base override
+  let baseName = baseRow?.enhancement || row.enhancement || row.subtype || '';
+  const baseK = enhanceKeyFromName(baseName);
+  if(baseK && OCR_STATE.covered.has(baseK)){ baseCop=0; baseCB=0; }
+
+  parts.push({code:baseCode,copay:baseCop,chargeback:baseCB,profit:baseCop-baseCB});
+
+  const addonCount=partsCodes.length-1;
+  let addonCopays=[]; let explicitAdd=(fam!=='PAL')?split.svAdd:split.mfAdd;
+  if(explicitAdd!=null){ addonCopays=[explicitAdd,...Array(Math.max(0,addonCount-1)).fill(0)]; }
+  else if(compositeCopayNums.length>=partsCodes.length){ addonCopays=compositeCopayNums.slice(1); }
+  else { const remaining=Math.max(compositeTotalCopay-baseCop,0);
+         if(addonCount<=1){ addonCopays=[remaining]; } else { const each=remaining/addonCount; addonCopays=Array.from({length:addonCount},()=>each); } }
+  const addonCBEach=addonCount<=1?compositeAddOnCB:(compositeAddOnCB/addonCount);
+  for(let i=1;i<partsCodes.length;i++){
+    const code=partsCodes[i]; let cop=num(addonCopays[i-1]??0); let cb=addonCBEach;
+    // override per add-on part name/code where possible
+    const addRow = pickByCode(code) || {};
+    const addName = addRow.enhancement || addRow.subtype || '';
+    const k2 = enhanceKeyFromName(addName||row.enhancement||'');
+    if(k2 && OCR_STATE.covered.has(k2)){ cop = 0; cb = 0; }
+    parts.push({code,copay:cop,chargeback:cb,profit:cop-cb});
+  }
+  const totalCop=parts.reduce((a,x)=>a+x.copay,0);
+  const totalCB =parts.reduce((a,x)=>a+x.chargeback,0);
+  return {name:desc,code:codeStr,copay:totalCop,chargeback:totalCB,profit:totalCop-totalCB,parts};
+}
+
+function makeBundle(base,addOns){
+  const rows=[base,...addOns.filter(Boolean)];
+  const lines=rows.map(parseLine);
+
+  // Inject a synthetic Materials Copay line (from OCR)
+  const mat = Math.max(0, OCR_STATE.materialsCents/100);
+  if(mat>0){
+    lines.push({name:'Materials Copay', code:'MAT', copay:mat, chargeback:0, profit:mat, parts:[]});
+  }
+
+  const cop=sum(lines.map(x=>x.copay));
+  const cb =sum(lines.map(x=>x.chargeback));
+  const pr =cop-cb;
+  const label=base.enhancement||base.subtype||base.code||'Base';
+  return {label,lines,copay:cop,chargeback:cb,profit:pr,ratio:cop?pr/cop:0};
+}
+
+/* ---------- selection + render ---------- */
+function computeBundles(){
+  if(!DATA.length){ el('stack').innerHTML=''; return; }
+  const fam=el('lensFamily').value;
+  const wantAR=el('includeAR').checked;
+  const wantAsp=el('includeAspheric').checked;
+  const wantOS =el('includeOversize').checked;
+  const wantGlass=el('includeGlass').checked;
+  const tintSel=el('lensTint').value;
+
+  const isAA=row=>splitCodes(row.code)[0]==='AA';
+  function isAsphericRow(row){
+    const name=N(row.enhancement||row.subtype||'');
+    const first=splitCodes(row.code)[0]||'';
+    const looks=/aspheric/.test(name)||/^BA\b/.test(first);
+    return looks && !isAA(row);
+  }
+
+  let base=[];
+  if(fam==='PAL'){
+    base=byKey('progressive_level').filter(r=>applies(r,fam)).filter(r=>{
+      const name=N(r.enhancement);
+      if(wantGlass && !isGlassName(name)) return false;
+      if(!wantGlass && isGlassName(name)) return false;
+      if(/custom\s*measure/i.test(name)) return false;
+      if(tintSel==='polarized') return /polariz/.test(name);
+      return !/(photochrom|polariz|tint|tinted|sunglass|gradient|color|colored)/.test(name);
+    });
+    if(!wantGlass){
+      const kaRow=pickBaseByExactCode('KA');
+      if(kaRow && !base.some(r=>splitCodes(r.code)[0]==='KA')) base.push(kaRow);
+    }
+  } else {
+    if(tintSel==='polarized'){
+      base = byKey('sun_tech').filter(r=>applies(r,fam) && /polariz/.test(N(r.enhancement)))
+                               .filter(r=> wantGlass ? /glass/.test(N(r.enhancement)) : !/glass/.test(N(r.enhancement)));
+    } else {
+      let pool=(fam==='SV'?byKey('base_material'):byKey('occupational'));
+      pool=pool.filter(r=>{
+        const name=N(r.enhancement);
+        if(wantGlass && !isGlassName(name)) return false;
+        if(!wantGlass && isGlassName(name)) return false;
+        return true;
+      });
+      pool=pool.filter(r=>{
+        const name=N(r.enhancement);
+        if(/photochrom|polariz|tint|tinted|sunglass|gradient|color|colored/.test(name)) return false;
+        if(wantGlass) return true;
+        const asph=isAsphericRow(r);
+        return wantAsp?asph:!asph;
+      });
+      if(!wantGlass && !wantAsp && fam==='SV' && tintSel==='clear'){
+        const aaRow=pickBaseByExactCode('AA');
+        if(aaRow){ const notAA=pool.filter(r=>splitCodes(r.code)[0]!=='AA'); pool=[aaRow,...notAA]; }
+      }
+      base=pool;
+    }
+  }
+
+  function rankAR(ars){
+    const gradeVal=s=>{ const m=String(s||'').match(/\b([A-D])\b/i); if(!m) return null; return {A:1,B:2,C:3,D:4}[m[1].toUpperCase()]||null; };
+    return [...ars].sort((a,b)=>{
+      const ga=gradeVal(a.enhancement)||-1, gb=gradeVal(b.enhancement)||-1;
+      if(ga!==gb) return gb-ga;
+      const pa=num(a.copay)-num(a.chargeback), pb=num(b.copay)-num(b.chargeback);
+      return pb-pa;
+    });
+  }
+  const arPool = (wantAR ? byKey('ar_level').filter(r=>{
+    const name=N(r.enhancement);
+    if(wantGlass && !isGlassName(name)) return false;
+    return applies(r,fam);
+  }) : []);
+  const arRanked=(wantAR && arPool.length)?rankAR(arPool):[];
+  const arOptions=(wantAR && arRanked.length)?arRanked:[null];
+
+  const overs = wantOS ? (byKey('oversize').filter(r=>applies(r,fam))[0]||null) : null;
+
+  function buildBundle(m,arRow){
+    const cm=(el('includeCM')?.checked && fam==='PAL') ? (DATA.filter(r=>applies(r,'PAL')).find(row=>/custom\s*measure/i.test(N(row.enhancement||row.subtype||'')))||null) : null;
+    return makeBundle(m,[arRow,chooseSunFor(m),cm,overs]);
+  }
+
+  const all=[];
+  for(const m of base){ for(const ar of arOptions){ all.push(buildBundle(m,ar)); } }
+  if(!all.length){ renderStack([{name:'Best',cls:'best',b:null},{name:'Better',cls:'better',b:null},{name:'Good',cls:'good',b:null},{name:'Cheapest',cls:'good',b:null}]); return; }
+
+  const MaxPrice=Math.max(...all.map(b=>b.copay));
+  const best = all.reduce((p,c)=>(!p||c.profit>p.profit||(c.profit===p.profit&&c.copay<p.copay)?c:p),null);
+  function pickUnderCap(cap){
+    const cand=all.filter(b=>b.copay<=cap);
+    if(cand.length){ return cand.reduce((p,c)=>(!p||c.profit>p.profit||(c.profit===p.profit&&c.copay<p.copay)?c:p),null); }
+    const looser=cap/CAP_RELAX_FACTOR;
+    const cand2=all.filter(b=>b.copay<=looser);
+    if(cand2.length){ return cand2.reduce((p,c)=>(!p||c.profit>p.profit||(c.profit===p.profit&&c.copay<p.copay)?c:p),null); }
+    return all.reduce((p,c)=>(!p||c.copay<p.copay||(c.copay===p.copay&&c.profit>p.profit)?c:p),null);
+  }
+  const better=pickUnderCap(MaxPrice*BETTER_CAP_OF_MAX);
+  const good  =pickUnderCap(MaxPrice*GOOD_CAP_OF_MAX);
+  const cheapest=all.reduce((p,c)=>(!p||c.copay<p.copay||(c.copay===p.copay&&c.profit>p.profit)?c:p),null);
+
+  const picks=[best,better,good,cheapest].filter(Boolean);
+  const uniq=[], seen=new Set();
+  for(const b of picks){
+    const sig=[b.label,b.copay.toFixed(2),b.chargeback.toFixed(2),b.profit.toFixed(2)].join('|');
+    if(!seen.has(sig)){ seen.add(sig); uniq.push(b); }
+  }
+
+  renderStack([
+    {name:'Best',cls:'best',b:uniq[0]||null},
+    {name:'Better',cls:'better',b:uniq[1]||null},
+    {name:'Good',cls:'good',b:uniq[2]||null},
+    {name:'Cheapest',cls:'good',b:uniq[3]||null},
+  ]);
+}
+
+/* ---------- rendering (no Holdback column in UI) ---------- */
+const tdMoney = (v, key) =>
+  `<td class="cell-money" data-key="${key}" data-anim="${v.toFixed(2)}">$${v.toFixed(2)}</td>`;
+
+function breakdownDetails(li,rowKey){
+  if(!li.parts?.length) return '';
+  const rows = li.parts.map((p,pi) => `
+    <div></div>
+    <div class="money"><span class="codepill" title="${p.code}">${p.code}</span></div>
+    <div class="money" data-key="${rowKey}-p${pi}-c"  data-anim="${p.copay.toFixed(2)}">$${p.copay.toFixed(2)}</div>
+    <div class="money" data-key="${rowKey}-p${pi}-pr" data-anim="${p.profit.toFixed(2)}">$${p.profit.toFixed(2)}</div>
+  `).join('');
+  return `
+    <tr>
+      <td colspan="4" style="padding:0;border:0">
+        <details class="break" open>
+          <summary>Breakdown</summary>
+          <div class="breakbox">
+            <div class="align-grid">
+              <div></div><div class="hdr">Code</div><div class="hdr">Copay</div><div class="hdr">Service Fee</div>
+              ${rows}
+            </div>
+          </div>
+        </details>
+      </td>
+    </tr>`;
+}
+
+function renderTier({name,cls,b}){
+  const div=document.createElement('div'); div.className='tier';
+  if(!b){
+    div.innerHTML=`<div class="tierHead"><div class="stars ${cls}">
+      <span>${name==='Best'?'★★★':name==='Better'?'★★':name==='Good'?'★':'◎'}</span>
+      <span class="sub" style="margin-left:8px">${name}</span></div>
+      <div class="figures"><div class="hero">—</div><div class="caption">Patient Copay</div></div></div>
+      <div class="sub">No viable bundle</div>`; return div;
+  }
+  const stars=name==='Best'?'★★★':name==='Better'?'★★':name==='Good'?'★':'◎';
+
+  const head=`<div class="tierHead">
+    <div class="stars ${cls}"><div title="${name}" style="font-size:18px">${stars}</div><span class="sub" style="margin-left:6px">${b.label}</span></div>
+    <div class="figures">
+      <div class="hero" aria-label="Patient Copay" data-key="${name}-hero" data-anim="${b.copay.toFixed(2)}">$${b.copay.toFixed(2)}</div>
+      <div class="caption">Patient Copay</div>
+      <div class="caption">Service Fee (Practice Profit): <span class="svc" data-key="${name}-profit" data-anim="${b.profit.toFixed(2)}">$${b.profit.toFixed(2)}</span></div>
+    </div>
+  </div>`;
+
+  const lines=b.lines.map((li,i)=>{
+    const rowKey=`${name}-line${i}`;
+    const main=`<tr>
+      <td class="cell-item"><span class="label" title="${li.name}">${li.name}</span></td>
+      <td class="cell-code" title="${li.code||''}">${li.code||'—'}</td>
+      ${tdMoney(li.copay,  `${rowKey}-c`)}
+      ${tdMoney(li.profit, `${rowKey}-pr`)}
+    </tr>`;
+    const parts=(li.parts&&li.parts.length)?breakdownDetails(li,rowKey):'';
+    return main+parts;
+  }).join('');
+
+  div.innerHTML=head+`<table class="bundle">
+    <colgroup><col><col><col><col></colgroup>
+    <thead><tr>
+      <th>Item</th>
+      <th>Code</th>
+      <th>Copay</th>
+      <th>Service Fee</th>
+    </tr></thead>
+    <tbody>${lines}</tbody>
+    <tfoot><tr><th colspan="2" style="text-align:right">Totals</th>
+      ${tdMoney(b.copay,`${name}-tot-c`)}${tdMoney(b.profit,`${name}-tot-pr`)}
+    </tr></tfoot></table>`;
+  return div;
+}
+function renderStack(rows){
+  const stack=el('stack'); stack.innerHTML='';
+  rows.forEach(r=>stack.appendChild(renderTier(r)));
+  fitHeroText(); fitViewportScale(); animateMoney(420);
+}
+
+/* fit & animation */
+function fitViewportScale() {
+  const frame = document.getElementById('frame'); if (!frame) return;
+  const vw = document.documentElement.clientWidth;
+  if (vw <= 900){ frame.style.transform = 'none'; frame.style.width = '100%'; return; }
+  const needed = 360*4 + 14*3; let scale = Math.min(1, vw / needed); if (scale < 0.82) scale = 0.82;
+  frame.style.transform = `scale(${scale})`; frame.style.width = (100 / scale) + '%';
+}
+function fitHeroText() {
+  document.querySelectorAll('.hero').forEach(n => {
+    const parent = n.parentElement; if(!parent) return;
+    n.style.fontSize = ''; const maxPx = parseFloat(getComputedStyle(n).fontSize) || 30;
+    let size = maxPx; const fits = () => n.scrollWidth <= parent.clientWidth;
+    while (size > 14 && !fits()) { size -= 0.4; n.style.fontSize = size + 'px'; }
+  });
+}
+function animateMoney(duration = 350) {
+  const nodes = [...document.querySelectorAll('[data-anim]')];
+  const frames = [];
+  const LAST = window.__LAST_NUMS__ || (window.__LAST_NUMS__ = new Map());
+  nodes.forEach(n => {
+    const key = n.getAttribute('data-key') || Math.random().toString(36).slice(2);
+    const toVal = parseFloat(n.getAttribute('data-anim')) || 0;
+    const fromVal = LAST.has(key) ? LAST.get(key) : (parseFloat(n.textContent.replace(/[^0-9.-]/g,'')) || 0);
+    LAST.set(key, toVal);
+    frames.push({ n, fromVal, toVal });
+  });
+  const start = performance.now();
+  (function step(ts){
+    const t = Math.min(1, (ts - start) / duration);
+    const k = 1 - Math.pow(1 - t, 3);
+    frames.forEach(({ n, fromVal, toVal }) => {
+      const v = fromVal + (toVal - fromVal) * k;
+      n.textContent = '$' + v.toFixed(2);
+    });
+    if (t < 1) requestAnimationFrame(step);
+  })(start);
+}
+const ro = new ResizeObserver(()=>{ fitHeroText(); fitViewportScale(); });
+ro.observe(document.body);
+
+/* controls */
+el('forceRefresh').onclick=()=>{ clearCacheStorage(); loadCSV(); };
+el('clearCache').onclick =()=>{ clearCacheStorage(); el('status').textContent=' cache cleared — click Force Refresh to reload'; };
+['lensFamily','lensTint','includeAR','includeAspheric','includeOversize','includeGlass','includeCM']
+  .forEach(id=>{ const n=el(id); if(n) n.onchange=computeBundles; });
+
+/* boot */
+(function boot(){ loadCSV(); })();
+
+/* -------------------- OCR wiring -------------------- */
 const scanBtn   = el('scanBenefitsBtn');
 const scanInput = el('scanBenefitsFile');
 scanBtn?.addEventListener('click', ()=> scanInput?.click());
 scanInput?.addEventListener('change', async ()=>{
   const file = scanInput.files?.[0]; if(!file) return;
   try{
-    setStatus(`file received (${file.type||file.name})…`);
-    scanBtn.disabled = true;
+    scanBtn.disabled = true; setStatus(`file received (${file.type||file.name})…`);
+    const canvas = (/pdf$/i.test(file.name) || file.type==='application/pdf')
+      ? await pdfFirstPageToCanvas(file)
+      : await fileToCanvas(file);
 
-    let canvas;
-    if (/pdf$/i.test(file.name) || file.type === 'application/pdf') {
-      setStatus('rendering PDF…');
-      canvas = await pdfFirstPageToCanvas(file);
-    } else {
-      setStatus('loading image…');
-      canvas = await fileToCanvas(file);
-    }
-
-    // Preprocess & OCR passes
-    setStatus('cleaning image…');
+    setStatus('preprocessing…');
     const prep1 = preprocess(canvas, {scale:1.8, grayscale:true, threshold:'otsu', unsharp:true});
     const prep2 = preprocess(canvas, {scale:1.4, grayscale:true, threshold:'sauvola', unsharp:true});
 
@@ -168,48 +684,37 @@ scanInput?.addEventListener('change', async ()=>{
     const t1 = await runTess(prep1, { psm: 6 });
     setStatus('reading (pass 2/2)…');
     const t2 = await runTess(prep2, { psm: 4 });
-
     let text = chooseBestText(t1, t2);
-    if(!text || !text.trim()){
-      setStatus('retrying with fallback…');
-      const t3 = await runTess(canvas, { psm: 3 });
-      text = t3 || '';
-    }
+    if(!text.trim()){ setStatus('fallback read…'); text = await runTess(canvas, { psm: 3 }); }
 
     el('ocrText').textContent = text || '—';
-    if(!text.trim()){
-      setStatus('no text detected — try clearer photo / export PDF again');
-      alert('No readable text found. Try taking a straight, well-lit photo, or export the benefits page as a PDF and retry.');
-      return;
-    }
+    if(!text.trim()){ setStatus('no text detected'); alert('No readable text — try a clearer photo or export the PDF.'); return; }
 
     setStatus('parsing benefits…');
-    const benefits = parseBenefitsSmart(text);
-    window.lastBenefits = benefits;
-    paintKV(benefits);
+    const b = parseBenefits(text);
+    // Update OCR_STATE used by bundles
+    OCR_STATE.materialsCents = b.materialsCopay?.cents ?? 0;
+    OCR_STATE.covered = new Set(b.coveredEnhancementsKeys);
 
-    alert([
-      `Frame Allowance: ${fmt(benefits.frameAllowance)}`,
-      `Exam Copay: ${fmt(benefits.examCopay)}`,
-      `PAL (Progressive) Copay: ${fmt(benefits.progressiveCopay)}`,
-      `AR: ${benefits.arTier ? 'Tier '+benefits.arTier : fmt(benefits.arCopay)}`,
-      `Photochromic: ${fmt(benefits.photochromicCopay)}`,
-      `Polarized: ${fmt(benefits.polarizedCopay)}`
-    ].join('\n'));
+    // paint debug, recompute bundles
+    el('kv_materials').textContent = b.materialsCopay?.raw || '$0.00';
+    el('kv_cov').textContent = b.coveredEnhancements.length? b.coveredEnhancements.join(', ') : '—';
+    computeBundles();
 
     setStatus('scan complete');
   }catch(e){
     console.error(e);
     setStatus(`scan failed: ${e?.message||e}`);
-    alert(`Scan failed.\n\nReason: ${e?.message||e}\n\nTry another photo or export the PDF and retry.`);
+    alert(`Scan failed.\n\nReason: ${e?.message||e}`);
   }finally{
     scanBtn.disabled = false;
     scanInput.value='';
   }
 });
 
-/* ============ File→Canvas helpers (PDF + images + HEIC) ============ */
+/* ---- OCR helpers (PDF, image, preprocess, OCR) ---- */
 async function pdfFirstPageToCanvas(file){
+  setStatus('rendering PDF…');
   const buf = await file.arrayBuffer();
   const pdf = await pdfjsLib.getDocument({data:buf}).promise;
   const page = await pdf.getPage(1);
@@ -221,6 +726,7 @@ async function pdfFirstPageToCanvas(file){
   return canvas;
 }
 function fileToCanvas(file){
+  setStatus('loading image…');
   return new Promise((resolve,reject)=>{
     const url = URL.createObjectURL(file);
     const img = new Image();
@@ -235,7 +741,6 @@ function fileToCanvas(file){
       }catch(err){ URL.revokeObjectURL(url); reject(err); }
     };
     img.onerror = () => {
-      // Fallback (e.g., HEIC): decode via createImageBitmap
       createImageBitmap(file).then(bitmap=>{
         const canvas = document.createElement('canvas');
         canvas.width = bitmap.width; canvas.height = bitmap.height;
@@ -248,8 +753,6 @@ function fileToCanvas(file){
     img.src = url;
   });
 }
-
-/* ============ Preprocess + OCR ============ */
 function preprocess(sourceCanvas, {scale=2, grayscale=true, threshold='otsu', unsharp=true}={}){
   const w = Math.round(sourceCanvas.width * scale);
   const h = Math.round(sourceCanvas.height * scale);
@@ -386,11 +889,7 @@ function otsuThreshold(imgData){
   return t;
 }
 async function runTess(canvas, {psm=6}={}){
-  const opts = {
-    logger: m => { /* console.log(m); */ },
-    tessedit_pageseg_mode: String(psm),
-    tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789$.,:-/() '
-  };
+  const opts = { tessedit_pageseg_mode: String(psm) };
   const out = await Tesseract.recognize(canvas, 'eng', opts);
   return (out && out.data && out.data.text) ? out.data.text : '';
 }
@@ -399,71 +898,68 @@ function chooseBestText(a,b){
   return score(a)>=score(b)?a:b;
 }
 
-/* ============ Parsing ============ */
+/* ----------- Parser tuned to your sheet ----------- */
 function centsOf(s){ if(!s) return null; const m=String(s).replace(/[^\d.]/g,''); if(!m) return null; const [a,b='0']=m.split('.'); return parseInt(a||'0',10)*100+parseInt((b+'00').slice(0,2),10); }
-function money(c){ if(c==null) return null; return {cents:c,raw:`$${(c/100).toFixed(2)}`}; }
-function fmt(m){ return m?.raw || '—'; }
+function money(c){ return c==null?null:{cents:c,raw:`$${(c/100).toFixed(2)}`}; }
 
-function parseBenefitsSmart(raw){
+function parseBenefits(raw){
   const text = (raw||'').replace(/\r/g,'');
   const lines = text.split('\n').map(s=>s.trim()).filter(Boolean);
+  const T = text.toLowerCase();
 
-  const pickMoneyNear = (keywords, fallbackRegex=/\$\s*\d[\d,]*(?:\.\d{2})?/g) =>{
-    let best=null, bestScore=-1;
-    for(const line of lines){
-      const l=line.toLowerCase();
-      const kwScore = keywords.reduce((acc,k)=> acc + (l.includes(k)?1:0), 0);
-      if(!kwScore) continue;
-      const m = line.match(fallbackRegex);
-      if(m && m.length){
-        const val = m[m.length-1];
-        const c = centsOf(val);
-        const score = kwScore*10 + 2;
-        if(c!=null && score>bestScore){ best = c; bestScore = score; }
-      } else if(/included|covered|no cost|\$0/i.test(line)){
-        const score = kwScore*10 + 1;
-        if(score>bestScore){ best = 0; bestScore = score; }
-      }
-    }
-    return best!=null ? money(best) : null;
-  };
-
-  let arTier = null;
-  for(const line of lines){
-    const m = /(?:anti[\s-]*reflective|\bAR\b)[^\n]{0,24}(?:tier|level)\s*([ABCD])/i.exec(line);
-    if(m){ arTier = m[1].toUpperCase(); break; }
+  // Materials copay — look for explicit "Material" / "Materials" line (e.g., "Material $170.00" or "$10.00")
+  let materials = null;
+  for(const l of lines){
+    const m = /(?:material|materials)\s*\$?\s*(\d[\d,]*(?:\.\d{2})?)/i.exec(l);
+    if(m){ materials = money(centsOf(m[1])); break; }
   }
-  const arCopay = arTier ? null : pickMoneyNear(['anti-reflective','antireflective',' ar ']);
+  // If not found but we see "Exam $10.00" and "Material $10.00" block pattern, try nearby numbers
+  if(!materials){
+    for(let i=0;i<lines.length;i++){
+      if(/co-?payments|copayments/i.test(lines[i])){  // inside the copayments block
+        for(let j=i;j<Math.min(i+8,lines.length);j++){
+          const l=lines[j];
+          const m = /material[^$\n]*\$?\s*(\d[\d,]*(?:\.\d{2})?)/i.exec(l);
+          if(m){ materials = money(centsOf(m[1])); break; }
+        }
+      }
+      if(materials) break;
+    }
+  }
+  // Default to $0 if still not found (we add the line anyway).
+  if(!materials) materials = money(0);
 
-  const benefits = {
-    source: 'VSP',
-    frameAllowance: pickMoneyNear(['frame','allowance']),
-    examCopay:      pickMoneyNear(['exam','copay']),
-    svLensCopay:    pickMoneyNear(['single vision','sv']),
-    progressiveCopay: pickMoneyNear(['progressive','pal']),
-    arTier,
-    arCopay,
-    photochromicCopay: pickMoneyNear(['photochrom','transitions']),
-    polarizedCopay:    pickMoneyNear(['polariz']),
-    rawText: raw
+  // Enhancements coverage buckets
+  // We only care about items explicitly under "Covered" (not "Covered with Additional Copay")
+  const idxCovered = T.indexOf('covered');
+  const idxAddl   = T.indexOf('covered with additional copay');
+  const idxBottom = T.indexOf('confidential'); // common footer
+  const bucketCovered = idxCovered>=0 ? T.slice(idxCovered, idxAddl>idxCovered?idxAddl:idxBottom>idxCovered?idxBottom:undefined) : '';
+
+  const isIn = (bucket, re) => re.test(bucket);
+  const coveredKeys = new Set();
+  if(isIn(bucketCovered, /anti[-\s]*reflect|antireflect|\bar\b/)) coveredKeys.add('ar');
+  if(isIn(bucketCovered, /photochrom|transitions/)) coveredKeys.add('photochromic');
+  if(isIn(bucketCovered, /polariz/)) coveredKeys.add('polarized');
+  if(isIn(bucketCovered, /polycarbonate/)) coveredKeys.add('polycarbonate');
+  if(isIn(bucketCovered, /high\s*index/)) coveredKeys.add('high_index');
+  if(isIn(bucketCovered, /scratch\s+resistant/)) coveredKeys.add('scratch');
+  if(isIn(bucketCovered, /\buv\b|\buv\s*protection/)) coveredKeys.add('uv');
+  if(isIn(bucketCovered, /standard\s+progress/)) coveredKeys.add('std_prog');
+  if(isIn(bucketCovered, /premium\s+progress/)) coveredKeys.add('prem_prog');
+
+  const coveredPretty = Array.from(coveredKeys).map(k=>{
+    for(const [nice,key] of Object.entries(COVERAGE_MAP)) if(key===k) return nice;
+    return k;
+  });
+
+  return {
+    materialsCopay: materials,
+    coveredEnhancements: coveredPretty,
+    coveredEnhancementsKeys: Array.from(coveredKeys),
+    rawText: text
   };
-  return benefits;
 }
-function paintKV(b){
-  el('kv_frame').textContent = fmt(b.frameAllowance);
-  el('kv_exam').textContent  = fmt(b.examCopay);
-  el('kv_sv').textContent    = fmt(b.svLensCopay);
-  el('kv_pal').textContent   = fmt(b.progressiveCopay);
-  el('kv_ar').textContent    = b.arTier ? ('Tier '+b.arTier) : fmt(b.arCopay);
-  el('kv_photo').textContent = fmt(b.photochromicCopay);
-  el('kv_polar').textContent = fmt(b.polarizedCopay);
-}
-
-/* ============ (Optional) your bundle code bootstrapping ============ */
-function loadCSV(){ /* left as-is in your app; omitted here for brevity */ }
-(function boot(){
-  setStatus('ready');
-})();
 </script>
 </body>
 </html>
