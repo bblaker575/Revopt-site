@@ -145,19 +145,25 @@
   </div>
 </main>
 
-<!-- In-browser OCR library -->
+<!-- OCR + PDF libs -->
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@4.6.82/build/pdf.min.js"></script>
+<script>
+/* PDF.js worker (same CDN) */
+pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.6.82/build/pdf.worker.min.js";
+</script>
 
 <script>
 if(!window.__PAYEREDGE_UI1694_HOTFIX__){
 window.__PAYEREDGE_UI1694_HOTFIX__=true;
 
+/* show JS errors in the status pill */
 window.onerror = function(msg, src, line, col){
   const s=document.getElementById('status');
   if(s) s.textContent = ' script error: ' + msg + ' @' + (src||'') + ':' + (line||'?');
 };
 
-/* ---------- core helpers ---------- */
+/* ---------- helpers (existing app) ---------- */
 const CSV_CANDIDATES=[
   './vsp_choice_master_v8.4.csv',
   './data/vsp_choice_master_v8.4.csv',
@@ -248,7 +254,7 @@ function renderMeta(count,meta){
   el('version').textContent=`plan=${meta.plan||'VSP_choice'} • rows=${count||0} • version=${meta.version||'—'} • source=${meta.source||'—'} • sha=${meta.sha||'—'}`;
 }
 
-/* ---------- filters/pools ---------- */
+/* ---------- filters/pools / selection / rendering (unchanged except no Holdback column) ---------- */
 const byKey=k=>DATA.filter(r=>(r.active||'yes').toLowerCase()==='yes' && (r.exclusive_key||'').toLowerCase()===k);
 function applies(row,fam){
   const a=(row.applies_to||'ALL').toUpperCase();
@@ -294,8 +300,6 @@ function chooseSunFor(baseRow){
   }
   return null;
 }
-
-/* ---------- lines & bundles ---------- */
 function parseLine(row){
   const desc=row.enhancement||row.subtype||'—';
   const codeStr=String(row.code||'').trim().toUpperCase();
@@ -344,8 +348,6 @@ function makeBundle(base,addOns){
   const label=base.enhancement||base.subtype||base.code||'Base';
   return {label,lines,copay:cop,chargeback:cb,profit:pr,ratio:cop?pr/cop:0};
 }
-
-/* ---------- selection ---------- */
 function computeBundles(){
   if(!DATA.length){ el('stack').innerHTML=''; return; }
   const fam=el('lensFamily').value;
@@ -461,8 +463,6 @@ function computeBundles(){
     {name:'Cheapest',cls:'good',b:uniq[3]||null},
   ]);
 }
-
-/* ---------- rendering (Holdback column removed) ---------- */
 const tdMoney = (v, key) => `<td class="cell-money" data-key="${key}" data-anim="${v.toFixed(2)}">$${v.toFixed(2)}</td>`;
 function breakdownDetails(li,rowKey){
   if(!li.parts?.length) return '';
@@ -576,28 +576,52 @@ el('clearCache').onclick =()=>{ clearCacheStorage(); el('status').textContent=' 
 ['lensFamily','lensTint','includeAR','includeAspheric','includeOversize','includeGlass','includeCM']
   .forEach(id=>{ const n=el(id); if(n) n.onchange=computeBundles; });
 
-/* ---------- OCR: camera flow with stronger cleanup + 2-pass OCR ---------- */
+/* ===================== OCR section (with PDF + HEIC support) ===================== */
 const scanBtn   = document.getElementById('scanBenefitsBtn');
 const scanInput = document.getElementById('scanBenefitsFile');
 scanBtn?.addEventListener('click', ()=> scanInput?.click());
 scanInput?.addEventListener('change', async ()=>{
   const file = scanInput.files?.[0]; if(!file) return;
   try{
-    scanBtn.disabled = true; el('status').textContent=' scanning benefits…';
-    const img = await fileToImage(file);
+    setStatus('preparing…');
+    scanBtn.disabled = true;
 
-    // Preprocess: scale up, grayscale, adaptive threshold, unsharp
-    const prep1 = preprocess(img, {scale:2.0, grayscale:true, threshold:'otsu', unsharp:true});
-    const prep2 = preprocess(img, {scale:1.6, grayscale:true, threshold:'sauvola', unsharp:true});
+    let canvas;
+    if (/pdf$/i.test(file.name) || file.type === 'application/pdf') {
+      setStatus('rendering PDF…');
+      canvas = await pdfFirstPageToCanvas(file);
+    } else {
+      setStatus('loading image…');
+      canvas = await fileToCanvas(file);
+    }
 
-    // Two OCR passes with different PSMs; pick the longer, cleaner text
-    const [t1, t2] = await Promise.all([
-      runTess(prep1.canvas, { psm: 6 }),
-      runTess(prep2.canvas, { psm: 4 })
-    ]);
-    const text = chooseBestText(t1, t2);
+    // Preprocess: scale up + binarize + sharpen
+    setStatus('cleaning image…');
+    const prep1 = preprocess(canvas, {scale:1.8, grayscale:true, threshold:'otsu', unsharp:true});
+    const prep2 = preprocess(canvas, {scale:1.4, grayscale:true, threshold:'sauvola', unsharp:true});
+
+    // Two OCR passes
+    setStatus('reading (pass 1/2)…');
+    const t1 = await runTess(prep1, { psm: 6 });
+    setStatus('reading (pass 2/2)…');
+    const t2 = await runTess(prep2, { psm: 4 });
+
+    let text = chooseBestText(t1, t2);
+    if(!text || !text.trim()){
+      // final fallback: raw (no preprocessing), PSM 3
+      setStatus('retrying with fallback…');
+      const t3 = await runTess(canvas, { psm: 3 });
+      text = t3 || '';
+    }
+
     el('ocrText').textContent = text || '—';
+    if(!text.trim()){
+      setStatus('no text detected — try clearer photo');
+      alert('I couldn’t find readable text. Try: fill the frame, even lighting, no glare, and keep the phone parallel to the page.');
+      return;
+    }
 
+    setStatus('parsing benefits…');
     const benefits = parseBenefitsSmart(text);
     window.lastBenefits = benefits;
     paintKV(benefits);
@@ -611,57 +635,98 @@ scanInput?.addEventListener('change', async ()=>{
       `Polarized: ${fmt(benefits.polarizedCopay)}`
     ].join('\n'));
 
-    el('status').textContent=' scan complete';
+    setStatus('scan complete');
   }catch(e){
     console.error(e);
-    el('status').textContent=' scan failed';
-    alert('Sorry — I could not read that image. Try a flatter photo with even lighting and no glare.');
+    setStatus('scan failed');
+    alert('Scan failed. Likely causes: unsupported file format or blocked camera/photo access. Try another photo or export the PDF and retry.');
   }finally{
     scanBtn.disabled = false;
     scanInput.value='';
   }
 });
 
-/* ---- OCR helpers ---- */
-function fileToImage(file){
+function setStatus(s){ const n=el('status'); if(n) n.textContent=s; }
+
+/* ---- File -> canvas helpers ---- */
+async function pdfFirstPageToCanvas(file){
+  const buf = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({data:buf}).promise;
+  const page = await pdf.getPage(1);
+  const viewport = page.getViewport({scale:2.0});
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+  canvas.width = viewport.width; canvas.height = viewport.height;
+  await page.render({canvasContext:ctx, viewport}).promise;
+  return canvas;
+}
+function fileToCanvas(file){
   return new Promise((resolve,reject)=>{
     const url = URL.createObjectURL(file);
     const img = new Image();
-    img.onload = ()=>{ URL.revokeObjectURL(url); resolve(img); };
-    img.onerror = e => reject(e);
+    img.onload = async ()=> {
+      try{
+        const canvas = document.createElement('canvas');
+        canvas.width = img.naturalWidth; canvas.height = img.naturalHeight;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0);
+        URL.revokeObjectURL(url);
+        resolve(canvas);
+      }catch(err){
+        // Fallback path (e.g., HEIC or decode issues): use createImageBitmap
+        try{
+          URL.revokeObjectURL(url);
+          createImageBitmap(file).then(bitmap=>{
+            const canvas = document.createElement('canvas');
+            canvas.width = bitmap.width; canvas.height = bitmap.height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(bitmap,0,0);
+            resolve(canvas);
+          }, reject);
+        }catch(e2){ reject(e2); }
+      }
+    };
+    img.onerror = ()=> {
+      // If <img> fails (e.g., HEIC), try createImageBitmap directly
+      createImageBitmap(file).then(bitmap=>{
+        const canvas = document.createElement('canvas');
+        canvas.width = bitmap.width; canvas.height = bitmap.height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(bitmap,0,0);
+        URL.revokeObjectURL(url);
+        resolve(canvas);
+      }).catch(reject);
+    };
     img.src = url;
   });
 }
-function preprocess(img, {scale=2, grayscale=true, threshold='otsu', unsharp=true}={}){
-  const w = Math.round(img.naturalWidth * scale);
-  const h = Math.round(img.naturalHeight * scale);
+
+/* ---- Preprocess + OCR ---- */
+function preprocess(sourceCanvas, {scale=2, grayscale=true, threshold='otsu', unsharp=true}={}){
+  const w = Math.round(sourceCanvas.width * scale);
+  const h = Math.round(sourceCanvas.height * scale);
   const canvas = document.createElement('canvas');
   canvas.width = w; canvas.height = h;
   const ctx = canvas.getContext('2d');
-  ctx.drawImage(img, 0, 0, w, h);
+  ctx.drawImage(sourceCanvas, 0, 0, w, h);
 
   let imgData = ctx.getImageData(0,0,w,h);
   const d = imgData.data;
 
-  // grayscale
   if(grayscale){
     for(let i=0;i<d.length;i+=4){
       const y = 0.299*d[i] + 0.587*d[i+1] + 0.114*d[i+2];
       d[i]=d[i+1]=d[i+2]=y;
     }
   }
-
-  // simple unsharp mask (blur -> highpass -> add)
   if(unsharp){
     const blurred = boxBlur(imgData, w, h, 1);
     for(let i=0;i<d.length;i+=4){
       const hp = d[i] - blurred.data[i];
-      d[i] = clamp(d[i] + hp*0.8);
-      d[i+1]=d[i]; d[i+2]=d[i];
+      const v = clamp(d[i] + hp*0.8);
+      d[i]=d[i+1]=d[i+2]=v;
     }
   }
-
-  // threshold
   if(threshold){
     if(threshold==='otsu'){
       const t = otsuThreshold(imgData);
@@ -670,7 +735,6 @@ function preprocess(img, {scale=2, grayscale=true, threshold='otsu', unsharp=tru
         d[i]=d[i+1]=d[i+2]=v;
       }
     } else if(threshold==='sauvola'){
-      // quick local threshold approximation (window 25px)
       const win=25, k=0.3;
       const g = new Uint8ClampedArray(d.length/4);
       for(let i=0,pi=0;i<d.length;i+=4,pi++) g[pi]=d[i];
@@ -683,14 +747,14 @@ function preprocess(img, {scale=2, grayscale=true, threshold='otsu', unsharp=tru
           const T = m*(1 + k*((s/128)-1));
           const v = g[i] > T ? 255:0;
           const di = i*4;
-          d[di]=d[di+1]=d[di+2]=v;
+          d[di]=d[di+1]=d[di+2]=v; d[di+3]=255;
         }
       }
     }
   }
 
   ctx.putImageData(imgData,0,0);
-  return {canvas, ctx};
+  return canvas;
 }
 function clamp(v){ return v<0?0:v>255?255:v; }
 function boxBlur(imgData, w, h, r){
@@ -700,9 +764,9 @@ function boxBlur(imgData, w, h, r){
   // horizontal
   for(let y=0;y<h;y++){
     let sum=0;
-    for(let x=0;x<w+ r; x++){
+    for(let x=0;x<w+r;x++){
       if(x<w){ sum += src[(y*w+x)*4]; }
-      if(x>=r){ const xi=x-r; tmp[y*w+xi]=sum/(Math.min(x+1,w) - Math.max(0,x-r)); }
+      if(x>=r){ const xi=x-r; tmp[y*w+xi]=sum/(Math.min(x+1,w)-Math.max(0,x-r)); }
       if(x>=2*r+1){ sum -= src[(y*w+(x-2*r-1))*4]; }
     }
   }
@@ -713,7 +777,7 @@ function boxBlur(imgData, w, h, r){
       if(y<h){ sum += tmp[y*w+x]; }
       if(y>=r){
         const yi=y-r;
-        const val = sum/(Math.min(y+1,h) - Math.max(0,y-r));
+        const val = sum/(Math.min(y+1,h)-Math.max(0,y-r));
         const di=(yi*w+x)*4;
         dst[di]=dst[di+1]=dst[di+2]=val; dst[di+3]=255;
       }
@@ -776,7 +840,9 @@ function otsuThreshold(imgData){
   return t;
 }
 async function runTess(canvas, {psm=6}={}){
+  // Use canvas directly; add a small whitelist and a logger for debugging
   const opts = {
+    logger: m => { /* uncomment to debug: console.log(m); */ },
     tessedit_pageseg_mode: String(psm),
     tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789$.,:-/() '
   };
@@ -784,21 +850,18 @@ async function runTess(canvas, {psm=6}={}){
   return (out && out.data && out.data.text) ? out.data.text : '';
 }
 function chooseBestText(a,b){
-  // Pick the one that has more dollars found and fewer lone letters
   const score = t => ((t.match(/\$/g)||[]).length*3) + (t.length/500) - ((t.match(/\b[Iil]\b/g)||[]).length);
   return score(a)>=score(b)?a:b;
 }
 
-/* ---- Parsing: line-based scoring (robust) ---- */
+/* ---- Parsing ---- */
 function centsOf(s){ if(!s) return null; const m=String(s).replace(/[^\d.]/g,''); if(!m) return null; const [a,b='0']=m.split('.'); return parseInt(a||'0',10)*100+parseInt((b+'00').slice(0,2),10); }
 function money(c){ if(c==null) return null; return {cents:c,raw:`$${(c/100).toFixed(2)}`}; }
 function fmt(m){ return m?.raw || '—'; }
 
 function parseBenefitsSmart(raw){
   const text = (raw||'').replace(/\r/g,'');
-  const lines = text.split('\n')
-    .map(s=>s.trim())
-    .filter(Boolean);
+  const lines = text.split('\n').map(s=>s.trim()).filter(Boolean);
 
   const pickMoneyNear = (keywords, fallbackRegex=/\$\s*\d[\d,]*(?:\.\d{2})?/g) =>{
     let best=null, bestScore=-1;
@@ -808,10 +871,9 @@ function parseBenefitsSmart(raw){
       if(!kwScore) continue;
       const m = line.match(fallbackRegex);
       if(m && m.length){
-        // pick the rightmost $ on the line (copays often at the end)
         const val = m[m.length-1];
         const c = centsOf(val);
-        const score = kwScore*10 + (val.length>0?2:0);
+        const score = kwScore*10 + 2;
         if(c!=null && score>bestScore){ best = c; bestScore = score; }
       } else if(/included|covered|no cost|\$0/i.test(line)){
         const score = kwScore*10 + 1;
@@ -821,30 +883,27 @@ function parseBenefitsSmart(raw){
     return best!=null ? money(best) : null;
   };
 
-  // AR tier: look explicitly for tier letter
   let arTier = null;
   for(const line of lines){
     const m = /(?:anti[\s-]*reflective|\bAR\b)[^\n]{0,24}(?:tier|level)\s*([ABCD])/i.exec(line);
     if(m){ arTier = m[1].toUpperCase(); break; }
   }
-  // AR copay if no tier
   const arCopay = arTier ? null : pickMoneyNear(['anti-reflective','antireflective',' ar ']);
 
   const benefits = {
     source: 'VSP',
     frameAllowance: pickMoneyNear(['frame','allowance']),
-    examCopay: pickMoneyNear(['exam','copay']),
-    svLensCopay: pickMoneyNear(['single vision','sv']),
+    examCopay:      pickMoneyNear(['exam','copay']),
+    svLensCopay:    pickMoneyNear(['single vision','sv']),
     progressiveCopay: pickMoneyNear(['progressive','pal']),
     arTier,
     arCopay,
     photochromicCopay: pickMoneyNear(['photochrom','transitions']),
-    polarizedCopay: pickMoneyNear(['polariz']),
+    polarizedCopay:    pickMoneyNear(['polariz']),
     rawText: raw
   };
   return benefits;
 }
-
 function paintKV(b){
   el('kv_frame').textContent = fmt(b.frameAllowance);
   el('kv_exam').textContent  = fmt(b.examCopay);
