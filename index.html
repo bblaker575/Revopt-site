@@ -3,42 +3,42 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>PayerEdge — VSP Bundles + OCR (PDF-safe, vertical table fix)</title>
+<title>PayerEdge — VSP Bundles (PDF columns fixed)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#090e16;--bg-elev:#0c1320;--fg:#eaf1ff;--muted:#9fb0c9;--line:#263448;--accent:#72a8ff;--tier-best:#ffd166;--tier-better:#a9c2ff;--tier-good:#7be0c3;--radius:18px;--w-item:38%;--w-code:18%;--w-money:22%}
-*{box-sizing:border-box}html,body{height:100%}body{margin:0;background:radial-gradient(1200px 600px at 20% -10%, rgba(90,168,255,.12), transparent 60%),radial-gradient(900px 500px at 110% 10%, rgba(123,224,195,.10), transparent 60%),var(--bg);color:var(--fg);font:15px/1.45 Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;font-variant-numeric:tabular-nums}
-header{position:sticky;top:0;z-index:20;display:flex;justify-content:space-between;align-items:center;gap:14px;padding:12px 16px;background:linear-gradient(180deg, rgba(9,14,22,.95), rgba(9,14,22,.78));border-bottom:1px solid var(--line);backdrop-filter:blur(10px)}
-h1{margin:0;font-weight:800;font-size:clamp(16px,1.8vw,20px)}.sub{color:var(--muted);font-size:12px}main{padding:14px}
-.bar{display:flex;align-items:center;flex-wrap:wrap;gap:10px 12px;background:linear-gradient(180deg,var(--bg-elev),#0b1220);border:1px solid var(--line);border-radius:18px;padding:10px}
-.group{display:flex;gap:8px;align-items:center;padding:6px 8px;border-radius:999px;background:#0b1424}
-.btn{background:#121f35;border:1px solid var(--line);color:var(--fg);padding:6px 9px;border-radius:12px;cursor:pointer;font-weight:600}
-.btn:hover{background:#162844;border-color:#2e4260}.switch{display:inline-flex;align-items:center;gap:8px}
-select{background:#0e1a30;color:#fff;border:1px solid var(--line);border-radius:10px;padding:6px 8px;outline:none}
-select:focus{box-shadow:0 0 0 3px rgba(114,168,255,.25)}
-#status{margin-left:auto;padding:6px 10px;border-radius:999px;border:1px dashed var(--line);background:#0b1422;color:#c7d6ef;font-size:12px;max-width:52vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.viewport-frame{transform-origin:top left;width:100%}
-.stack{display:grid;grid-template-columns:repeat(4,minmax(320px,1fr));gap:14px;align-items:stretch;margin-top:12px}
-.tier{background:linear-gradient(180deg,#0f1726,#0c1422);border:1px solid var(--line);border-radius:18px;padding:12px}
-.tierHead{display:grid;grid-template-columns:1fr auto;align-items:center;gap:10px;margin-bottom:8px}
-.stars{font-weight:800;display:flex;align-items:center;gap:8px}
-.stars.best{color:var(--tier-best)}.stars.better{color:var(--tier-better)}.stars.good{color:var(--tier-good)}
-.figures{text-align:right;display:grid;gap:2px}.hero{font-size:clamp(20px,2.6vw,36px);font-weight:800;line-height:1;color:#cfe6ff;text-shadow:0 6px 18px rgba(114,168,255,.18)}
-.caption{color:var(--muted);font-size:12px}.svc{font-weight:800;color:#7be0c3}
-table.bundle{width:100%;border-collapse:collapse;margin-top:8px;table-layout:fixed}
-th,td{border-bottom:1px dashed #203043;padding:8px 6px;font-size:12px;vertical-align:top}
-thead th{color:var(--muted);font-weight:700;white-space:nowrap}
-.bundle col:nth-child(1){width:var(--w-item)}.bundle col:nth-child(2){width:var(--w-code)}.bundle col:nth-child(3){width:var(--w-money)}.bundle col:nth-child(4){width:var(--w-money)}
-.cell-item{line-height:1.32}.cell-item .label{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;font-size:.95em}
-.cell-code{white-space:normal;word-break:break-word}.cell-money{white-space:nowrap;font-weight:800;text-align:right;font-size:clamp(11px,1.05vw,13px);padding-left:16px;padding-right:6px;min-width:110px}
-tfoot th, tfoot td{border-top:1px solid rgba(255,255,255,.08);border-bottom:0;padding-top:9px}
+:root{--bg:#0a0f18;--bg2:#0c1422;--fg:#eaf1ff;--muted:#9fb0c9;--line:#273449;--acc:#7fb2ff;--acc2:#7be0c3;--best:#ffd166;--better:#a9c2ff;--good:#7be0c3;--r:16px}
+*{box-sizing:border-box}html,body{height:100%}body{margin:0;background:
+radial-gradient(1200px 600px at 20% -10%, rgba(90,168,255,.12), transparent 60%),
+radial-gradient(900px 500px at 110% 10%, rgba(123,224,195,.10), transparent 60%),
+var(--bg);color:var(--fg);font:15px/1.45 Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
+header{position:sticky;top:0;z-index:5;display:flex;gap:10px;align-items:center;justify-content:space-between;padding:12px 16px;background:linear-gradient(180deg,rgba(10,15,24,.95),rgba(10,15,24,.78));border-bottom:1px solid var(--line);backdrop-filter:blur(8px)}
+h1{margin:0;font-weight:800;font-size:clamp(16px,1.8vw,20px)}
+.sub{color:var(--muted);font-size:12px}
+main{padding:14px}
+.bar{display:flex;flex-wrap:wrap;gap:10px 12px;align-items:center;background:linear-gradient(180deg,var(--bg2),#0b1220);border:1px solid var(--line);border-radius:18px;padding:10px}
+.group{display:flex;gap:8px;align-items:center;background:#0b1424;border-radius:999px;padding:6px 8px}
+.btn{background:#121f35;border:1px solid var(--line);color:var(--fg);padding:6px 10px;border-radius:12px;font-weight:600;cursor:pointer}
+.btn:hover{background:#162844;border-color:#2c4060}
+.switch{display:inline-flex;align-items:center;gap:8px} select{background:#0e1a30;color:#fff;border:1px solid var(--line);border-radius:10px;padding:6px 8px}
+#status{margin-left:auto;padding:6px 10px;border-radius:999px;border:1px dashed var(--line);background:#0b1422;color:#c7d6ef;font-size:12px;max-width:55vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .panel{display:grid;grid-template-columns:1.2fr 1fr;gap:12px;margin-top:12px}
 .card{background:linear-gradient(180deg,#0f1726,#0c1422);border:1px solid var(--line);border-radius:14px;padding:10px}
-.card h3{margin:0 0 6px 0;font-size:13px;color:#cfe6ff}
-.card pre{white-space:pre-wrap;word-break:break-word;font:12px/1.35 ui-monospace,Menlo,Consolas,monospace;color:#bcd3ff;max-height:260px;overflow:auto;margin:0}
-.kv{display:grid;grid-template-columns:1fr auto;gap:6px 10px}.kv .k{color:#9fb0c9}.kv .v{font-weight:700}
-@media (max-width:900px){.stack{grid-template-columns:1fr}.viewport-frame{transform:none !important;width:100% !important}header{position:static}.hero{font-size:32px}table.bundle{table-layout:auto}.cell-money{font-size:13px;min-width:unset;padding-left:12px}.panel{grid-template-columns:1fr}}
+.card h3{margin:0 0 6px;font-size:13px;color:#cfe6ff}
+pre{white-space:pre-wrap;word-break:break-word;font:12px/1.35 ui-monospace,Menlo,Consolas,monospace;color:#bcd3ff;max-height:260px;overflow:auto;margin:0}
+.kv{display:grid;grid-template-columns:1fr auto;gap:6px 10px}
+.k{color:#9fb0c9}.v{font-weight:700}
+.stack{display:grid;grid-template-columns:repeat(4,minmax(320px,1fr));gap:14px;margin-top:12px}
+.tier{background:linear-gradient(180deg,#0f1726,#0c1422);border:1px solid var(--line);border-radius:18px;padding:12px}
+.tierHead{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;margin-bottom:8px}
+.stars{font-weight:800;display:flex;align-items:center;gap:8px}
+.stars.best{color:var(--best)}.stars.better{color:var(--better)}.stars.good{color:var(--good)}
+.hero{font-size:clamp(22px,2.2vw,36px);font-weight:800;color:#cfe6ff;text-shadow:0 6px 18px rgba(114,168,255,.18)}
+.caption{color:var(--muted);font-size:12px}.svc{font-weight:800;color:#7be0c3}
+table{width:100%;border-collapse:collapse;margin-top:8px}
+th,td{border-bottom:1px dashed #203043;padding:8px 6px;font-size:12px;vertical-align:top}
+.cell-money{white-space:nowrap;font-variant-numeric:tabular-nums;text-align:right;font-weight:800}
+@media (max-width:900px){.panel{grid-template-columns:1fr}.stack{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -51,53 +51,36 @@ tfoot th, tfoot td{border-top:1px solid rgba(255,255,255,.08);border-bottom:0;pa
 </header>
 
 <main>
-  <div class="bar" role="toolbar" aria-label="Bundle controls">
+  <div class="bar" role="toolbar" aria-label="controls">
     <div class="group">
       <button class="btn" id="forceRefresh">Force Refresh</button>
       <button class="btn" id="clearCache">Clear Cache</button>
     </div>
     <div class="group">
       <label class="switch">Lens family
-        <select id="lensFamily" aria-label="Lens family">
-          <option value="SV" selected>Single Vision</option>
-          <option value="LINED">Lined Bi/Tri</option>
-          <option value="PAL">Progressive</option>
-        </select>
+        <select id="lensFamily"><option value="SV">Single Vision</option><option value="LINED">Lined Bi/Tri</option><option value="PAL" selected>Progressive</option></select>
       </label>
       <label class="switch">Lens tint
-        <select id="lensTint" aria-label="Lens tint">
-          <option value="clear" selected>Clear</option>
-          <option value="tinted_solid">Tinted — Solid</option>
-          <option value="tinted_gradient">Tinted — Gradient</option>
-          <option value="polarized">Polarized</option>
-          <option value="transitions">Transitions®</option>
-        </select>
+        <select id="lensTint"><option value="clear" selected>Clear</option><option value="tinted_solid">Tinted — Solid</option><option value="tinted_gradient">Tinted — Gradient</option><option value="polarized">Polarized</option><option value="transitions">Transitions®</option></select>
       </label>
     </div>
     <div class="group">
-      <label class="switch"><input type="checkbox" id="includeAR" checked> Include AR (tiered)</label>
+      <label class="switch"><input type="checkbox" id="includeAR" checked> Include AR</label>
       <label class="switch"><input type="checkbox" id="includeAspheric"> Aspheric</label>
       <label class="switch"><input type="checkbox" id="includeOversize"> Oversize</label>
       <label class="switch"><input type="checkbox" id="includeGlass"> Glass</label>
       <label class="switch"><input type="checkbox" id="includeCM"> Custom measurements (N/O only)</label>
     </div>
-
-    <!-- Camera + Upload (separate) -->
     <div class="group">
-      <button class="btn" id="scanBenefitsBtn">Scan (Camera)</button>
-      <button class="btn" id="uploadBtn">Upload PDF/Image</button>
-      <input id="scanBenefitsFile" type="file" accept="image/*" capture="environment" style="display:none">
-      <input id="uploadFile" type="file" accept="application/pdf,image/*" style="display:none">
+      <button class="btn" id="scanCamera">Scan (Camera)</button>
+      <button class="btn" id="uploadFile">Upload PDF/Image</button>
+      <input id="hiddenFile" type="file" accept="application/pdf,image/*" capture="environment" style="display:none">
     </div>
-
     <span id="status" aria-live="polite"></span>
   </div>
 
-  <div id="frame" class="viewport-frame">
-    <div id="stack" class="stack"></div>
-  </div>
+  <div class="stack" id="stack"></div>
 
-  <!-- OCR debug -->
   <div class="panel">
     <div class="card">
       <h3>OCR / PDF Text (Page 1)</h3>
@@ -106,7 +89,7 @@ tfoot th, tfoot td{border-top:1px solid rgba(255,255,255,.08);border-bottom:0;pa
     <div class="card">
       <h3>Detected (used in bundles)</h3>
       <div class="kv">
-        <div class="k">Materials Copay</div><div class="v" id="kv_materials">—</div>
+        <div class="k">Materials Copay</div><div class="v" id="kv_materials">$0.00</div>
         <div class="k">Covered Enhancements → $0 copay</div><div class="v" id="kv_cov">—</div>
       </div>
     </div>
@@ -119,478 +102,283 @@ tfoot th, tfoot td{border-top:1px solid rgba(255,255,255,.08);border-bottom:0;pa
 <script>pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js";</script>
 
 <script>
-/* -------------------- helpers -------------------- */
-const el=id=>document.getElementById(id);
-const sum=a=>a.reduce((x,y)=>x+y,0);
-const num=v=>{ const x=parseFloat(String(v??'').replace(/[^0-9.-]/g,'')); return isFinite(x)?x:0; };
-const N=s=>String(s||'').toLowerCase();
-function setStatus(s){ const n=el('status'); if(n) n.textContent=s; }
-window.onerror = (m,src,line)=> setStatus(' script error: '+m+' @'+(src||'')+':'+(line||'?'));
+/* ---------- tiny helpers ---------- */
+const el=id=>document.getElementById(id); const N=s=>String(s||'').toLowerCase();
+const num=v=>{const x=parseFloat(String(v??'').replace(/[^0-9.-]/g,''));return isFinite(x)?x:0;}
+function setStatus(s){el('status').textContent=s}
+const CACHE_KEY='vsp_choice_csv_cache', META_KEY='vsp_choice_meta';
 
-/* -------------------- CSV + base app (unchanged behavior) -------------------- */
+/* ---------- CSV: load + cache (same as before; uses your v7 file if v8 fails) ---------- */
 const CSV_CANDIDATES=['./vsp_choice_master_v8.4.csv','./data/vsp_choice_master_v8.4.csv','./vsp_choice_master_v7_full_fixed.csv'];
-const BETTER_CAP_OF_MAX=0.75, GOOD_CAP_OF_MAX=0.60, CAP_RELAX_FACTOR=0.90;
-function quickHash(s){ let h=2166136261>>>0; for(let i=0;i<s.length;i++){ h^=s.charCodeAt(i); h=Math.imul(h,16777619)>>>0; } return ('00000000'+h.toString(16)).slice(-8); }
-function parseCSV(text){ const rows=[]; let row=[], field='', q=false;
-  for(let i=0;i<text.length;i++){ const ch=text[i];
-    if(ch==='\"'){ if(q && text[i+1]==='\"'){ field+='\"'; i++; } else { q=!q; } continue; }
-    if(!q && ch===','){ row.push(field); field=''; continue; }
-    if(!q && (ch==='\n'||ch==='\r')){ if(field!==''||row.length){ row.push(field); rows.push(row); row=[]; field=''; } continue; }
-    field+=ch;
-  }
-  if(field!==''||row.length){ row.push(field); rows.push(row); }
-  const headers=rows.shift().map(h=>h.replace(/^\"|\"$/g,'').trim());
-  return rows.filter(r=>r.length>=headers.length).map(r=>{ const o={}; headers.forEach((h,i)=>o[h]=(r[i]||'').replace(/^\"|\"$/g,'').trim()); return o; });
-}
-const CACHE_KEY='rev-vsp-choice-csv-v3', META_KEY='rev-vsp-choice-meta-v3';
-const setCache=(t,m)=>{ localStorage.setItem(CACHE_KEY,t); localStorage.setItem(META_KEY,JSON.stringify(m)); };
-const getCache=()=>({ text:localStorage.getItem(CACHE_KEY), meta: JSON.parse(localStorage.getItem(META_KEY)||'{}') });
-const clearCacheStorage=()=>{ localStorage.removeItem(CACHE_KEY); localStorage.removeItem(META_KEY); };
+function quickHash(s){let h=2166136261>>>0;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619)>>>0;}return('00000000'+h.toString(16)).slice(-8)}
+function parseCSV(text){const rows=[],H=[];let r=[],f='',q=false;for(let i=0;i<text.length;i++){const c=text[i];if(c=='"'){if(q&&text[i+1]=='"'){f+='"';i++;}else q=!q;continue}if(!q&&c==','){r.push(f);f='';continue}if(!q&&(c=='\n'||c=='\r')){if(f!==''||r.length){r.push(f);rows.push(r);r=[];f='';}continue}f+=c}if(f!==''||r.length){r.push(f);rows.push(r)}const hdr=rows.shift();hdr.forEach(h=>H.push(h.replace(/^"|"$/g,'').trim()));return rows.map(x=>{const o={};H.forEach((h,i)=>o[h]=(x[i]||'').replace(/^"|"$/g,'').trim());return o})}
+async function tryFetch(url){try{const res=await fetch(url,{cache:'no-store'});if(!res.ok)throw new Error('HTTP '+res.status);return{ok:true,text:await res.text(),url}}catch(e){return{ok:false,err:String(e),url}}}
+let DATA=[];let SIMPLE_BY_CODE=new Map();
+function buildSimpleIndex(){SIMPLE_BY_CODE=new Map();for(const r of DATA){const codes=splitCodes(r.code);if(codes.length===1){const c=codes[0];if(!SIMPLE_BY_CODE.has(c))SIMPLE_BY_CODE.set(c,[]);SIMPLE_BY_CODE.get(c).push(r)}}}
+function splitCodes(s){return String(s||'').toUpperCase().replace(/[^\w+&/,\s-]/g,'').split(/[\s+&/,\-]+/).map(t=>t.trim()).filter(Boolean)}
+async function loadCSV(){setStatus('loading CSV…');let got=null, tried=[];for(const u of CSV_CANDIDATES){const r=await tryFetch(u);tried.push(u);if(r.ok){got=r;break}}if(got){const meta={plan:'VSP_choice',version:new Date().toISOString().slice(0,10)+'.ui-colfix',source:'network:'+got.url,sha:quickHash(got.text)};localStorage.setItem(CACHE_KEY,got.text);localStorage.setItem(META_KEY,JSON.stringify(meta));DATA=parseCSV(got.text);buildSimpleIndex();renderMeta(DATA.length,meta);setStatus(`[ok] ${got.url} • ${DATA.length} rows`);computeBundles();return}
+const text=localStorage.getItem(CACHE_KEY), meta=JSON.parse(localStorage.getItem(META_KEY)||'{}');if(text){DATA=parseCSV(text);buildSimpleIndex();renderMeta(DATA.length,{...meta,source:'cache'});setStatus(`Network failed. Using cached data (${DATA.length} rows).`);computeBundles();return}
+setStatus('load failed — no CSV');}
+function renderMeta(n,m){el('version').textContent=`plan=${m.plan||'VSP_choice'} • rows=${n||0} • version=${m.version||'—'} • source=${m.source||'—'} • sha=${m.sha||'—'}`}
 
-let DATA=[], SIMPLE_BY_CODE=new Map();
-function buildSimpleIndex(){ SIMPLE_BY_CODE=new Map();
-  for(const r of DATA){ const parts=splitCodes(r.code); if(parts.length===1){ const code=parts[0]; if(!SIMPLE_BY_CODE.has(code)) SIMPLE_BY_CODE.set(code,[]); SIMPLE_BY_CODE.get(code).push(r);} }
-}
-async function tryFetch(url){ try{ const res=await fetch(url,{cache:'no-store'}); if(!res.ok) throw new Error('HTTP '+res.status); return {ok:true,text:await res.text(),url}; } catch(e){ return {ok:false,err:String(e),url}; } }
-async function loadCSV(){
-  setStatus(' loading…'); let loaded=null, tried=[];
-  for(const url of CSV_CANDIDATES){ const r=await tryFetch(url); tried.push(url); if(r.ok){ loaded=r; break; } }
-  if(loaded){ const meta={plan:'VSP_choice',version:new Date().toISOString().slice(0,10)+'.ui1694-ocrfix',source:'network:'+loaded.url,sha:quickHash(loaded.text)};
-    setCache(loaded.text,meta); DATA=parseCSV(loaded.text); buildSimpleIndex(); renderMeta(DATA.length,meta);
-    setStatus(`[ok] ${loaded.url} • ${DATA.length} rows`); computeBundles(); return;
-  }
-  const {text,meta}=getCache();
-  if(text){ DATA=parseCSV(text); buildSimpleIndex(); renderMeta(DATA.length,{...meta,source:'cache'}); setStatus(` Network failed. Using cached data (${DATA.length} rows).`); computeBundles(); return; }
-  setStatus(' load failed — no cache (tried: ' + tried.join(', ') + ')');
-}
-function renderMeta(count,meta){
-  el('version').textContent=`plan=${meta.plan||'VSP_choice'} • rows=${count||0} • version=${meta.version||'—'} • source=${meta.source||'—'} • sha=${meta.sha||'—'}`;
+/* ---------- OCR/PDF state ---------- */
+let OCR_STATE={materialsCents:0, covered:new Set()};
+const COVER_KEYS={'Anti-Reflective':'ar','Photochromic / Transitions':'photochromic','Polarized':'polarized','Polycarbonate':'polycarbonate','High Index':'high_index','Scratch Resistant':'scratch','UV Protection':'uv','Standard Progressives':'std_prog','Premium Progressives':'prem_prog'};
+function moneyCents(c){return `$${(c/100).toFixed(2)}`}
+
+/* ---------- UI actions ---------- */
+el('forceRefresh').onclick=()=>{localStorage.removeItem(CACHE_KEY);localStorage.removeItem(META_KEY);loadCSV()};
+el('clearCache').onclick=()=>{localStorage.removeItem(CACHE_KEY);localStorage.removeItem(META_KEY);setStatus('cache cleared — Force Refresh to reload')};
+['lensFamily','lensTint','includeAR','includeAspheric','includeOversize','includeGlass','includeCM'].forEach(id=>el(id).onchange=computeBundles);
+el('scanCamera').onclick=()=>{el('hiddenFile').capture='environment';el('hiddenFile').click()};
+el('uploadFile').onclick=()=>{el('hiddenFile').removeAttribute('capture');el('hiddenFile').click()};
+el('hiddenFile').addEventListener('change',handlePickedFile);
+(function boot(){loadCSV()})();
+
+/* ---------- PDF & OCR: page-1 structured extraction with coordinates ---------- */
+async function handlePickedFile(){
+  const f=this.files?.[0]; if(!f) return;
+  try{
+    setStatus(`file received (${f.type||f.name})…`);
+    let outText='', coveredKeys=[], materials=0;
+    if(/pdf$/i.test(f.name)||f.type==='application/pdf'){
+      const structured=await pdfExtractItems(f); // [{str,x,y,width,fontSize}]
+      outText = structured.map(i=>i.str).join('\n'); // debug preview
+      const parsed = parseBenefitsFromPdfItems(structured);
+      coveredKeys = parsed.coveredKeys;
+      materials = parsed.materialsCents;
+    }else{
+      const canvas=await fileToCanvas(f);
+      const pre=preprocess(canvas,{scale:1.8,grayscale:true,threshold:'otsu',unsharp:true});
+      setStatus('reading image…'); outText = await runTess(pre,{psm:4});
+      const parsed=parseBenefitsFromPlainText(outText);
+      coveredKeys=parsed.coveredKeys; materials=parsed.materialsCents;
+    }
+    el('ocrText').textContent = outText || '—';
+    OCR_STATE.covered=new Set(coveredKeys); OCR_STATE.materialsCents=materials;
+    el('kv_materials').textContent = moneyCents(materials);
+    el('kv_cov').textContent = coveredKeys.length? coveredKeys.map(k=>kToNice(k)).join(', ') : '—';
+    computeBundles(); setStatus('scan complete');
+  }catch(e){console.error(e);setStatus('scan failed: '+(e.message||e));alert('Scan failed:\n\n'+(e.message||e));}
+  this.value='';
 }
 
-/* ---------- filters/pools ---------- */
-const splitCodes=s=>String(s||'').toUpperCase().replace(/[^\w+&/,\s-]/g,'').split(/[\s+&/,\-]+/).map(t=>t.trim()).filter(Boolean);
-const byKey=k=>DATA.filter(r=>(r.active||'yes').toLowerCase()==='yes' && (r.exclusive_key||'').toLowerCase()===k);
-function applies(row,fam){ const a=(row.applies_to||'ALL').toUpperCase(); if(a.includes('ALL')) return true; if(fam==='SV') return a.includes('SV'); if(fam==='LINED') return a.includes('OCC'); if(fam==='PAL') return a.includes('MF'); return true; }
-const isGlassName=name=>/glass/.test(N(name||''));
+/* ---------- pdf.js: get text items and their positions (page 1) ---------- */
+async function pdfExtractItems(file){
+  setStatus('extracting PDF (structured)…');
+  const buf=await file.arrayBuffer(); const pdf=await pdfjsLib.getDocument({data:buf}).promise;
+  const page=await pdf.getPage(1); const content=await page.getTextContent();
+  const viewport=page.getViewport({scale:1});
+  // Normalize items to page space: lower y = bottom, we want top-down → use (pageHeight - y)
+  const items=content.items.map(it=>{
+    const [a,b,c,d,e,f]=it.transform; // PDF text matrix
+    const fontSize=Math.hypot(a,b); // approx
+    const x=e, y=f;
+    return {str:it.str, x, y:viewport.height - y, width:it.width, fontSize};
+  }).filter(i=>i.str && i.str.trim());
+  // sort by y asc then x asc (top-to-bottom, left-to-right)
+  items.sort((p,q)=> p.y!==q.y ? p.y-q.y : p.x-q.x);
+  return items;
+}
 
-/* ---------- OCR state ---------- */
-let OCR_STATE = { materialsCents: 0, covered: new Set(), enhancementRows: [] };
-const COVERAGE_MAP = {'Anti-Reflective':'ar','Photochromic / Transitions':'photochromic','Polarized':'polarized','Polycarbonate':'polycarbonate','High Index':'high_index','Scratch Resistant':'scratch','UV Protection':'uv','Standard Progressives':'std_prog','Premium Progressives':'prem_prog'};
+/* ---------- Column-aware parser for VSP sheet ---------- */
+function kToNice(k){for(const [nice,key] of Object.entries(COVER_KEYS)) if(key===k) return nice; return k}
+function norm(s){return String(s||'').replace(/\s+/g,' ').trim()}
 
-/* ---------- sun pick ---------- */
-function preferPhotoCodeForBase(row){ return isGlassName(row.enhancement||row.subtype)?'PM':'PR'; }
-function sunPool(fam, wantGlass){
-  const tag = r => (r.exclusive_key||'').toLowerCase();
-  let pool = DATA.filter(r => (r.active||'yes').toLowerCase()==='yes' && applies(r,fam) && (tag(r)==='sun_tech' || tag(r)==='sun'));
-  const infer = DATA.filter(r=>{
-    if((r.active||'yes').toLowerCase()!=='yes' || !applies(r,fam)) return false;
-    const n=N(r.enhancement||r.subtype||''); return /(tint|tinted|sun|sunglass|photochrom|transitions|polariz)/.test(n);
+/* Strategy:
+   1) Detect the y-row of the heading line "LENS ENHANCEMENT DETAILS..." and the two section headers that follow on later rows:
+      "Covered" and "Covered with Additional Copay".
+   2) Determine the x of each column by finding the x-center of those headers.
+   3) For all subsequent bullets until we leave the section block, place each line into the nearest column by x.
+   4) Map bullet keywords → coverage keys.
+*/
+function parseBenefitsFromPdfItems(items){
+  // Materials copay: scan entire page text quickly
+  const full = items.map(i=>i.str).join('\n');
+  const matMatch = full.match(/material[s]?\s*\$?\s*([\d,]+(?:\.\d{2})?)/i);
+  let materialsCents = matMatch ? centsOf(matMatch[1]) : 0;
+
+  // Find section start
+  const startIdx = items.findIndex(i=>/lens enhancement details/i.test(i.str));
+  if(startIdx<0) return {materialsCents, coveredKeys:[]};
+
+  // Find headers "Covered" and "Covered with Additional Copay" in following lines
+  const after = items.slice(startIdx);
+  const covHdr = after.find(i=>/^covered$/i.test(norm(i.str)));
+  const addHdr = after.find(i=>/covered with additional copay/i.test(norm(i.str)));
+
+  if(!covHdr || !addHdr) return {materialsCents, coveredKeys:[]};
+
+  const xCovered = covHdr.x + (covHdr.width||40)/2;
+  const xAddl    = addHdr.x + (addHdr.width||180)/2;
+  const colCenters=[{k:'covered',x:xCovered},{k:'addl',x:xAddl}].sort((a,b)=>a.x-b.x);
+
+  // Boundaries: from min(y of either header) down to next big section (heuristic: next "—" line or end)
+  const yTop = Math.min(covHdr.y, addHdr.y) - 2;
+  // stop when we encounter another all-caps header or reach page bottom; also stop if we hit a price grid area (numbers & dots heavy)
+  const tail = after.filter(i=>i.y>yTop);
+  const rows = tail.filter(i=>{
+    const s=norm(i.str);
+    if(/^covered$/i.test(s)) return false;
+    if(/covered with additional copay/i.test(s)) return false;
+    // discard obvious totals/numeric columns
+    if(/^\$?\d[\d,]*(\.\d{2})?$/.test(s)) return false;
+    return true;
   });
-  if (!pool.length) pool = infer;
-  pool = pool.filter(r=>{ const n=N(r.enhancement||r.subtype||''); return el('includeGlass').checked ? /glass/.test(n) : !/glass/.test(n); });
-  return pool;
-}
-function chooseSunFor(baseRow){
-  const tintSel=el('lensTint').value, fam=el('lensFamily').value;
-  if(tintSel==='tinted_solid') return pickByCode('MN');
-  if(tintSel==='tinted_gradient') return pickByCode('MP');
-  if(tintSel==='polarized') return null;
-  if(tintSel==='transitions'){
-    const pool = sunPool(fam, el('includeGlass').checked).filter(r=>/photochrom|transitions/.test(N(r.enhancement)));
-    const want=preferPhotoCodeForBase(baseRow);
-    return pool.find(r=>new RegExp('^'+want,'i').test((r.code||'').trim())) || pool.find(r=>/^p(m|r)/i.test((r.code||'').trim())) || null;
+
+  // Build lines by y-binning (items on similar y belong to one textual bullet)
+  const lines=[]; const EPS=3;
+  for(const it of rows){
+    let bucket = lines.find(l=>Math.abs(l.y-it.y)<EPS);
+    if(!bucket){bucket={y:it.y,x:it.x,str:it.str};lines.push(bucket)}
+    else{bucket.str += ' ' + it.str; bucket.x = Math.min(bucket.x,it.x)}
   }
-  return null;
+  // Only keep lines that look like enhancement bullets (contain letters, not just glue)
+  const bullets = lines.map(l=>({y:l.y, x:l.x, str:norm(l.str)}))
+    .filter(l=>/[a-z]/i.test(l.str));
+
+  // For each bullet, pick nearest column center by x
+  const coveredList=[];
+  const addlList=[];
+  for(const b of bullets){
+    const nearest = colCenters.reduce((best,c)=> {
+      const d=Math.abs(b.x - c.x); return (!best || d<best.d)?{d, c}:best
+    }, null).c;
+    if(nearest.k==='covered') coveredList.push(b.str);
+    else addlList.push(b.str);
+  }
+
+  // Convert covered column bullets → canonical keys we use in pricing
+  const coveredKeys=new Set();
+  const addKeyIf=(re,keyArr)=> (arr)=>{ if(arr.some(s=>re.test(N(s)))) keyArr.forEach(k=>coveredKeys.add(k)) };
+  const ck=(...k)=>k;
+
+  addKeyIf(/anti[-\s]*reflect|antireflect|\bar\b/)(ck('ar'));
+  addKeyIf(/photochrom|transitions/)(ck('photochromic'));
+  addKeyIf(/polariz/)(ck('polarized'));
+  addKeyIf(/polycarbonate/)(ck('polycarbonate'));
+  addKeyIf(/high\s*index/)(ck('high_index'));
+  addKeyIf(/scratch\s*resistant/)(ck('scratch'));
+  addKeyIf(/\buv\b|\buv\s*protection/)(ck('uv'));
+  addKeyIf(/standard\s+progress/)(ck('std_prog'));
+  addKeyIf(/premium\s+progress/)(ck('prem_prog'));
+
+  // Apply matcher on Covered column only
+  [
+    coveredList // <- only covered column
+  ].forEach(list=>{
+    addKeyIf(/anti[-\s]*reflect|antireflect|\bar\b/)(['ar']);
+    if(list.some(s=>/photochrom|transitions/i.test(s))) coveredKeys.add('photochromic');
+    if(list.some(s=>/polariz/i.test(s))) coveredKeys.add('polarized');
+    if(list.some(s=>/polycarbonate/i.test(s))) coveredKeys.add('polycarbonate');
+    if(list.some(s=>/high\s*index/i.test(s))) coveredKeys.add('high_index');
+    if(list.some(s=>/scratch\s*resistant/i.test(s))) coveredKeys.add('scratch');
+    if(list.some(s=>/\buv\b|\buv\s*protection/i.test(s))) coveredKeys.add('uv');
+    if(list.some(s=>/standard\s+progress/i.test(s))) coveredKeys.add('std_prog');
+    if(list.some(s=>/premium\s+progress/i.test(s))) coveredKeys.add('prem_prog');
+  });
+
+  return {materialsCents, coveredKeys:[...coveredKeys]};
 }
 
-/* ---------- code pickers ---------- */
-function buildSimpleIndexOnce(){ if(!SIMPLE_BY_CODE.size) buildSimpleIndex(); }
-function pickByCode(code){
-  buildSimpleIndexOnce();
-  const fam=el('lensFamily').value, wantGlass=el('includeGlass').checked;
-  const list=(SIMPLE_BY_CODE.get(code)||[]).filter(r=>applies(r,fam)).filter(r=> wantGlass ? true : !isGlassName(r.enhancement||r.subtype));
-  return list[0]||null;
-}
-function pickBaseByExactCode(baseCode){
-  buildSimpleIndexOnce(); const list=SIMPLE_BY_CODE.get(baseCode)||[]; if(!list.length) return null;
-  const score=s=> (s.includes('plastic')&&!s.includes('high'))?2:0;
-  return list.map(r=>({r,s:(r.enhancement||r.subtype||'').toLowerCase()})).sort((a,b)=>score(b.s)-score(a.s))[0].r;
+/* ---------- Fallback text parser (images / weak PDFs) ---------- */
+function centsOf(s){if(!s) return 0; const m=String(s).replace(/[^\d.]/g,''); if(!m) return 0; const [a,b='0']=m.split('.'); return parseInt(a||'0')*100+parseInt((b+'00').slice(0,2),10)}
+function parseBenefitsFromPlainText(raw){
+  const text=(raw||'').replace(/\r/g,''); const T=text.toLowerCase();
+  let materials=0; const m=text.match(/material[s]?\s*\$?\s*([\d,]+(?:\.\d{2})?)/i); if(m) materials=centsOf(m[1]);
+  const idxCovered=T.indexOf('\ncovered'); const idxAddl=T.indexOf('covered with additional copay');
+  const chunk = idxCovered>=0 ? T.slice(idxCovered, idxAddl>idxCovered?idxAddl:undefined) : '';
+  const keys=new Set();
+  if(/anti[-\s]*reflect|antireflect|\bar\b/.test(chunk)) keys.add('ar');
+  if(/photochrom|transitions/.test(chunk)) keys.add('photochromic');
+  if(/polariz/.test(chunk)) keys.add('polarized');
+  if(/polycarbonate/.test(chunk)) keys.add('polycarbonate');
+  if(/high\s*index/.test(chunk)) keys.add('high_index');
+  if(/scratch\s*resistant/.test(chunk)) keys.add('scratch');
+  if(/\buv\b|\buv\s*protection/.test(chunk)) keys.add('uv');
+  if(/standard\s+progress/.test(chunk)) keys.add('std_prog');
+  if(/premium\s+progress/.test(chunk)) keys.add('prem_prog');
+  return {materialsCents:materials, coveredKeys:[...keys]};
 }
 
-/* ---------- line parsing + coverage overrides ---------- */
-function parseCopayNumbers(s){ const m=String(s||'').match(/[0-9]+(?:\.[0-9]{1,2})?/g); return m?m.map(x=>parseFloat(x)):[]; }
-function parseSplitFromNotes(notes){
-  const s=String(notes||''), sv=s.match(/(\d+)\s*\+\s*(\d+)\s*\(SV\)/i), mf=s.match(/(\d+)\s*\+\s*(\d+)\s*\(MF\)/i);
-  return { svBase: sv?num(sv[1]):null, svAdd: sv?num(sv[2]):null, mfBase: mf?num(mf[1]):null, mfAdd: mf?num(mf[2]):null };
-}
-function enhanceKeyFromName(name){
-  const n=N(name);
-  if(/anti[\s-]*reflect/.test(n) || /\bar\b/.test(n)) return 'ar';
-  if(/photochrom|transitions/.test(n)) return 'photochromic';
-  if(/polariz/.test(n)) return 'polarized';
-  if(/polycarbonate/.test(n)) return 'polycarbonate';
-  if(/high\s*index|1\.6|1\.67|1\.7/.test(n)) return 'high_index';
-  if(/scratch/.test(n)) return 'scratch';
-  if(/\buv\b/.test(n) || /uv\s*pro/.test(n)) return 'uv';
-  if(/standard.*progress|standard\s+progressive/.test(n)) return 'std_prog';
-  if(/premium.*progress|premium\s+progressive/.test(n)) return 'prem_prog';
-  return null;
-}
+/* ---------- Image OCR helpers ---------- */
+function fileToCanvas(file){return new Promise((resolve,reject)=>{const url=URL.createObjectURL(file);const img=new Image();img.onload=()=>{const c=document.createElement('canvas');c.width=img.naturalWidth;c.height=img.naturalHeight;c.getContext('2d').drawImage(img,0,0);URL.revokeObjectURL(url);resolve(c)};img.onerror=()=>reject('image load error');img.src=url})}
+function preprocess(source,{scale=2,grayscale=true,threshold='otsu',unsharp=true}={}){const w=Math.round(source.width*scale),h=Math.round(source.height*scale),c=document.createElement('canvas');c.width=w;c.height=h;const ctx=c.getContext('2d');ctx.drawImage(source,0,0,w,h);let d=ctx.getImageData(0,0,w,h);const data=d.data;if(grayscale){for(let i=0;i<data.length;i+=4){const y=0.299*data[i]+0.587*data[i+1]+0.114*data[i+2];data[i]=data[i+1]=data[i+2]=y}}if(unsharp){const b=boxBlur(d,w,h,1);for(let i=0;i<data.length;i+=4){const hp=data[i]-b.data[i];const v=Math.max(0,Math.min(255,data[i]+hp*0.8));data[i]=data[i+1]=data[i+2]=v}}if(threshold==='otsu'){const t=otsu(d);for(let i=0;i<data.length;i+=4){const v=data[i]>=t?255:0;data[i]=data[i+1]=data[i+2]=v}}ctx.putImageData(d,0,0);return c}
+function boxBlur(img,w,h,r){const out=new ImageData(w,h),dst=out.data,src=img.data,tmp=new Uint32Array(w*h);for(let y=0;y<h;y++){let s=0;for(let x=0;x<w+r;x++){if(x<w)s+=src[(y*w+x)*4];if(x>=r){const xi=x-r;tmp[y*w+xi]=s/(Math.min(x+1,w)-Math.max(0,x-r))}if(x>=2*r+1)s-=src[(y*w+(x-2*r-1))*4]}}for(let x=0;x<w;x++){let s=0;for(let y=0;y<h+r;y++){if(y<h)s+=tmp[y*w+x];if(y>=r){const yi=y-r;const v=s/(Math.min(y+1,h)-Math.max(0,y-r));const di=(yi*w+x)*4;dst[di]=dst[di+1]=dst[di+2]=v;dst[di+3]=255}if(y>=2*r+1)s-=tmp[(y-2*r-1)*w+x]}}return out}
+function otsu(img){const hist=new Array(256).fill(0),d=img.data;for(let i=0;i<d.length;i+=4)hist[d[i]]++;const total=d.length/4;let sum=0;for(let i=0;i<256;i++)sum+=i*hist[i];let sumB=0,wB=0,wF=0,bv=0,t=127;for(let i=0;i<256;i++){wB+=hist[i];if(!wB)continue;wF=total-wB;if(!wF)break;sumB+=i*hist[i];const mB=sumB/wB,mF=(sum-sumB)/wF;const v=wB*wF*(mB-mF)*(mB-mF);if(v>bv){bv=v;t=i}}return t}
+async function runTess(canvas,{psm=6}={}){const out=await Tesseract.recognize(canvas,'eng',{tessedit_pageseg_mode:String(psm)});return out?.data?.text||''}
+
+/* ---------- Bundles (kept simple; same logic you had) ---------- */
+function applies(row,fam){const a=(row.applies_to||'ALL').toUpperCase();if(a.includes('ALL'))return true; if(fam==='SV')return a.includes('SV'); if(fam==='LINED')return a.includes('OCC'); if(fam==='PAL')return a.includes('MF'); return true}
+function isGlassName(n){return /glass/.test(N(n||''))}
+function buildSimpleIndexOnce(){if(!SIMPLE_BY_CODE.size)buildSimpleIndex()}
+function pickByCode(code){buildSimpleIndexOnce();const fam=el('lensFamily').value;const wantGlass=el('includeGlass').checked;const list=(SIMPLE_BY_CODE.get(code)||[]).filter(r=>applies(r,fam)).filter(r=> wantGlass?true:!isGlassName(r.enhancement||r.subtype));return list[0]||null}
+function pickBaseByExactCode(c){buildSimpleIndexOnce();const list=SIMPLE_BY_CODE.get(c)||[];if(!list.length)return null;const score=s=> (s.includes('plastic')&&!s.includes('high'))?2:0;return list.map(r=>({r,s:(r.enhancement||r.subtype||'').toLowerCase()})).sort((a,b)=>score(b.s)-score(a.s))[0].r}
+function enhanceKeyFromName(name){const n=N(name);if(/anti[\s-]*reflect|(\bar\b)/.test(n))return'ar';if(/photochrom|transitions/.test(n))return'photochromic';if(/polariz/.test(n))return'polarized';if(/polycarbonate/.test(n))return'polycarbonate';if(/high\s*index/.test(n))return'high_index';if(/scratch/.test(n))return'scratch';if(/\buv\b/.test(n))return'uv';if(/standard.*progress/.test(n))return'std_prog';if(/premium.*progress/.test(n))return'prem_prog';return null}
+function parseCopayNumbers(s){const m=String(s||'').match(/[0-9]+(?:\.[0-9]{1,2})?/g);return m?m.map(x=>parseFloat(x)):[]}
+function parseSplitFromNotes(notes){const s=String(notes||'');const sv=s.match(/(\d+)\s*\+\s*(\d+)\s*\(SV\)/i);const mf=s.match(/(\d+)\s*\+\s*(\d+)\s*\(MF\)/i);return{svBase:sv?num(sv[1]):null,svAdd:sv?num(sv[2]):null,mfBase:mf?num(mf[1]):null,mfAdd:mf?num(mf[2]):null}}
 function parseLine(row){
   const desc=row.enhancement||row.subtype||'—', codeStr=String(row.code||'').trim().toUpperCase();
-  const partsCodes=splitCodes(codeStr), notes=row.notes||row.note||row.Notes||row.NOTE||'';
-  if(partsCodes.length===1){
-    let cop=num(row.copay), cb=num(row.chargeback);
-    const k = enhanceKeyFromName(desc); if(k && OCR_STATE.covered.has(k)){ cop = 0; cb = 0; }
-    return {name:desc,code:codeStr,copay:cop,chargeback:cb,profit:cop-cb,parts:[]};
-  }
-  const fam=el('lensFamily').value, split=parseSplitFromNotes(notes);
-  const compositeCopayNums=parseCopayNumbers(row.copay), compositeTotalCopay=num(row.copay), compositeAddOnCB=num(row.chargeback);
+  const partsCodes=splitCodes(codeStr), notes=row.notes||row.note||'';
+  if(partsCodes.length===1){let cop=num(row.copay), cb=num(row.chargeback);const k=enhanceKeyFromName(desc);if(k && OCR_STATE.covered.has(k)){cop=0;cb=0}return{name:desc,code:codeStr,copay:cop,chargeback:cb,profit:cop-cb,parts:[]};}
+  const fam=el('lensFamily').value, split=parseSplitFromNotes(notes), nums=parseCopayNumbers(row.copay), total=num(row.copay), addCB=num(row.chargeback);
   const parts=[];
   const baseCode=partsCodes[0], baseRow=pickBaseByExactCode(baseCode);
-  let baseCop=baseRow?num(baseRow.copay):(compositeCopayNums[0]??compositeTotalCopay), baseCB =baseRow?num(baseRow.chargeback):0;
-  if(fam!=='PAL' && split.svBase!=null) baseCop=split.svBase;
-  if(fam==='PAL' && split.mfBase!=null) baseCop=split.mfBase;
-  let baseName = baseRow?.enhancement || row.enhancement || row.subtype || '', baseK = enhanceKeyFromName(baseName);
-  if(baseK && OCR_STATE.covered.has(baseK)){ baseCop=0; baseCB=0; }
+  let baseCop=baseRow?num(baseRow.copay):(nums[0]??total), baseCB=baseRow?num(baseRow.chargeback):0;
+  if(fam!=='PAL'&&split.svBase!=null)baseCop=split.svBase;
+  if(fam==='PAL'&&split.mfBase!=null)baseCop=split.mfBase;
+  const baseK=enhanceKeyFromName(baseRow?.enhancement||row.enhancement||row.subtype||''); if(baseK && OCR_STATE.covered.has(baseK)){baseCop=0;baseCB=0}
   parts.push({code:baseCode,copay:baseCop,chargeback:baseCB,profit:baseCop-baseCB});
-  const addonCount=partsCodes.length-1; let addonCopays=[]; let explicitAdd=(fam!=='PAL')?split.svAdd:split.mfAdd;
-  if(explicitAdd!=null){ addonCopays=[explicitAdd,...Array(Math.max(0,addonCount-1)).fill(0)]; }
-  else if(compositeCopayNums.length>=partsCodes.length){ addonCopays=compositeCopayNums.slice(1); }
-  else { const remaining=Math.max(compositeTotalCopay-baseCop,0); addonCopays = addonCount<=1 ? [remaining] : Array.from({length:addonCount},()=>remaining/addonCount); }
-  const addonCBEach=addonCount<=1?compositeAddOnCB:(compositeAddOnCB/addonCount);
-  for(let i=1;i<partsCodes.length;i++){
-    const code=partsCodes[i]; let cop=num(addonCopays[i-1]??0), cb=addonCBEach;
-    const addRow = pickByCode(code) || {}, addName = addRow.enhancement || addRow.subtype || '', k2 = enhanceKeyFromName(addName||row.enhancement||'');
-    if(k2 && OCR_STATE.covered.has(k2)){ cop = 0; cb = 0; }
-    parts.push({code,copay:cop,chargeback:cb,profit:cop-cb});
-  }
-  const totalCop=parts.reduce((a,x)=>a+x.copay,0), totalCB =parts.reduce((a,x)=>a+x.chargeback,0);
-  return {name:desc,code:codeStr,copay:totalCop,chargeback:totalCB,profit:totalCop-totalCB,parts};
+  const addCount=partsCodes.length-1; let addCopays=[]; let explicit=(fam!=='PAL')?split.svAdd:split.mfAdd;
+  if(explicit!=null){addCopays=[explicit,...Array(Math.max(0,addCount-1)).fill(0)]}
+  else if(nums.length>=partsCodes.length){addCopays=nums.slice(1)}
+  else{const rem=Math.max(total-baseCop,0); addCopays = addCount<=1 ? [rem] : Array.from({length:addCount},()=>rem/addCount)}
+  const addCBEach=addCount<=1?addCB:(addCB/addCount);
+  for(let i=1;i<partsCodes.length;i++){const code=partsCodes[i]; let cop=num(addCopays[i-1]??0), cb=addCBEach; const addRow=pickByCode(code)||{}; const k2=enhanceKeyFromName(addRow.enhancement||addRow.subtype||row.enhancement||''); if(k2 && OCR_STATE.covered.has(k2)){cop=0;cb=0} parts.push({code,copay:cop,chargeback:cb,profit:cop-cb})}
+  const tot=parts.reduce((a,x)=>a+x.copay,0), tcb=parts.reduce((a,x)=>a+x.chargeback,0);
+  return {name:desc,code:codeStr,copay:tot,chargeback:tcb,profit:tot-tcb,parts};
 }
-function makeBundle(base,addOns){
-  const rows=[base,...addOns.filter(Boolean)], lines=rows.map(parseLine);
-  const mat = Math.max(0, OCR_STATE.materialsCents/100); if(mat>0){ lines.push({name:'Materials Copay', code:'MAT', copay:mat, chargeback:0, profit:mat, parts:[]}); }
-  const cop=sum(lines.map(x=>x.copay)), cb =sum(lines.map(x=>x.chargeback)), pr =cop-cb, label=base.enhancement||base.subtype||base.code||'Base';
-  return {label,lines,copay:cop,chargeback:cb,profit:pr,ratio:cop?pr/cop:0};
-}
-
-/* ---------- selection + render ---------- */
+function makeBundle(base,adds){const rows=[base,...adds.filter(Boolean)], lines=rows.map(parseLine); const mat=Math.max(0,OCR_STATE.materialsCents/100); if(mat>0) lines.push({name:'Materials Copay',code:'MAT',copay:mat,chargeback:0,profit:mat,parts:[]}); const cop=lines.reduce((a,x)=>a+x.copay,0), cb=lines.reduce((a,x)=>a+x.chargeback,0), pr=cop-cb; return {label:base.enhancement||base.subtype||base.code||'Base',lines,copay:cop,chargeback:cb,profit:pr}}
+function chooseSunFor(baseRow){const t=el('lensTint').value,fam=el('lensFamily').value,glass=el('includeGlass').checked; if(t==='tinted_solid')return pickByCode('MN'); if(t==='tinted_gradient')return pickByCode('MP'); if(t==='polarized')return null; if(t==='transitions'){const tag=r=>(r.exclusive_key||'').toLowerCase(); let pool=DATA.filter(r=>(r.active||'yes').toLowerCase()==='yes'&&applies(r,fam)&&(tag(r)==='sun'||tag(r)==='sun_tech')); if(!pool.length) pool=DATA.filter(r=>/(photochrom|transitions)/i.test(r.enhancement||'')); pool=pool.filter(r=> glass?/glass/i.test(r.enhancement||''):!/glass/i.test(r.enhancement||'')); return pool.find(r=>/^p(m|r)/i.test((r.code||'').trim()))||null } return null}
 function computeBundles(){
-  if(!DATA.length){ el('stack').innerHTML=''; return; }
-  const fam=el('lensFamily').value, wantAR=el('includeAR').checked, wantAsp=el('includeAspheric').checked, wantOS =el('includeOversize').checked, wantGlass=el('includeGlass').checked, tintSel=el('lensTint').value;
+  if(!DATA.length){el('stack').innerHTML='';return}
+  const fam=el('lensFamily').value, wantAR=el('includeAR').checked, wantAsp=el('includeAspheric').checked, wantOS=el('includeOversize').checked, wantGlass=el('includeGlass').checked, tint=el('lensTint').value;
+  const byKey=k=>DATA.filter(r=>(r.active||'yes').toLowerCase()==='yes'&&(r.exclusive_key||'').toLowerCase()===k);
   const isAA=row=>splitCodes(row.code)[0]==='AA';
-  function isAsphericRow(row){ const name=N(row.enhancement||row.subtype||''), first=splitCodes(row.code)[0]||''; const looks=/aspheric/.test(name)||/^BA\b/.test(first); return looks && !isAA(row); }
+  function isAsph(row){const n=N(row.enhancement||row.subtype||''), first=splitCodes(row.code)[0]||''; const looks=/aspheric/.test(n)||/^BA\b/.test(first); return looks&&!isAA(row)}
   let base=[];
   if(fam==='PAL'){
-    base=byKey('progressive_level').filter(r=>applies(r,fam)).filter(r=>{
-      const name=N(r.enhancement); if(wantGlass && !isGlassName(name)) return false; if(!wantGlass && isGlassName(name)) return false; if(/custom\s*measure/i.test(name)) return false; if(tintSel==='polarized') return /polariz/.test(name);
-      return !/(photochrom|polariz|tint|tinted|sunglass|gradient|color|colored)/.test(name);
-    });
-    if(!wantGlass){ const kaRow=pickBaseByExactCode('KA'); if(kaRow && !base.some(r=>splitCodes(r.code)[0]==='KA')) base.push(kaRow); }
-  } else {
-    if(tintSel==='polarized'){
-      base = byKey('sun_tech').filter(r=>applies(r,fam) && /polariz/.test(N(r.enhancement))).filter(r=> wantGlass ? /glass/.test(N(r.enhancement)) : !/glass/.test(N(r.enhancement)));
-    } else {
-      let pool=(fam==='SV'?byKey('base_material'):byKey('occupational'));
-      pool=pool.filter(r=>{ const name=N(r.enhancement); if(wantGlass && !isGlassName(name)) return false; if(!wantGlass && isGlassName(name)) return false; return true; });
-      pool=pool.filter(r=>{ const name=N(r.enhancement); if(/photochrom|polariz|tint|tinted|sunglass|gradient|color|colored/.test(name)) return false; if(wantGlass) return true; const asph=isAsphericRow(r); return wantAsp?asph:!asph; });
-      if(!wantGlass && !wantAsp && fam==='SV' && tintSel==='clear'){ const aaRow=pickBaseByExactCode('AA'); if(aaRow){ const notAA=pool.filter(r=>splitCodes(r.code)[0]!=='AA'); pool=[aaRow,...notAA]; } }
+    base=byKey('progressive_level').filter(r=>applies(r,fam)).filter(r=>{const n=N(r.enhancement); if(wantGlass&&!/glass/.test(n))return false; if(!wantGlass&&/glass/.test(n))return false; if(/custom\s*measure/.test(n))return false; if(tint==='polarized')return /polariz/.test(n); return !/(photochrom|tint|sun|gradient|color)/.test(n)});
+    if(!wantGlass){const ka=pickBaseByExactCode('KA'); if(ka&&!base.some(r=>splitCodes(r.code)[0]==='KA')) base.push(ka)}
+  }else{
+    if(tint==='polarized'){base=byKey('sun_tech').filter(r=>applies(r,fam)&&/polariz/i.test(r.enhancement||'')).filter(r=> wantGlass?/glass/i.test(r.enhancement||''):!/glass/i.test(r.enhancement||''))}
+    else{
+      let pool=(fam==='SV'?byKey('base_material'):byKey('occupational')).filter(r=>{const n=N(r.enhancement); if(wantGlass&&!/glass/.test(n))return false; if(!wantGlass&&/glass/.test(n))return false; return true});
+      pool=pool.filter(r=>{const n=N(r.enhancement); if(/photochrom|polariz|tint|sun|gradient|color/.test(n))return false; if(wantGlass)return true; const a=isAsph(r); return wantAsp?a:!a});
+      if(!wantGlass&&!wantAsp&&fam==='SV'&&tint==='clear'){const aa=pickBaseByExactCode('AA'); if(aa){const notAA=pool.filter(r=>splitCodes(r.code)[0]!=='AA'); pool=[aa,...notAA]}}
       base=pool;
     }
   }
-  function rankAR(ars){
-    const gradeVal=s=>{ const m=String(s||'').match(/\b([A-D])\b/i); if(!m) return null; return {A:1,B:2,C:3,D:4}[m[1].toUpperCase()]||null; };
-    return [...ars].sort((a,b)=>{ const ga=gradeVal(a.enhancement)||-1, gb=gradeVal(b.enhancement)||-1; if(ga!==gb) return gb-ga; const pa=num(a.copay)-num(a.chargeback), pb=num(b.copay)-num(b.chargeback); return pb-pa; });
-  }
-  const arPool = (wantAR ? byKey('ar_level').filter(r=>{ const name=N(r.enhancement); if(wantGlass && !isGlassName(name)) return false; return applies(r,fam); }) : []);
-  const arRanked=(wantAR && arPool.length)?rankAR(arPool):[], arOptions=(wantAR && arRanked.length)?arRanked:[null];
+  const arPool = wantAR? byKey('ar_level').filter(r=>applies(r,fam)).filter(r=> wantGlass?/glass/i.test(r.enhancement||''):true) : [];
+  const ars = wantAR && arPool.length ? arPool : [null];
   const overs = wantOS ? (byKey('oversize').filter(r=>applies(r,fam))[0]||null) : null;
-  function buildBundle(m,arRow){ const cm=(el('includeCM')?.checked && fam==='PAL') ? (DATA.filter(r=>applies(r,'PAL')).find(row=>/custom\s*measure/i.test(N(row.enhancement||row.subtype||'')))||null) : null; return makeBundle(m,[arRow,chooseSunFor(m),cm,overs]); }
-  const all=[]; for(const m of base){ for(const ar of arOptions){ all.push(buildBundle(m,ar)); } }
-  if(!all.length){ renderStack([{name:'Best',cls:'best',b:null},{name:'Better',cls:'better',b:null},{name:'Good',cls:'good',b:null},{name:'Cheapest',cls:'good',b:null}]); return; }
+  function build(m,ar){return makeBundle(m,[ar,chooseSunFor(m), (el('includeCM').checked&&fam==='PAL') ? DATA.find(r=>applies(r,'PAL')&&/custom\s*measure/i.test(N(r.enhancement||'')))||null : null, overs])}
+  const all=[]; for(const m of base){for(const ar of ars){all.push(build(m,ar))}}
+  if(!all.length){renderStack([{name:'Best',cls:'best'},{name:'Better',cls:'better'},{name:'Good',cls:'good'},{name:'Cheapest',cls:'good'}]); return}
   const MaxPrice=Math.max(...all.map(b=>b.copay));
-  const best = all.reduce((p,c)=>(!p||c.profit>p.profit||(c.profit===p.profit&&c.copay<p.copay)?c:p),null);
-  function pickUnderCap(cap){
-    const cand=all.filter(b=>b.copay<=cap);
-    if(cand.length){ return cand.reduce((p,c)=>(!p||c.profit>p.profit||(c.profit===p.profit&&c.copay<p.copay)?c:p),null); }
-    const looser=cap/CAP_RELAX_FACTOR, cand2=all.filter(b=>b.copay<=looser);
-    if(cand2.length){ return cand2.reduce((p,c)=>(!p||c.profit>p.profit||(c.profit===p.profit&&c.copay<p.copay)?c:p),null); }
-    return all.reduce((p,c)=>(!p||c.copay<p.copay||(c.copay===p.copay&&c.profit>p.profit)?c:p),null);
-  }
-  const better=pickUnderCap(MaxPrice*BETTER_CAP_OF_MAX), good=pickUnderCap(MaxPrice*GOOD_CAP_OF_MAX), cheapest=all.reduce((p,c)=>(!p||c.copay<p.copay||(c.copay===p.copay&&c.profit>p.profit)?c:p),null);
-  const picks=[best,better,good,cheapest].filter(Boolean), uniq=[], seen=new Set();
-  for(const b of picks){ const sig=[b.label,b.copay.toFixed(2),b.chargeback.toFixed(2),b.profit.toFixed(2)].join('|'); if(!seen.has(sig)){ seen.add(sig); uniq.push(b); } }
-  renderStack([{name:'Best',cls:'best',b:uniq[0]||null},{name:'Better',cls:'better',b:uniq[1]||null},{name:'Good',cls:'good',b:uniq[2]||null},{name:'Cheapest',cls:'good',b:uniq[3]||null}]);
+  const best=all.reduce((p,c)=>!p||c.profit>p.profit||(c.profit===p.profit&&c.copay<p.copay)?c:p,null);
+  const under=(cap)=>{const c=all.filter(b=>b.copay<=cap); if(c.length) return c.reduce((p,x)=>!p||x.profit>p.profit||(x.profit===p.profit&&x.copay<p.copay)?x:p,null); return all.reduce((p,x)=>!p||x.copay<p.copay||(x.copay===p.copay&&x.profit>p.profit)?x:p,null)}
+  const better=under(MaxPrice*0.75), good=under(MaxPrice*0.60), cheap=all.reduce((p,x)=>!p||x.copay<p.copay||(x.copay===p.copay&&x.profit>p.profit)?x:p,null);
+  const uniq=[], seen=new Set();
+  for(const b of [best,better,good,cheap]) if(b){const sig=[b.label,b.copay.toFixed(2),b.chargeback.toFixed(2),b.profit.toFixed(2)].join('|'); if(!seen.has(sig)){seen.add(sig);uniq.push(b)}}
+  renderStack([{name:'Best',cls:'best',b:uniq[0]},{name:'Better',cls:'better',b:uniq[1]},{name:'Good',cls:'good',b:uniq[2]},{name:'Cheapest',cls:'good',b:uniq[3]}].map((x)=>x))
 }
-const tdMoney = (v, key) => `<td class="cell-money" data-key="${key}" data-anim="${v.toFixed(2)}">$${v.toFixed(2)}</td>`;
-function breakdownDetails(li,rowKey){
-  if(!li.parts?.length) return '';
-  const rows = li.parts.map((p,pi) => `
-    <div></div>
-    <div class="money"><span class="codepill" title="${p.code}">${p.code}</span></div>
-    <div class="money" data-key="${rowKey}-p${pi}-c"  data-anim="${p.copay.toFixed(2)}">$${p.copay.toFixed(2)}</div>
-    <div class="money" data-key="${rowKey}-p${pi}-pr" data-anim="${p.profit.toFixed(2)}">$${p.profit.toFixed(2)}</div>
-  `).join('');
-  return `<tr><td colspan="4" style="padding:0;border:0">
-    <details class="break" open><summary>Breakdown</summary>
-      <div class="breakbox"><div class="align-grid">
-        <div></div><div class="hdr">Code</div><div class="hdr">Copay</div><div class="hdr">Service Fee</div>${rows}
-      </div></div></details></td></tr>`;
-}
-function renderTier({name,cls,b}){
-  const div=document.createElement('div'); div.className='tier';
-  if(!b){ div.innerHTML=`<div class="tierHead"><div class="stars ${cls}">
-      <span>${name==='Best'?'★★★':name==='Better'?'★★':name==='Good'?'★':'◎'}</span>
-      <span class="sub" style="margin-left:8px">${name}</span></div>
-      <div class="figures"><div class="hero">—</div><div class="caption">Patient Copay</div></div></div>
-      <div class="sub">No viable bundle</div>`; return div; }
-  const stars=name==='Best'?'★★★':name==='Better'?'★★':name==='Good'?'★':'◎';
-  const head=`<div class="tierHead">
-    <div class="stars ${cls}"><div title="${name}" style="font-size:18px">${stars}</div><span class="sub" style="margin-left:6px">${b.label}</span></div>
-    <div class="figures">
-      <div class="hero" aria-label="Patient Copay" data-key="${name}-hero" data-anim="${b.copay.toFixed(2)}">$${b.copay.toFixed(2)}</div>
-      <div class="caption">Patient Copay</div>
-      <div class="caption">Service Fee (Practice Profit): <span class="svc" data-key="${name}-profit" data-anim="${b.profit.toFixed(2)}">$${b.profit.toFixed(2)}</span></div>
-    </div></div>`;
-  const lines=b.lines.map((li,i)=>{
-    const rowKey=`${name}-line${i}`;
-    const main=`<tr>
-      <td class="cell-item"><span class="label" title="${li.name}">${li.name}</span></td>
-      <td class="cell-code" title="${li.code||''}">${li.code||'—'}</td>
-      ${tdMoney(li.copay,  `${rowKey}-c`)}
-      ${tdMoney(li.profit, `${rowKey}-pr`)}
-    </tr>`;
-    const parts=(li.parts&&li.parts.length)?breakdownDetails(li,rowKey):''; return main+parts;
-  }).join('');
-  div.innerHTML=head+`<table class="bundle"><colgroup><col><col><col><col></colgroup>
-    <thead><tr><th>Item</th><th>Code</th><th>Copay</th><th>Service Fee</th></tr></thead>
-    <tbody>${lines}</tbody>
-    <tfoot><tr><th colspan="2" style="text-align:right">Totals</th>${tdMoney(b.copay,`${name}-tot-c`)}${tdMoney(b.profit,`${name}-tot-pr`)}</tr></tfoot></table>`;
-  return div;
-}
-function renderStack(rows){ const stack=el('stack'); stack.innerHTML=''; rows.forEach(r=>stack.appendChild(renderTier(r))); animateMoney(420); }
-function animateMoney(duration = 350) {
-  const nodes = [...document.querySelectorAll('[data-anim]')], frames = [], LAST = window.__LAST_NUMS__ || (window.__LAST_NUMS__ = new Map());
-  nodes.forEach(n => { const key = n.getAttribute('data-key') || Math.random().toString(36).slice(2), toVal = parseFloat(n.getAttribute('data-anim')) || 0;
-    const fromVal = LAST.has(key) ? LAST.get(key) : (parseFloat(n.textContent.replace(/[^0-9.-]/g,'')) || 0); LAST.set(key, toVal); frames.push({ n, fromVal, toVal }); });
-  const start = performance.now(); (function step(ts){
-    const t = Math.min(1, (ts - start) / duration), k = 1 - Math.pow(1 - t, 3);
-    frames.forEach(({ n, fromVal, toVal }) => { const v = fromVal + (toVal - fromVal) * k; n.textContent = '$' + v.toFixed(2); });
-    if (t < 1) requestAnimationFrame(step);
-  })(start);
-}
-
-/* controls */
-el('forceRefresh').onclick=()=>{ clearCacheStorage(); loadCSV(); };
-el('clearCache').onclick =()=>{ clearCacheStorage(); el('status').textContent=' cache cleared — click Force Refresh to reload'; };
-['lensFamily','lensTint','includeAR','includeAspheric','includeOversize','includeGlass','includeCM']
-  .forEach(id=>{ const n=el(id); if(n) n.onchange=computeBundles; });
-(function boot(){ loadCSV(); })();
-
-/* -------------------- Camera + Upload wiring -------------------- */
-const scanBtn = el('scanBenefitsBtn'), scanInput = el('scanBenefitsFile');
-const uploadBtn = el('uploadBtn'), uploadInput = el('uploadFile');
-scanBtn?.addEventListener('click', ()=> scanInput?.click());
-uploadBtn?.addEventListener('click', ()=> uploadInput?.click());
-
-scanInput?.addEventListener('change', ()=> handleSelectedFile(scanInput.files?.[0], /*isCamera*/true));
-uploadInput?.addEventListener('change', ()=> handleSelectedFile(uploadInput.files?.[0], /*isCamera*/false));
-
-async function handleSelectedFile(file, isCamera){
-  if(!file) return;
-  try{
-    setStatus(`file received (${file.type||file.name})…`); let text='';
-    if (!isCamera && (/pdf$/i.test(file.name) || file.type==='application/pdf')) {
-      text = await pdfExtractText(file).catch(()=> '');
-      if (!text || text.trim().length < 40) {
-        const canvas = await pdfFirstPageToCanvas(file);
-        const prep = preprocess(canvas, {scale:1.8, grayscale:true, threshold:'otsu', unsharp:true});
-        setStatus('reading PDF (OCR fallback)…'); text = await runTess(prep, { psm: 4 });
-      }
-    } else {
-      const canvas = await fileToCanvas(file);
-      const prep1 = preprocess(canvas, {scale:1.8, grayscale:true, threshold:'otsu', unsharp:true});
-      const prep2 = preprocess(canvas, {scale:1.4, grayscale:true, threshold:'sauvola', unsharp:true});
-      setStatus('reading (pass 1/2)…'); const t1 = await runTess(prep1, { psm: 6 });
-      setStatus('reading (pass 2/2)…'); const t2 = await runTess(prep2, { psm: 4 });
-      text = chooseBestText(t1, t2); if(!text.trim()){ setStatus('fallback read…'); text = await runTess(canvas, { psm: 3 }); }
-    }
-    el('ocrText').textContent = text || '—';
-    if(!text.trim()){ setStatus('no text detected'); alert('No readable text — try a clearer photo or export the PDF.'); return; }
-
-    setStatus('parsing benefits…');
-    const b = parseBenefits(text);
-    OCR_STATE.materialsCents = b.materialsCopay?.cents ?? 0;
-    OCR_STATE.covered = new Set(b.coveredEnhancementsKeys || []);
-    OCR_STATE.enhancementRows = b.enhancementRows || [];
-
-    el('kv_materials').textContent = b.materialsCopay?.raw || '$0.00';
-    el('kv_cov').textContent = (b.coveredEnhancements && b.coveredEnhancements.length) ? b.coveredEnhancements.join(', ') : '—';
-
-    computeBundles();
-    setStatus('scan complete');
-  }catch(e){
-    console.error(e); setStatus(`scan failed: ${e?.message||e}`); alert(`Scan failed.\n\nReason: ${e?.message||e}`);
-  }finally{
-    if(scanInput) scanInput.value=''; if(uploadInput) uploadInput.value='';
-  }
-}
-
-/* ---- PDF helpers ---- */
-async function pdfExtractText(file){
-  setStatus('extracting PDF text…');
-  const buf = await file.arrayBuffer(), pdf = await pdfjsLib.getDocument({data:buf}).promise;
-  const page = await pdf.getPage(1), content = await page.getTextContent();
-  const strings = content.items.map(i=>i.str).filter(Boolean);
-  return (strings.join('\n') || '').trim();
-}
-async function pdfFirstPageToCanvas(file){
-  setStatus('rendering PDF…'); const buf = await file.arrayBuffer(), pdf = await pdfjsLib.getDocument({data:buf}).promise;
-  const page = await pdf.getPage(1), viewport = page.getViewport({scale:2.0});
-  const canvas = document.createElement('canvas'), ctx = canvas.getContext('2d');
-  canvas.width = viewport.width; canvas.height = viewport.height;
-  await page.render({canvasContext:ctx, viewport}).promise; return canvas;
-}
-
-/* ---- image OCR pipeline ---- */
-function fileToCanvas(file){
-  setStatus('loading image…');
-  return new Promise((resolve,reject)=>{
-    const url = URL.createObjectURL(file), img = new Image();
-    img.onload = ()=> { try{ const c = document.createElement('canvas'); c.width = img.naturalWidth; c.height = img.naturalHeight; c.getContext('2d').drawImage(img, 0, 0); URL.revokeObjectURL(url); resolve(c); }catch(err){ URL.revokeObjectURL(url); reject(err); } };
-    img.onerror = () => { createImageBitmap(file).then(bm=>{ const c=document.createElement('canvas'); c.width=bm.width; c.height=bm.height; c.getContext('2d').drawImage(bm,0,0); URL.revokeObjectURL(url); resolve(c); }).catch(err=>{ URL.revokeObjectURL(url); reject(err); }); };
-    img.src = url;
-  });
-}
-function preprocess(sourceCanvas, {scale=2, grayscale=true, threshold='otsu', unsharp=true}={}){
-  const w = Math.round(sourceCanvas.width * scale), h = Math.round(sourceCanvas.height * scale);
-  const canvas = document.createElement('canvas'); canvas.width = w; canvas.height = h; const ctx = canvas.getContext('2d'); ctx.drawImage(sourceCanvas, 0, 0, w, h);
-  let imgData = ctx.getImageData(0,0,w,h), d = imgData.data;
-  if(grayscale){ for(let i=0;i<d.length;i+=4){ const y = 0.299*d[i] + 0.587*d[i+1] + 0.114*d[i+2]; d[i]=d[i+1]=d[i+2]=y; } }
-  if(unsharp){ const blurred = boxBlur(imgData, w, h, 1); for(let i=0;i<d.length;i+=4){ const hp = d[i] - blurred.data[i]; const v = clamp(d[i] + hp*0.8); d[i]=d[i+1]=d[i+2]=v; } }
-  if(threshold){
-    if(threshold==='otsu'){ const t = otsuThreshold(imgData); for(let i=0;i<d.length;i+=4){ const v = d[i] >= t ? 255:0; d[i]=d[i+1]=d[i+2]=v; } }
-    else if(threshold==='sauvola'){ const win=25, k=0.3; const g = new Uint8ClampedArray(d.length/4);
-      for(let i=0,pi=0;i<d.length;i+=4,pi++) g[pi]=d[i]; const mean = boxBlurGray(g, w, h, Math.floor(win/2)), std  = localStd(g, mean, w, h, Math.floor(win/2));
-      for(let y=0;y<h;y++){ for(let x=0;x<w;x++){ const i = y*w+x, m = mean[i], s = std[i], T = m*(1 + k*((s/128)-1)), v = g[i] > T ? 255:0, di=i*4; d[di]=d[di+1]=d[di+2]=v; d[di+3]=255; } } }
-  }
-  ctx.putImageData(imgData,0,0); return canvas;
-}
-function clamp(v){ return v<0?0:v>255?255:v; }
-function boxBlur(imgData, w, h, r){ const out = new ImageData(w,h), src = imgData.data, dst = out.data, tmp = new Uint32Array(w*h);
-  for(let y=0;y<h;y++){ let sum=0; for(let x=0;x<w+r;x++){ if(x<w){ sum += src[(y*w+x)*4]; } if(x>=r){ const xi=x-r; tmp[y*w+xi]=sum/(Math.min(x+1,w)-Math.max(0,x-r)); } if(x>=2*r+1){ sum -= src[(y*w+(x-2*r-1))*4]; } } }
-  for(let x=0;x<w;x++){ let sum=0; for(let y=0;y<h+r;y++){ if(y<h){ sum += tmp[y*w+x]; } if(y>=r){ const yi=y-r, val = sum/(Math.min(y+1,h)-Math.max(0,y-r)), di=(yi*w+x)*4; dst[di]=dst[di+1]=dst[di+2]=val; dst[di+3]=255; } if(y>=2*r+1){ sum -= tmp[(y-2*r-1)*w+x]; } } }
-  return out;
-}
-function boxBlurGray(g, w, h, r){ const out = new Uint8ClampedArray(w*h), tmp = new Float32Array(w*h);
-  for(let y=0;y<h;y++){ let sum=0; for(let x=0;x<w+r;x++){ if(x<w) sum += g[y*w+x]; if(x>=r){ const xi=x-r; tmp[y*w+xi]=sum/(Math.min(x+1,w)-Math.max(0,x-r)); } if(x>=2*r+1) sum -= g[y*w+(x-2*r-1)]; } }
-  for(let x=0;x<w;x++){ let sum=0; for(let y=0;y<h+r;y++){ if(y<h) sum += tmp[y*w+x]; if(y>=r){ const yi=y-r; out[yi*w+x]=sum/(Math.min(y+1,h)-Math.max(0,y-r)); } if(y>=2*r+1) sum -= tmp[(y-2*r-1)*w+x]; } }
-  return out;
-}
-function localStd(g, mean, w, h, r){ const out = new Uint8ClampedArray(w*h), sq = new Uint32Array(w*h);
-  for(let i=0;i<g.length;i++) sq[i]=g[i]*g[i]; const meanSq = boxBlurGray(sq, w, h, r);
-  for(let i=0;i<g.length;i++){ const v = Math.sqrt(Math.max(0, meanSq[i]-mean[i]*mean[i])); out[i]=v; } return out;
-}
-function otsuThreshold(imgData){
-  const hist=new Array(256).fill(0), d=imgData.data; for(let i=0;i<d.length;i+=4) hist[d[i]]++; const total = d.length/4; let sum=0; for(let i=0;i<256;i++) sum += i*hist[i];
-  let sumB=0, wB=0, varMax=0, t=127; for(let i=0;i<256;i++){ wB += hist[i]; if(wB===0) continue; const wF = total - wB; if(wF===0) break; sumB += i*hist[i]; const mB = sumB / wB, mF = (sum - sumB) / wF, v = wB*wF*(mB-mF)*(mB-mF); if(v>varMax){ varMax=v; t=i; } }
-  return t;
-}
-async function runTess(canvasOrImage, {psm=6}={}){ const opts = { tessedit_pageseg_mode: String(psm) }; const out = await Tesseract.recognize(canvasOrImage, 'eng', opts); return (out && out.data && out.data.text) ? out.data.text : ''; }
-function chooseBestText(a,b){ const score = t => ((t.match(/\$/g)||[]).length*3) + (t.length/500) - ((t.match(/\b[Iil]\b/g)||[]).length); return score(a)>=score(b)?a:b; }
-
-/* ----------- Parser tuned to VSP sheet (vertical fix) ----------- */
-function centsOf(s){ if(!s) return null; const m=String(s).replace(/[^\d.]/g,''); if(!m) return null; const [a,b='0']=m.split('.'); return parseInt(a||'0',10)*100+parseInt((b+'00').slice(0,2),10); }
-function money(c){ return c==null?null:{cents:c,raw:`$${(c/100).toFixed(2)}`}; }
-
-function parseBenefits(raw){
-  // Normalize whitespace, keep lines for section logic
-  const text = (raw||'').replace(/\r/g,'').replace(/[ \t]+$/gm,'');
-  const lines = text.split('\n').map(s=>s.trim()).filter(Boolean);
-  const T = text.toLowerCase();
-
-  // --- Materials copay (robust around co-payments block)
-  let materials = null;
-  for(const l of lines){ const m = /(?:material|materials)\s*\$?\s*(\d[\d,]*(?:\.\d{2})?)/i.exec(l); if(m){ materials = money(centsOf(m[1])); break; } }
-  if(!materials){
-    for(let i=0;i<lines.length;i++){
-      if(/co-?payments|copayments/i.test(lines[i])){
-        for(let j=i;j<Math.min(i+10,lines.length);j++){
-          const l=lines[j], m = /material[^$\n]*\$?\s*(\d[\d,]*(?:\.\d{2})?)/i.exec(l);
-          if(m){ materials = money(centsOf(m[1])); break; }
-        }
-      }
-      if(materials) break;
-    }
-  }
-  if(!materials) materials = money(0);
-
-  // --- Covered vs Covered with Additional Copay (column-aware via headers)
-  const coveredKeys = new Set();
-  const pretty2key = {'Anti-Reflective':'ar','Photochromic / Transitions':'photochromic','Polarized':'polarized','Polycarbonate':'polycarbonate','High Index':'high_index','Scratch Resistant':'scratch','UV Protection':'uv','Standard Progressives':'std_prog','Premium Progressives':'prem_prog'};
-  const knownLabels = Object.keys(pretty2key).map(x=>x.toLowerCase());
-  let inLensEnh=false, mode=null; // 'covered' or 'covered_addl'
-  for(const l of lines){
-    const ll=l.toLowerCase();
-    if(ll.includes('lens enhancement details')){ inLensEnh=true; mode=null; continue; }
-    if(!inLensEnh) continue;
-    if(/^covered$/i.test(l)){ mode='covered'; continue; }
-    if(/^covered with additional copay$/i.test(l)){ mode='covered_addl'; continue; }
-    if(!mode) continue;
-    // If this line matches any known label (begins with), bucket it
-    for(const label of knownLabels){
-      if(ll.startsWith(label)){
-        if(mode==='covered'){ coveredKeys.add(pretty2key[Object.keys(pretty2key).find(k=>k.toLowerCase()===label)]); }
-        break;
-      }
-    }
-    // stop when we hit a likely table/code row
-    if(/^[A-Z]{1,3}[\s-]/.test(l) || /^\$?\d/.test(l)) break;
-  }
-
-  // --- Enhancement table vertical split:
-  // Each row appears as: CODE <desc> $SV_CB $SV_SF $SV_COPAY $MF_CB $MF_SF $MF_COPAY
-  // We'll capture from the "Lens Enhancement Details" section until next obvious section.
-  const enhancementRows=[];
-  if(inLensEnh){
-    let capture=false;
-    for(let i=0;i<lines.length;i++){
-      const l=lines[i];
-      if(/lens enhancement details/i.test(l)){ capture=true; continue; }
-      if(!capture) continue;
-      // Heuristic end of the block
-      if(/rimless drill|mirror\/ski|glass lenses|photochromic/i.test(l)){} // still could be items
-      if(/^(plan|benefit|value added|confidential)/i.test(l)) break;
-
-      // A code row starts with 1–3 uppercase letters/digits then a space
-      const m = l.match(/^([A-Z0-9]{1,3})\s+(.+?)\s+((?:\$?\d[\d,]*(?:\.\d{2})?\s+){5}\$?\d[\d,]*(?:\.\d{2})?)/);
-      if(m){
-        const code=m[1].trim(), desc=m[2].trim();
-        const dollars=(m[3].match(/\$?\d[\d,]*(?:\.\d{2})?/g)||[]).map(x=>centsOf(x));
-        if(dollars.length===6){
-          enhancementRows.push({
-            code, desc,
-            sv:{chargeback:dollars[0], serviceFee:dollars[1], copay:dollars[2]},
-            mf:{chargeback:dollars[3], serviceFee:dollars[4], copay:dollars[5]}
-          });
-        }
-      }
-    }
-  }
-
-  const coveredPretty = Array.from(coveredKeys).map(k=>{
-    for(const [nice,key] of Object.entries(pretty2key)) if(key===k) return nice; return k;
-  });
-
-  return {
-    materialsCopay: materials,
-    coveredEnhancements: coveredPretty,
-    coveredEnhancementsKeys: Array.from(coveredKeys),
-    enhancementRows,
-    rawText: text
-  };
-}
+function tdMoney(v){return `<td class="cell-money">$${v.toFixed(2)}</td>`}
+function renderTier({name,cls,b}){const d=document.createElement('div');d.className='tier'; if(!b){d.innerHTML=`<div class="tierHead"><div class="stars ${cls}">${name==='Best'?'★★★':name==='Better'?'★★':name==='Good'?'★':'◎'} <span class="sub" style="margin-left:6px">${name}</span></div><div></div></div><div class="sub">No bundle</div>`;return d}
+const head=`<div class="tierHead"><div class="stars ${cls}">${name==='Best'?'★★★':name==='Better'?'★★':name==='Good'?'★':'◎'}<span class="sub" style="margin-left:6px">${b.label}</span></div><div style="text-align:right"><div class="hero">$${b.copay.toFixed(2)}</div><div class="caption">Patient Copay</div><div class="caption">Service Fee (Practice Profit): <span class="svc">$${b.profit.toFixed(2)}</span></div></div></div>`;
+const lines=b.lines.map(li=>`<tr><td>${li.name}</td><td>${li.code||'—'}</td>${tdMoney(li.copay)}${tdMoney(li.profit)}</tr>`).join('');
+d.innerHTML=head+`<table><thead><tr><th>Item</th><th>Code</th><th>Copay</th><th>Service Fee</th></tr></thead><tbody>${lines}</tbody><tfoot><tr><th colspan="2" style="text-align:right">Totals</th>${tdMoney(b.copay)}${tdMoney(b.profit)}</tr></tfoot></table>`;return d}
+function renderStack(rows){const s=el('stack'); s.innerHTML=''; rows.forEach(r=>s.appendChild(renderTier(r)))}
 </script>
 </body>
 </html>
