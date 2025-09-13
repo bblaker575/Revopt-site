@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>PayerEdge — VSP Bundles + OCR (PDF-safe)</title>
+  <title>PayerEdge — VSP Bundles + OCR (Camera + Upload, Visible Inputs)</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
@@ -37,12 +37,15 @@
     .bar{display:flex;align-items:center;flex-wrap:wrap;gap:10px 12px;background:linear-gradient(180deg,var(--bg-elev),#0b1220);
       border:1px solid var(--line);border-radius:18px;padding:10px;box-shadow:var(--shadow-md)}
     .group{display:flex;gap:8px;align-items:center;padding:6px 8px;border-radius:999px;background:#0b1424}
-    .btn{background:#121f35;border:1px solid var(--line);color:var(--fg);padding:6px 9px;border-radius:12px;cursor:pointer;font-weight:600;transition:.15s}
+    .btn{background:#121f35;border:1px solid var(--line);color:#fff;padding:8px 12px;border-radius:12px;cursor:pointer;font-weight:600;transition:.15s}
     .btn:hover{background:#162844;border-color:#2e4260}
     .switch{display:inline-flex;align-items:center;gap:8px}
     select{background:#0e1a30;color:#fff;border:1px solid var(--line);border-radius:10px;padding:6px 8px;outline:none}
     select:focus{box-shadow:0 0 0 3px rgba(114,168,255,.25)}
     #status{margin-left:auto;padding:6px 10px;border-radius:999px;border:1px dashed var(--line);background:#0b1422;color:#c7d6ef;font-size:12px;max-width:52vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    /* file inputs styled as buttons */
+    .filewrap{position:relative;display:inline-block}
+    .filewrap input[type="file"]{position:absolute;inset:0;opacity:0;cursor:pointer}
     /* grid */
     .viewport-frame{transform-origin:top left;width:100%}
     .stack{display:grid;grid-template-columns:repeat(4,minmax(320px,1fr));gap:14px;align-items:stretch;margin-top:12px}
@@ -127,10 +130,21 @@
       <label class="switch"><input type="checkbox" id="includeCM"> Custom measurements (N/O only)</label>
     </div>
 
-    <!-- OCR controls -->
+    <!-- OCR controls: separate, visible inputs (best compatibility) -->
     <div class="group">
-      <button class="btn" id="scanBenefitsBtn">Scan Benefits (Camera / PDF)</button>
-      <input id="scanBenefitsFile" type="file" accept="application/pdf,image/*" capture="environment" style="display:none">
+      <span class="filewrap">
+        <button class="btn" type="button" aria-label="Scan with Camera">Scan with Camera</button>
+        <input id="scanCameraFile"
+               type="file"
+               accept="image/*;capture=camera"
+               capture="environment">
+      </span>
+      <span class="filewrap">
+        <button class="btn" type="button" aria-label="Upload PDF or Image">Upload PDF / Image</button>
+        <input id="scanBenefitsFile"
+               type="file"
+               accept="application/pdf,image/*">
+      </span>
     </div>
 
     <span id="status" aria-live="polite"></span>
@@ -169,6 +183,13 @@ const num=v=>{ const x=parseFloat(String(v??'').replace(/[^0-9.-]/g,'')); return
 const N=s=>String(s||'').toLowerCase();
 function setStatus(s){ const n=el('status'); if(n) n.textContent=s; }
 window.onerror = (m,src,line)=> setStatus(' script error: '+m+' @'+(src||'')+':'+(line||'?'));
+
+/* Security / camera hints */
+(function(){
+  if(!window.isSecureContext){
+    setStatus('Note: not a secure context (HTTP/local file). Some browsers limit camera capture.');
+  }
+})();
 
 /* -------------------- CSV + base app -------------------- */
 const CSV_CANDIDATES=[
@@ -633,17 +654,27 @@ el('clearCache').onclick =()=>{ clearCacheStorage(); el('status').textContent=' 
 (function boot(){ loadCSV(); })();
 
 /* -------------------- OCR/PDF wiring -------------------- */
-const scanBtn   = el('scanBenefitsBtn');
-const scanInput = el('scanBenefitsFile');
-scanBtn?.addEventListener('click', ()=> scanInput?.click());
-scanInput?.addEventListener('change', async ()=>{
-  const file = scanInput.files?.[0]; if(!file) return;
+const camInput  = el('scanCameraFile');
+const uploadInp = el('scanBenefitsFile');
+
+camInput?.addEventListener('change', async ()=>{
+  const file = camInput.files?.[0]; if(!file) return;
+  await handleScanFile(file, 'camera');
+  camInput.value='';
+});
+uploadInp?.addEventListener('change', async ()=>{
+  const file = uploadInp.files?.[0]; if(!file) return;
+  await handleScanFile(file, 'upload');
+  uploadInp.value='';
+});
+
+async function handleScanFile(file, source){
   try{
-    scanBtn.disabled = true; setStatus(`file received (${file.type||file.name})…`);
+    setStatus(`file received from ${source}: ${file.type||file.name}…`);
     let text = '';
 
     if (/pdf$/i.test(file.name) || file.type==='application/pdf') {
-      // 1) try native PDF text extraction (more accurate than OCR)
+      // 1) try native PDF text extraction (page 1 only)
       text = await pdfExtractText(file).catch(()=> '');
       if (!text || text.trim().length < 40) {
         // 2) fallback: render page 1 to canvas and OCR
@@ -682,11 +713,8 @@ scanInput?.addEventListener('change', async ()=>{
     console.error(e);
     setStatus(`scan failed: ${e?.message||e}`);
     alert(`Scan failed.\n\nReason: ${e?.message||e}`);
-  }finally{
-    scanBtn.disabled = false;
-    scanInput.value='';
   }
-});
+}
 
 /* ---- PDF helpers (prefer text; fallback to image OCR) ---- */
 async function pdfExtractText(file){
@@ -826,7 +854,7 @@ function boxBlurGray(g, w, h, r){
   const tmp = new Float32Array(w*h);
   for(let y=0;y<h;y++){
     let sum=0;
-    for(let x=0;x<w+r;x++){
+    for(let x=0;x>w+r;x++){
       if(x<w) sum += g[y*w+x];
       if(x>=r){ const xi=x-r; tmp[y*w+xi]=sum/(Math.min(x+1,w)-Math.max(0,x-r)); }
       if(x>=2*r+1) sum -= g[y*w+(x-2*r-1)];
