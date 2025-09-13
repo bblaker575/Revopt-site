@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>PayerEdge — VSP Bundles + OCR (Camera + Upload, Visible Inputs)</title>
+  <title>PayerEdge — VSP Bundles + OCR (PDF-safe)</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
@@ -13,7 +13,6 @@
       --tier-best:#ffd166;--tier-better:#a9c2ff;--tier-good:#7be0c3;
       --shadow-lg:0 18px 40px rgba(0,0,0,.35);--shadow-md:0 10px 26px rgba(0,0,0,.28);
       --radius:18px;
-      /* 4 columns, no Holdback in UI */
       --w-item:38%; --w-code:18%; --w-money:22%;
     }
     *{box-sizing:border-box}
@@ -33,20 +32,15 @@
     h1{margin:0;font-weight:800;font-size:clamp(16px,1.8vw,20px)}
     .sub{color:var(--muted);font-size:12px}
     main{padding:14px}
-    /* toolbar */
     .bar{display:flex;align-items:center;flex-wrap:wrap;gap:10px 12px;background:linear-gradient(180deg,var(--bg-elev),#0b1220);
       border:1px solid var(--line);border-radius:18px;padding:10px;box-shadow:var(--shadow-md)}
     .group{display:flex;gap:8px;align-items:center;padding:6px 8px;border-radius:999px;background:#0b1424}
-    .btn{background:#121f35;border:1px solid var(--line);color:#fff;padding:8px 12px;border-radius:12px;cursor:pointer;font-weight:600;transition:.15s}
+    .btn{background:#121f35;border:1px solid var(--line);color:var(--fg);padding:6px 9px;border-radius:12px;cursor:pointer;font-weight:600;transition:.15s}
     .btn:hover{background:#162844;border-color:#2e4260}
     .switch{display:inline-flex;align-items:center;gap:8px}
     select{background:#0e1a30;color:#fff;border:1px solid var(--line);border-radius:10px;padding:6px 8px;outline:none}
     select:focus{box-shadow:0 0 0 3px rgba(114,168,255,.25)}
     #status{margin-left:auto;padding:6px 10px;border-radius:999px;border:1px dashed var(--line);background:#0b1422;color:#c7d6ef;font-size:12px;max-width:52vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-    /* file inputs styled as buttons */
-    .filewrap{position:relative;display:inline-block}
-    .filewrap input[type="file"]{position:absolute;inset:0;opacity:0;cursor:pointer}
-    /* grid */
     .viewport-frame{transform-origin:top left;width:100%}
     .stack{display:grid;grid-template-columns:repeat(4,minmax(320px,1fr));gap:14px;align-items:stretch;margin-top:12px}
     .tier{background:linear-gradient(180deg,#0f1726,#0c1422);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow-lg);padding:12px}
@@ -56,7 +50,6 @@
     .figures{text-align:right;display:grid;gap:2px}
     .hero{font-size:clamp(20px,2.6vw,36px);font-weight:800;line-height:1;letter-spacing:.2px;color:#cfe6ff;text-shadow:0 6px 18px rgba(114,168,255,.18)}
     .caption{color:var(--muted);font-size:12px} .svc{font-weight:800;color:#7be0c3}
-    /* table (no Holdback column in UI) */
     table.bundle{width:100%;border-collapse:collapse;margin-top:8px;table-layout:fixed}
     th,td{border-bottom:1px dashed #203043;padding:8px 6px;font-size:12px;vertical-align:top}
     thead th{color:var(--muted);font-weight:700;line-height:1.15;white-space:nowrap}
@@ -70,7 +63,6 @@
     .cell-money{white-space:nowrap;font-weight:800;text-align:right;font-size:clamp(11px,1.05vw,13px);
       font-variant-numeric:tabular-nums;padding-left:16px;padding-right:6px;min-width:110px}
     tfoot th, tfoot td{border-top:1px solid rgba(255,255,255,.08);border-bottom:0;padding-top:9px;padding-bottom:8px}
-    /* OCR cards */
     .panel{display:grid;grid-template-columns:1.2fr 1fr;gap:12px;margin-top:12px}
     .card{background:linear-gradient(180deg,#0f1726,#0c1422);border:1px solid var(--line);border-radius:14px;padding:10px}
     .card h3{margin:0 0 6px 0;font-size:13px;color:#cfe6ff}
@@ -130,21 +122,11 @@
       <label class="switch"><input type="checkbox" id="includeCM"> Custom measurements (N/O only)</label>
     </div>
 
-    <!-- OCR controls: separate, visible inputs (best compatibility) -->
+    <!-- OCR controls -->
     <div class="group">
-      <span class="filewrap">
-        <button class="btn" type="button" aria-label="Scan with Camera">Scan with Camera</button>
-        <input id="scanCameraFile"
-               type="file"
-               accept="image/*;capture=camera"
-               capture="environment">
-      </span>
-      <span class="filewrap">
-        <button class="btn" type="button" aria-label="Upload PDF or Image">Upload PDF / Image</button>
-        <input id="scanBenefitsFile"
-               type="file"
-               accept="application/pdf,image/*">
-      </span>
+      <button class="btn" id="scanBenefitsBtn">Scan Benefits (Camera / PDF)</button>
+      <!-- leave capture off to allow both camera and file picker on iOS -->
+      <input id="scanBenefitsFile" type="file" accept="application/pdf,image/*" style="display:none">
     </div>
 
     <span id="status" aria-live="polite"></span>
@@ -154,7 +136,6 @@
     <div id="stack" class="stack"></div>
   </div>
 
-  <!-- OCR debug -->
   <div class="panel">
     <div class="card">
       <h3>OCR Text / PDF Text Preview</h3>
@@ -170,7 +151,6 @@
   </div>
 </main>
 
-<!-- OCR + PDF libs -->
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
 <script>pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js";</script>
@@ -183,13 +163,6 @@ const num=v=>{ const x=parseFloat(String(v??'').replace(/[^0-9.-]/g,'')); return
 const N=s=>String(s||'').toLowerCase();
 function setStatus(s){ const n=el('status'); if(n) n.textContent=s; }
 window.onerror = (m,src,line)=> setStatus(' script error: '+m+' @'+(src||'')+':'+(line||'?'));
-
-/* Security / camera hints */
-(function(){
-  if(!window.isSecureContext){
-    setStatus('Note: not a secure context (HTTP/local file). Some browsers limit camera capture.');
-  }
-})();
 
 /* -------------------- CSV + base app -------------------- */
 const CSV_CANDIDATES=[
@@ -266,17 +239,6 @@ const isGlassName=name=>/glass/.test(N(name||''));
 
 /* ---------- OCR state ---------- */
 let OCR_STATE = { materialsCents: 0, covered: new Set() };
-const COVERAGE_MAP = {
-  'Anti-Reflective':'ar',
-  'Photochromic / Transitions':'photochromic',
-  'Polarized':'polarized',
-  'Polycarbonate':'polycarbonate',
-  'High Index':'high_index',
-  'Scratch Resistant':'scratch',
-  'UV Protection':'uv',
-  'Standard Progressives':'std_prog',
-  'Premium Progressives':'prem_prog'
-};
 
 /* ---------- sun pick ---------- */
 function preferPhotoCodeForBase(row){ return isGlassName(row.enhancement||row.subtype)?'PM':'PR'; }
@@ -295,6 +257,22 @@ function sunPool(fam, wantGlass){
   });
   return pool;
 }
+function pickByCode(code){
+  if(!SIMPLE_BY_CODE.size) buildSimpleIndex();
+  const fam=el('lensFamily').value;
+  const wantGlass=el('includeGlass').checked;
+  const list=(SIMPLE_BY_CODE.get(code)||[])
+    .filter(r=>applies(r,fam))
+    .filter(r=> wantGlass ? true : !isGlassName(r.enhancement||r.subtype));
+  return list[0]||null;
+}
+function pickBaseByExactCode(baseCode){
+  if(!SIMPLE_BY_CODE.size) buildSimpleIndex();
+  const list=SIMPLE_BY_CODE.get(baseCode)||[];
+  if(!list.length) return null;
+  const score=s=> (s.includes('plastic')&&!s.includes('high'))?2:0;
+  return list.map(r=>({r,s:(r.enhancement||r.subtype||'').toLowerCase()})).sort((a,b)=>score(b.s)-score(a.s))[0].r;
+}
 function chooseSunFor(baseRow){
   const tintSel=el('lensTint').value;
   const fam=el('lensFamily').value;
@@ -309,25 +287,6 @@ function chooseSunFor(baseRow){
     return pool.find(r=>new RegExp('^'+want,'i').test((r.code||'').trim())) || pool.find(r=>/^p(m|r)/i.test((r.code||'').trim())) || null;
   }
   return null;
-}
-
-/* ---------- code pickers ---------- */
-function buildSimpleIndexOnce(){ if(!SIMPLE_BY_CODE.size) buildSimpleIndex(); }
-function pickByCode(code){
-  buildSimpleIndexOnce();
-  const fam=el('lensFamily').value;
-  const wantGlass=el('includeGlass').checked;
-  const list=(SIMPLE_BY_CODE.get(code)||[])
-    .filter(r=>applies(r,fam))
-    .filter(r=> wantGlass ? true : !isGlassName(r.enhancement||r.subtype));
-  return list[0]||null;
-}
-function pickBaseByExactCode(baseCode){
-  buildSimpleIndexOnce();
-  const list=SIMPLE_BY_CODE.get(baseCode)||[];
-  if(!list.length) return null;
-  const score=s=> (s.includes('plastic')&&!s.includes('high'))?2:0;
-  return list.map(r=>({r,s:(r.enhancement||r.subtype||'').toLowerCase()})).sort((a,b)=>score(b.s)-score(a.s))[0].r;
 }
 
 /* ---------- line parsing + coverage overrides ---------- */
@@ -406,7 +365,6 @@ function makeBundle(base,addOns){
   const rows=[base,...addOns.filter(Boolean)];
   const lines=rows.map(parseLine);
 
-  // Inject Materials Copay line (single, not per-item)
   const mat = Math.max(0, OCR_STATE.materialsCents/100);
   if(mat>0){
     lines.push({name:'Materials Copay', code:'MAT', copay:mat, chargeback:0, profit:mat, parts:[]});
@@ -535,7 +493,7 @@ function computeBundles(){
   ]);
 }
 
-/* ---------- rendering (no Holdback column in UI) ---------- */
+/* ---------- rendering ---------- */
 const tdMoney = (v, key) =>
   `<td class="cell-money" data-key="${key}" data-anim="${v.toFixed(2)}">$${v.toFixed(2)}</td>`;
 function breakdownDetails(li,rowKey){
@@ -654,37 +612,24 @@ el('clearCache').onclick =()=>{ clearCacheStorage(); el('status').textContent=' 
 (function boot(){ loadCSV(); })();
 
 /* -------------------- OCR/PDF wiring -------------------- */
-const camInput  = el('scanCameraFile');
-const uploadInp = el('scanBenefitsFile');
-
-camInput?.addEventListener('change', async ()=>{
-  const file = camInput.files?.[0]; if(!file) return;
-  await handleScanFile(file, 'camera');
-  camInput.value='';
-});
-uploadInp?.addEventListener('change', async ()=>{
-  const file = uploadInp.files?.[0]; if(!file) return;
-  await handleScanFile(file, 'upload');
-  uploadInp.value='';
-});
-
-async function handleScanFile(file, source){
+const scanBtn   = el('scanBenefitsBtn');
+const scanInput = el('scanBenefitsFile');
+scanBtn?.addEventListener('click', ()=> scanInput?.click());
+scanInput?.addEventListener('change', async ()=>{
+  const file = scanInput.files?.[0]; if(!file) return;
   try{
-    setStatus(`file received from ${source}: ${file.type||file.name}…`);
+    scanBtn.disabled = true; setStatus(`file received (${file.type||file.name})…`);
     let text = '';
 
     if (/pdf$/i.test(file.name) || file.type==='application/pdf') {
-      // 1) try native PDF text extraction (page 1 only)
       text = await pdfExtractText(file).catch(()=> '');
       if (!text || text.trim().length < 40) {
-        // 2) fallback: render page 1 to canvas and OCR
         const canvas = await pdfFirstPageToCanvas(file);
         const prep = preprocess(canvas, {scale:1.8, grayscale:true, threshold:'otsu', unsharp:true});
         setStatus('reading PDF (OCR fallback)…');
         text = await runTess(prep, { psm: 4 });
       }
     } else {
-      // image path
       const canvas = await fileToCanvas(file);
       const prep1 = preprocess(canvas, {scale:1.8, grayscale:true, threshold:'otsu', unsharp:true});
       const prep2 = preprocess(canvas, {scale:1.4, grayscale:true, threshold:'sauvola', unsharp:true});
@@ -713,8 +658,11 @@ async function handleScanFile(file, source){
     console.error(e);
     setStatus(`scan failed: ${e?.message||e}`);
     alert(`Scan failed.\n\nReason: ${e?.message||e}`);
+  }finally{
+    scanBtn.disabled = false;
+    scanInput.value='';
   }
-}
+});
 
 /* ---- PDF helpers (prefer text; fallback to image OCR) ---- */
 async function pdfExtractText(file){
@@ -854,7 +802,7 @@ function boxBlurGray(g, w, h, r){
   const tmp = new Float32Array(w*h);
   for(let y=0;y<h;y++){
     let sum=0;
-    for(let x=0;x>w+r;x++){
+    for(let x=0;x<w+r;x++){
       if(x<w) sum += g[y*w+x];
       if(x>=r){ const xi=x-r; tmp[y*w+xi]=sum/(Math.min(x+1,w)-Math.max(0,x-r)); }
       if(x>=2*r+1) sum -= g[y*w+(x-2*r-1)];
@@ -912,66 +860,126 @@ function chooseBestText(a,b){
   return score(a)>=score(b)?a:b;
 }
 
-/* ----------- Parser tuned to VSP sheet ----------- */
-function centsOf(s){ if(!s) return null; const m=String(s).replace(/[^\d.]/g,''); if(!m) return null; const [a,b='0']=m.split('.'); return parseInt(a||'0',10)*100+parseInt((b+'00').slice(0,2),10); }
+/* ----------- Parser tuned to VSP sheet (robust) ----------- */
+function centsOf(s){
+  if(!s) return null;
+  const m=String(s).replace(/[^\d.]/g,'');
+  if(!m) return null;
+  const [a,b='0']=m.split('.');
+  return parseInt(a||'0',10)*100 + parseInt((b+'00').slice(0,2),10);
+}
 function money(c){ return c==null?null:{cents:c,raw:`$${(c/100).toFixed(2)}`}; }
+function findMoneyAround(lines, i, lookahead=2){
+  const moneyRe=/\$?\s*(\d[\d,]*(?:\.\d{2})?)/;
+  for(let k=i; k<Math.min(lines.length, i+lookahead+1); k++){
+    const m = moneyRe.exec(lines[k]);
+    if(m) return centsOf(m[1]);
+  }
+  return null;
+}
 function parseBenefits(raw){
   const text = (raw||'').replace(/\r/g,'');
   const lines = text.split('\n').map(s=>s.trim()).filter(Boolean);
   const T = text.toLowerCase();
 
-  // Materials copay
+  /* MATERIALS COPAY */
   let materials = null;
-  for(const l of lines){
-    const m = /(?:material|materials)\s*\$?\s*(\d[\d,]*(?:\.\d{2})?)/i.exec(l);
-    if(m){ materials = money(centsOf(m[1])); break; }
+
+  // same-line
+  for (let i=0;i<lines.length && !materials;i++){
+    const l = lines[i];
+    const m = /(?:material|materials)[^$\n]*\$?\s*(\d[\d,]*(?:\.\d{2})?)/i.exec(l);
+    if(m){ materials = money(centsOf(m[1])); }
   }
+  // next-line
   if(!materials){
-    for(let i=0;i<lines.length;i++){
-      if(/co-?payments|copayments/i.test(lines[i])){
-        for(let j=i;j<Math.min(i+8,lines.length);j++){
-          const l=lines[j];
-          const m = /material[^$\n]*\$?\s*(\d[\d,]*(?:\.\d{2})?)/i.exec(l);
-          if(m){ materials = money(centsOf(m[1])); break; }
-        }
+    for (let i=0;i<lines.length;i++){
+      if (/^materials?$/i.test(lines[i])) {
+        const cents = findMoneyAround(lines, i+1, 2);
+        if(cents!=null){ materials = money(cents); break; }
       }
-      if(materials) break;
+    }
+  }
+  // copayments block fallback
+  if(!materials){
+    for (let i=0;i<lines.length;i++){
+      if(/co-?payments|copayments/i.test(lines[i])){
+        const block = lines.slice(i, Math.min(i+12, lines.length));
+        for(let j=0;j<block.length;j++){
+          if(/materials?/i.test(block[j])){
+            const cents = (/\$/.test(block[j]))
+              ? centsOf((block[j].match(/\$?\s*\d[\d,]*(?:\.\d{2})?/)||[])[0])
+              : findMoneyAround(block, j+1, 2);
+            if(cents!=null){ materials = money(cents); break; }
+          }
+        }
+        if(materials) break;
+      }
     }
   }
   if(!materials) materials = money(0);
 
-  // Covered enhancements bucket (strict “Covered”, not “Covered with Additional Copay”)
-  const idxCovered = T.indexOf('covered');
-  const idxAddl   = T.indexOf('covered with additional copay');
-  const idxBottom = T.indexOf('confidential');
-  const bucketCovered = idxCovered>=0 ? T.slice(idxCovered, idxAddl>idxCovered?idxAddl:idxBottom>idxCovered?idxBottom:undefined) : '';
+  /* COVERED ENHANCEMENTS */
+  const headings = [
+    'covered enhancements',
+    'covered lens enhancements',
+    'covered',
+  ];
+  const stopWords = [
+    'covered with additional copay',
+    'additional copay',
+    'confidential',
+    'exclusions',
+    'limitations'
+  ];
+  const tLower = T;
 
-  const isIn = (bucket, re) => re.test(bucket);
+  function findBucket(){
+    for(const h of headings){
+      const i = tLower.indexOf(h);
+      if(i>=0){
+        let end = tLower.length;
+        for(const s of stopWords){
+          const j = tLower.indexOf(s, i+1);
+          if(j>i && j<end) end=j;
+        }
+        return tLower.slice(i, end);
+      }
+    }
+    return '';
+  }
+
+  let bucket = findBucket();
+  if(!bucket){
+    // Fallback: concatenate all lines that contain the word "covered"
+    bucket = lines.filter(l=>/covered/i.test(l)).join('\n').toLowerCase();
+  }
+
   const coveredKeys = new Set();
-  if(isIn(bucketCovered, /anti[-\s]*reflect|antireflect|\bar\b/)) coveredKeys.add('ar');
-  if(isIn(bucketCovered, /photochrom|transitions/)) coveredKeys.add('photochromic');
-  if(isIn(bucketCovered, /polariz/)) coveredKeys.add('polarized');
-  if(isIn(bucketCovered, /polycarbonate/)) coveredKeys.add('polycarbonate');
-  if(isIn(bucketCovered, /high\s*index/)) coveredKeys.add('high_index');
-  if(isIn(bucketCovered, /scratch\s+resistant/)) coveredKeys.add('scratch');
-  if(isIn(bucketCovered, /\buv\b|\buv\s*protection/)) coveredKeys.add('uv');
-  if(isIn(bucketCovered, /standard\s+progress/)) coveredKeys.add('std_prog');
-  if(isIn(bucketCovered, /premium\s+progress/)) coveredKeys.add('prem_prog');
+  const isIn = (re) => re.test(bucket);
+  if(isIn(/anti[-\s]*reflect|antireflect|\bar\b/)) coveredKeys.add('ar');
+  if(isIn(/photochrom|transitions/))          coveredKeys.add('photochromic');
+  if(isIn(/polariz/))                          coveredKeys.add('polarized');
+  if(isIn(/polycarbonate/))                    coveredKeys.add('polycarbonate');
+  if(isIn(/high\s*index/))                     coveredKeys.add('high_index');
+  if(isIn(/scratch\s+resistant/))              coveredKeys.add('scratch');
+  if(isIn(/\buv\b|\buv\s*protection/))         coveredKeys.add('uv');
+  if(isIn(/standard\s+progress/))              coveredKeys.add('std_prog');
+  if(isIn(/premium\s+progress/))               coveredKeys.add('prem_prog');
 
-  const coveredPretty = Array.from(coveredKeys).map(k=>{
-    for(const [nice,key] of Object.entries({
-      'Anti-Reflective':'ar',
-      'Photochromic / Transitions':'photochromic',
-      'Polarized':'polarized',
-      'Polycarbonate':'polycarbonate',
-      'High Index':'high_index',
-      'Scratch Resistant':'scratch',
-      'UV Protection':'uv',
-      'Standard Progressives':'std_prog',
-      'Premium Progressives':'prem_prog'
-    })) if(key===k) return nice;
-    return k;
-  });
+  const prettyMap = {
+    'ar':'Anti-Reflective',
+    'photochromic':'Photochromic / Transitions',
+    'polarized':'Polarized',
+    'polycarbonate':'Polycarbonate',
+    'high_index':'High Index',
+    'scratch':'Scratch Resistant',
+    'uv':'UV Protection',
+    'std_prog':'Standard Progressives',
+    'prem_prog':'Premium Progressives'
+  };
+
+  const coveredPretty = Array.from(coveredKeys).map(k=>prettyMap[k]||k);
 
   return {
     materialsCopay: materials,
