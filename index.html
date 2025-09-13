@@ -1,73 +1,93 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>PayerEdge — VSP Bundles + OCR (PDF-safe, Camera+Upload)</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
-<style>
-:root{
-  --bg:#090e16;--bg-elev:#0c1320;--fg:#eaf1ff;--muted:#9fb0c9;--line:#263448;--accent:#72a8ff;--accent-2:#7be0c3;
-  --tier-best:#ffd166;--tier-better:#a9c2ff;--tier-good:#7be0c3; --radius:18px;
-  --w-item:38%; --w-code:18%; --w-money:22%;
-  --shadow-lg:0 18px 40px rgba(0,0,0,.35);--shadow-md:0 10px 26px rgba(0,0,0,.28);
-}
-*{box-sizing:border-box} html,body{height:100%}
-body{
-  margin:0;background:
-    radial-gradient(1200px 600px at 20% -10%, rgba(90,168,255,.12), transparent 60%),
-    radial-gradient(900px 500px at 110% 10%, rgba(123,224,195,.10), transparent 60%),
-    var(--bg);
-  color:var(--fg);font:15px/1.45 Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
-  -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;font-variant-numeric:tabular-nums
-}
-header{
-  position:sticky;top:0;z-index:20;display:flex;justify-content:space-between;align-items:center;gap:14px;padding:12px 16px;
-  background:linear-gradient(180deg, rgba(9,14,22,.95), rgba(9,14,22,.78));border-bottom:1px solid var(--line);backdrop-filter:blur(10px)
-}
-h1{margin:0;font-weight:800;font-size:clamp(16px,1.8vw,20px)} .sub{color:var(--muted);font-size:12px}
-main{padding:14px}
-.bar{display:flex;align-items:center;flex-wrap:wrap;gap:10px 12px;background:linear-gradient(180deg,var(--bg-elev),#0b1220);
-  border:1px solid var(--line);border-radius:18px;padding:10px;box-shadow:var(--shadow-md)}
-.group{display:flex;gap:8px;align-items:center;padding:6px 8px;border-radius:999px;background:#0b1424}
-.btn{background:#121f35;border:1px solid var(--line);color:var(--fg);padding:6px 9px;border-radius:12px;cursor:pointer;font-weight:600;transition:.15s}
-.btn:hover{background:#162844;border-color:#2e4260}
-.switch{display:inline-flex;align-items:center;gap:8px}
-select{background:#0e1a30;color:#fff;border:1px solid var(--line);border-radius:10px;padding:6px 8px;outline:none}
-select:focus{box-shadow:0 0 0 3px rgba(114,168,255,.25)}
-#status{margin-left:auto;padding:6px 10px;border-radius:999px;border:1px dashed var(--line);background:#0b1422;color:#c7d6ef;font-size:12px;max-width:52vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.viewport-frame{transform-origin:top left;width:100%}
-.stack{display:grid;grid-template-columns:repeat(4,minmax(320px,1fr));gap:14px;align-items:stretch;margin-top:12px}
-.tier{background:linear-gradient(180deg,#0f1726,#0c1422);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow-lg);padding:12px}
-.tierHead{display:grid;grid-template-columns:1fr auto;align-items:center;gap:10px;margin-bottom:8px}
-.stars{font-weight:800;display:flex;align-items:center;gap:8px}
-.stars.best{color:var(--tier-best)} .stars.better{color:var(--tier-better)} .stars.good{color:var(--tier-good)}
-.figures{text-align:right;display:grid;gap:2px}
-.hero{font-size:clamp(20px,2.6vw,36px);font-weight:800;line-height:1;letter-spacing:.2px;color:#cfe6ff;text-shadow:0 6px 18px rgba(114,168,255,.18)}
-.caption{color:var(--muted);font-size:12px} .svc{font-weight:800;color:#7be0c3}
-table.bundle{width:100%;border-collapse:collapse;margin-top:8px;table-layout:fixed}
-th,td{border-bottom:1px dashed #203043;padding:8px 6px;font-size:12px;vertical-align:top}
-thead th{color:var(--muted);font-weight:700;line-height:1.15;white-space:nowrap}
-.bundle col:nth-child(1){width:var(--w-item)} .bundle col:nth-child(2){width:var(--w-code)}
-.bundle col:nth-child(3){width:var(--w-money)} .bundle col:nth-child(4){width:var(--w-money)}
-.cell-item{line-height:1.32;padding-bottom:2px}
-.cell-item .label{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;font-size:.95em}
-.cell-code{white-space:normal;word-break:break-word;overflow:visible;text-overflow:clip}
-.cell-money{white-space:nowrap;font-weight:800;text-align:right;font-size:clamp(11px,1.05vw,13px);font-variant-numeric:tabular-nums;padding-left:16px;padding-right:6px;min-width:110px}
-tfoot th, tfoot td{border-top:1px solid rgba(255,255,255,.08);border-bottom:0;padding-top:9px;padding-bottom:8px}
-.panel{display:grid;grid-template-columns:1.2fr 1fr;gap:12px;margin-top:12px}
-.card{background:linear-gradient(180deg,#0f1726,#0c1422);border:1px solid var(--line);border-radius:14px;padding:10px}
-.card h3{margin:0 0 6px 0;font-size:13px;color:#cfe6ff}
-.card pre{white-space:pre-wrap;word-break:break-word;font:12px/1.35 ui-monospace,Menlo,Consolas,monospace;color:#bcd3ff;max-height:260px;overflow:auto;margin:0}
-.kv{display:grid;grid-template-columns:1fr auto;gap:6px 10px}.kv .k{color:#9fb0c9}.kv .v{font-weight:700}
-@media (max-width:900px){
-  .stack{grid-template-columns:1fr}.viewport-frame{transform:none !important;width:100% !important}
-  header{position:static}.hero{font-size:32px} table.bundle{table-layout:auto}
-  .cell-money{font-size:13px;min-width:unset;padding-left:12px}.panel{grid-template-columns:1fr}
-}
-</style>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>PayerEdge — VSP Bundles + OCR (PDF-safe, fixed sections)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg:#090e16;--bg-elev:#0c1320;--fg:#eaf1ff;--muted:#9fb0c9;--line:#263448;--accent:#72a8ff;--accent-2:#7be0c3;
+      --tier-best:#ffd166;--tier-better:#a9c2ff;--tier-good:#7be0c3;
+      --shadow-lg:0 18px 40px rgba(0,0,0,.35);--shadow-md:0 10px 26px rgba(0,0,0,.28);
+      --radius:18px;
+      --w-item:38%; --w-code:18%; --w-money:22%;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;background:
+        radial-gradient(1200px 600px at 20% -10%, rgba(90,168,255,.12), transparent 60%),
+        radial-gradient(900px 500px at 110% 10%, rgba(123,224,195,.10), transparent 60%),
+        var(--bg);
+      color:var(--fg);font:15px/1.45 Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+      -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;font-variant-numeric:tabular-nums
+    }
+    header{
+      position:sticky;top:0;z-index:20;display:flex;justify-content:space-between;align-items:center;gap:14px;padding:12px 16px;
+      background:linear-gradient(180deg, rgba(9,14,22,.95), rgba(9,14,22,.78));border-bottom:1px solid var(--line);backdrop-filter:blur(10px)
+    }
+    h1{margin:0;font-weight:800;font-size:clamp(16px,1.8vw,20px)}
+    .sub{color:var(--muted);font-size:12px}
+    main{padding:14px}
+    .bar{display:flex;align-items:center;flex-wrap:wrap;gap:10px 12px;background:linear-gradient(180deg,var(--bg-elev),#0b1220);
+      border:1px solid var(--line);border-radius:18px;padding:10px;box-shadow:var(--shadow-md)}
+    .group{display:flex;gap:8px;align-items:center;padding:6px 8px;border-radius:999px;background:#0b1424}
+    .btn{background:#121f35;border:1px solid var(--line);color:var(--fg);padding:6px 9px;border-radius:12px;cursor:pointer;font-weight:600;transition:.15s}
+    .btn:hover{background:#162844;border-color:#2e4260}
+    .switch{display:inline-flex;align-items:center;gap:8px}
+    select{background:#0e1a30;color:#fff;border:1px solid var(--line);border-radius:10px;padding:6px 8px;outline:none}
+    select:focus{box-shadow:0 0 0 3px rgba(114,168,255,.25)}
+    #status{margin-left:auto;padding:6px 10px;border-radius:999px;border:1px dashed var(--line);background:#0b1422;color:#c7d6ef;font-size:12px;max-width:52vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .viewport-frame{transform-origin:top left;width:100%}
+    .stack{display:grid;grid-template-columns:repeat(4,minmax(320px,1fr));gap:14px;align-items:stretch;margin-top:12px}
+    .tier{background:linear-gradient(180deg,#0f1726,#0c1422);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow-lg);padding:12px}
+    .tierHead{display:grid;grid-template-columns:1fr auto;align-items:center;gap:10px;margin-bottom:8px}
+    .stars{font-weight:800;display:flex;align-items:center;gap:8px}
+    .stars.best{color:var(--tier-best)} .stars.better{color:var(--tier-better)} .stars.good{color:var(--tier-good)}
+    .figures{text-align:right;display:grid;gap:2px}
+    .hero{font-size:clamp(20px,2.6vw,36px);font-weight:800;line-height:1;letter-spacing:.2px;color:#cfe6ff;text-shadow:0 6px 18px rgba(114,168,255,.18)}
+    .caption{color:var(--muted);font-size:12px} .svc{font-weight:800;color:#7be0c3}
+    table.bundle{width:100%;border-collapse:collapse;margin-top:8px;table-layout:fixed}
+    th,td{border-bottom:1px dashed #203043;padding:8px 6px;font-size:12px;vertical-align:top}
+    thead th{color:var(--muted);font-weight:700;line-height:1.15;white-space:nowrap}
+    .bundle col:nth-child(1){width:var(--w-item)}
+    .bundle col:nth-child(2){width:var(--w-code)}
+    .bundle col:nth-child(3){width:var(--w-money)}
+    .bundle col:nth-child(4){width:var(--w-money)}
+    .cell-item{line-height:1.32;padding-bottom:2px}
+    .cell-item .label{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;font-size:.95em}
+    .cell-code{white-space:normal;word-break:break-word;overflow:visible;text-overflow:clip}
+    .cell-money{white-space:nowrap;font-weight:800;text-align:right;font-size:clamp(11px,1.05vw,13px);
+      font-variant-numeric:tabular-nums;padding-left:16px;padding-right:6px;min-width:110px}
+    tfoot th, tfoot td{border-top:1px solid rgba(255,255,255,.08);border-bottom:0;padding-top:9px;padding-bottom:8px}
+    .panel{display:grid;grid-template-columns:1.2fr 1fr;gap:12px;margin-top:12px}
+    .card{background:linear-gradient(180deg,#0f1726,#0c1422);border:1px solid var(--line);border-radius:14px;padding:10px}
+    .card h3{margin:0 0 6px 0;font-size:13px;color:#cfe6ff}
+    .card pre{white-space:pre-wrap;word-break:break-word;font:12px/1.35 ui-monospace,Menlo,Consolas,monospace;color:#bcd3ff;max-height:260px;overflow:auto;margin:0}
+    .kv{display:grid;grid-template-columns:1fr auto;gap:6px 10px}
+    .kv .k{color:#9fb0c9}
+    .kv .v{font-weight:700}
+    @media (max-width:900px){
+      .stack{grid-template-columns:1fr}
+      .viewport-frame{transform:none !important;width:100% !important}
+      header{position:static}
+      .hero{font-size:32px}
+      table.bundle{table-layout:auto}
+      .cell-money{font-size:13px;min-width:unset;padding-left:12px}
+      .panel{grid-template-columns:1fr}
+    }
+    /* tiny helpers inside breakdown (same as earlier version) */
+    details.break{background:#0b1424;border:1px dashed #233146;border-radius:10px;margin-top:8px}
+    details.break summary{cursor:pointer;padding:6px 10px;color:#cfe6ff}
+    .breakbox{padding:6px 8px;padding-top:0}
+    .align-grid{display:grid;grid-template-columns:1fr 90px 90px 90px;gap:6px 10px}
+    .align-grid .hdr{color:#9fb0c9;font-weight:700}
+    .align-grid .money{text-align:right}
+    .codepill{display:inline-block;background:#15253f;border:1px solid #284267;border-radius:8px;padding:1px 6px;font:600 11px/1.4 ui-monospace,Menlo,Consolas,monospace;color:#cfe6ff}
+  </style>
 </head>
 <body>
 <header>
@@ -84,7 +104,6 @@ tfoot th, tfoot td{border-top:1px solid rgba(255,255,255,.08);border-bottom:0;pa
       <button class="btn" id="forceRefresh">Force Refresh</button>
       <button class="btn" id="clearCache">Clear Cache</button>
     </div>
-
     <div class="group">
       <label class="switch">Lens family
         <select id="lensFamily" aria-label="Lens family">
@@ -103,7 +122,6 @@ tfoot th, tfoot td{border-top:1px solid rgba(255,255,255,.08);border-bottom:0;pa
         </select>
       </label>
     </div>
-
     <div class="group">
       <label class="switch"><input type="checkbox" id="includeAR" checked> Include AR (tiered)</label>
       <label class="switch"><input type="checkbox" id="includeAspheric"> Aspheric</label>
@@ -112,13 +130,12 @@ tfoot th, tfoot td{border-top:1px solid rgba(255,255,255,.08);border-bottom:0;pa
       <label class="switch"><input type="checkbox" id="includeCM"> Custom measurements (N/O only)</label>
     </div>
 
-    <!-- OCR controls: Camera + Upload (separate) -->
+    <!-- OCR controls: separate Camera and Upload -->
     <div class="group">
-      <button class="btn" id="scanCameraBtn">Scan (Camera)</button>
-      <button class="btn" id="uploadBtn">Upload PDF/Image</button>
-      <!-- iOS: keep inputs visible to guarantee permission prompts -->
-      <input id="fileCamera" type="file" accept="image/*" capture="environment" style="display:none">
-      <input id="fileUpload" type="file" accept="application/pdf,image/*" style="display:none">
+      <button class="btn" id="scanBenefitsCamera">Scan (Camera)</button>
+      <button class="btn" id="scanBenefitsUpload">Upload PDF/Image</button>
+      <input id="fileInputCamera" type="file" accept="image/*" capture="environment" style="display:none">
+      <input id="fileInputUpload" type="file" accept="application/pdf,image/*" style="display:none">
     </div>
 
     <span id="status" aria-live="polite"></span>
@@ -128,6 +145,7 @@ tfoot th, tfoot td{border-top:1px solid rgba(255,255,255,.08);border-bottom:0;pa
     <div id="stack" class="stack"></div>
   </div>
 
+  <!-- OCR debug -->
   <div class="panel">
     <div class="card">
       <h3>OCR Text / PDF Text Preview</h3>
@@ -136,7 +154,7 @@ tfoot th, tfoot td{border-top:1px solid rgba(255,255,255,.08);border-bottom:0;pa
     <div class="card">
       <h3>Detected (used in bundles)</h3>
       <div class="kv">
-        <div class="k">Materials Copay</div><div class="v" id="kv_materials">$0.00</div>
+        <div class="k">Materials Copay</div><div class="v" id="kv_materials">—</div>
         <div class="k">Covered Enhancements → $0 copay</div><div class="v" id="kv_cov">—</div>
       </div>
     </div>
@@ -253,11 +271,12 @@ function sunPool(fam, wantGlass){
 function chooseSunFor(baseRow){
   const tintSel=el('lensTint').value;
   const fam=el('lensFamily').value;
+  const wantGlass=el('includeGlass').checked;
   if(tintSel==='tinted_solid'){ return pickByCode('MN'); }
   if(tintSel==='tinted_gradient'){ return pickByCode('MP'); }
   if(tintSel==='polarized') return null;
   if(tintSel==='transitions'){
-    const poolAll = sunPool(fam, el('includeGlass').checked);
+    const poolAll = sunPool(fam, wantGlass);
     const pool = poolAll.filter(r=>/photochrom|transitions/.test(N(r.enhancement)));
     const want=preferPhotoCodeForBase(baseRow);
     return pool.find(r=>new RegExp('^'+want,'i').test((r.code||'').trim())) || pool.find(r=>/^p(m|r)/i.test((r.code||'').trim())) || null;
@@ -359,9 +378,15 @@ function parseLine(row){
 function makeBundle(base,addOns){
   const rows=[base,...addOns.filter(Boolean)];
   const lines=rows.map(parseLine);
+
   const mat = Math.max(0, OCR_STATE.materialsCents/100);
-  if(mat>0){ lines.push({name:'Materials Copay', code:'MAT', copay:mat, chargeback:0, profit:mat, parts:[]}); }
-  const cop=sum(lines.map(x=>x.copay)), cb=sum(lines.map(x=>x.chargeback)), pr=cop-cb;
+  if(mat>0){
+    lines.push({name:'Materials Copay', code:'MAT', copay:mat, chargeback:0, profit:mat, parts:[]});
+  }
+
+  const cop=sum(lines.map(x=>x.copay));
+  const cb =sum(lines.map(x=>x.chargeback));
+  const pr =cop-cb;
   const label=base.enhancement||base.subtype||base.code||'Base';
   return {label,lines,copay:cop,chargeback:cb,profit:pr,ratio:cop?pr/cop:0};
 }
@@ -482,7 +507,7 @@ function computeBundles(){
   ]);
 }
 
-/* ---------- rendering ---------- */
+/* ---------- rendering (no Holdback column in UI) ---------- */
 const tdMoney = (v, key) =>
   `<td class="cell-money" data-key="${key}" data-anim="${v.toFixed(2)}">$${v.toFixed(2)}</td>`;
 function breakdownDetails(li,rowKey){
@@ -494,17 +519,19 @@ function breakdownDetails(li,rowKey){
     <div class="money" data-key="${rowKey}-p${pi}-pr" data-anim="${p.profit.toFixed(2)}">$${p.profit.toFixed(2)}</div>
   `).join('');
   return `
-    <tr><td colspan="4" style="padding:0;border:0">
-      <details class="break" open>
-        <summary>Breakdown</summary>
-        <div class="breakbox">
-          <div class="align-grid">
-            <div></div><div class="hdr">Code</div><div class="hdr">Copay</div><div class="hdr">Service Fee</div>
-            ${rows}
+    <tr>
+      <td colspan="4" style="padding:0;border:0">
+        <details class="break" open>
+          <summary>Breakdown</summary>
+          <div class="breakbox">
+            <div class="align-grid">
+              <div></div><div class="hdr">Code</div><div class="hdr">Copay</div><div class="hdr">Service Fee</div>
+              ${rows}
+            </div>
           </div>
-        </div>
-      </details>
-    </td></tr>`;
+        </details>
+      </td>
+    </tr>`;
 }
 function renderTier({name,cls,b}){
   const div=document.createElement('div'); div.className='tier';
@@ -537,7 +564,9 @@ function renderTier({name,cls,b}){
   }).join('');
   div.innerHTML=head+`<table class="bundle">
     <colgroup><col><col><col><col></colgroup>
-    <thead><tr><th>Item</th><th>Code</th><th>Copay</th><th>Service Fee</th></tr></thead>
+    <thead><tr>
+      <th>Item</th><th>Code</th><th>Copay</th><th>Service Fee</th>
+    </tr></thead>
     <tbody>${lines}</tbody>
     <tfoot><tr><th colspan="2" style="text-align:right">Totals</th>
       ${tdMoney(b.copay,`${name}-tot-c`)}${tdMoney(b.profit,`${name}-tot-pr`)}
@@ -596,67 +625,68 @@ el('clearCache').onclick =()=>{ clearCacheStorage(); el('status').textContent=' 
   .forEach(id=>{ const n=el(id); if(n) n.onchange=computeBundles; });
 (function boot(){ loadCSV(); })();
 
-/* -------------------- OCR/PDF wiring (separate Camera + Upload) -------------------- */
-const fileCam   = el('fileCamera');
-const fileUp    = el('fileUpload');
-const btnCam    = el('scanCameraBtn');
-const btnUp     = el('uploadBtn');
+/* -------------------- OCR/PDF wiring -------------------- */
+const btnCam   = el('scanBenefitsCamera');
+const btnUp    = el('scanBenefitsUpload');
+const inpCam   = el('fileInputCamera');
+const inpUp    = el('fileInputUpload');
 
-btnCam?.addEventListener('click', ()=> fileCam?.click());
-btnUp ?.addEventListener('click', ()=> fileUp ?.click());
+btnCam?.addEventListener('click', ()=> inpCam?.click());
+btnUp ?.addEventListener('click', ()=> inpUp ?.click());
 
-fileCam?.addEventListener('change', ()=> handlePickedFile(fileCam.files?.[0]));
-fileUp ?.addEventListener('change', ()=> handlePickedFile(fileUp .files?.[0]));
+[inpCam, inpUp].forEach(input=>{
+  input?.addEventListener('change', async ()=>{
+    const file = input.files?.[0]; if(!file) return;
+    try{
+      btnCam.disabled = btnUp.disabled = true;
+      setStatus(`file received (${file.type||file.name})…`);
+      let text = '';
 
-async function handlePickedFile(file){
-  if(!file) return;
-  try{
-    setStatus(`file received (${file.type||file.name})…`);
-    let text = '';
-    if (/pdf$/i.test(file.name) || file.type==='application/pdf') {
-      text = await pdfExtractText(file).catch(()=> '');
-      if (!text || text.trim().length < 40) {
-        const canvas = await pdfFirstPageToCanvas(file);
-        const prep = preprocess(canvas, {scale:1.8, grayscale:true, threshold:'otsu', unsharp:true});
-        setStatus('reading PDF (OCR fallback)…');
-        text = await runTess(prep, { psm: 4 });
+      if (/pdf$/i.test(file.name) || file.type==='application/pdf') {
+        text = await pdfExtractText(file).catch(()=> '');
+        if (!text || text.trim().length < 40) {
+          const canvas = await pdfFirstPageToCanvas(file);
+          const prep = preprocess(canvas, {scale:1.8, grayscale:true, threshold:'otsu', unsharp:true});
+          setStatus('reading PDF (OCR fallback)…');
+          text = await runTess(prep, { psm: 4 });
+        }
+      } else {
+        const canvas = await fileToCanvas(file);
+        const prep1 = preprocess(canvas, {scale:1.8, grayscale:true, threshold:'otsu', unsharp:true});
+        const prep2 = preprocess(canvas, {scale:1.4, grayscale:true, threshold:'sauvola', unsharp:true});
+        setStatus('reading (pass 1/2)…');
+        const t1 = await runTess(prep1, { psm: 6 });
+        setStatus('reading (pass 2/2)…');
+        const t2 = await runTess(prep2, { psm: 4 });
+        text = chooseBestText(t1, t2);
+        if(!text.trim()){ setStatus('fallback read…'); text = await runTess(canvas, { psm: 3 }); }
       }
-    } else {
-      const canvas = await fileToCanvas(file);
-      const prep1 = preprocess(canvas, {scale:1.8, grayscale:true, threshold:'otsu', unsharp:true});
-      const prep2 = preprocess(canvas, {scale:1.4, grayscale:true, threshold:'sauvola', unsharp:true});
-      setStatus('reading (pass 1/2)…');
-      const t1 = await runTess(prep1, { psm: 6 });
-      setStatus('reading (pass 2/2)…');
-      const t2 = await runTess(prep2, { psm: 4 });
-      text = chooseBestText(t1, t2);
-      if(!text.trim()){ setStatus('fallback read…'); text = await runTess(canvas, { psm: 3 }); }
+
+      el('ocrText').textContent = text || '—';
+      if(!text.trim()){ setStatus('no text detected'); alert('No readable text — try a clearer photo or export the PDF.'); return; }
+
+      setStatus('parsing benefits…');
+      const b = parseBenefits(text);
+      OCR_STATE.materialsCents = b.materialsCopay?.cents ?? 0;
+      OCR_STATE.covered = new Set(b.coveredEnhancementsKeys);
+
+      el('kv_materials').textContent = b.materialsCopay?.raw || '$0.00';
+      el('kv_cov').textContent = b.coveredEnhancements.length? b.coveredEnhancements.join(', ') : '—';
+      computeBundles();
+
+      setStatus('scan complete');
+    }catch(e){
+      console.error(e);
+      setStatus(`scan failed: ${e?.message||e}`);
+      alert(`Scan failed.\n\nReason: ${e?.message||e}`);
+    }finally{
+      btnCam.disabled = btnUp.disabled = false;
+      input.value='';
     }
+  });
+});
 
-    el('ocrText').textContent = text || '—';
-    if(!text.trim()){ setStatus('no text detected'); alert('No readable text — try a clearer photo or export the PDF.'); return; }
-
-    setStatus('parsing benefits…');
-    const b = parseBenefits(text);
-    OCR_STATE.materialsCents = b.materialsCopay?.cents ?? 0;
-    OCR_STATE.covered = new Set(b.coveredEnhancementsKeys);
-
-    el('kv_materials').textContent = b.materialsCopay?.raw || '$0.00';
-    el('kv_cov').textContent = b.coveredEnhancements.length? b.coveredEnhancements.join(', ') : '—';
-    computeBundles();
-
-    setStatus('scan complete');
-  }catch(e){
-    console.error(e);
-    setStatus(`scan failed: ${e?.message||e}`);
-    alert(`Scan failed.\n\nReason: ${e?.message||e}`);
-  }finally{
-    if(fileCam) fileCam.value='';
-    if(fileUp ) fileUp .value='';
-  }
-}
-
-/* ---- PDF helpers ---- */
+/* ---- PDF helpers (prefer text; fallback to image OCR) ---- */
 async function pdfExtractText(file){
   setStatus('extracting PDF text…');
   const buf = await file.arrayBuffer();
@@ -852,78 +882,77 @@ function chooseBestText(a,b){
   return score(a)>=score(b)?a:b;
 }
 
-/* ----------- Parser tuned to VSP sheet (STRICT “Covered” only) ----------- */
+/* ----------- Parser tuned to VSP sheet — FIXED SECTION SPLIT ----------- */
 function centsOf(s){ if(!s) return null; const m=String(s).replace(/[^\d.]/g,''); if(!m) return null; const [a,b='0']=m.split('.'); return parseInt(a||'0',10)*100+parseInt((b+'00').slice(0,2),10); }
 function money(c){ return c==null?null:{cents:c,raw:`$${(c/100).toFixed(2)}`}; }
 
-const ENHANCE_PATTERNS = [
-  [/anti[-\s]*reflect|antireflect|\bar\b/i,'ar'],
-  [/photochrom|transitions/i,'photochromic'],
-  [/polariz/i,'polarized'],
-  [/polycarbonate/i,'polycarbonate'],
-  [/high\s*index/i,'high_index'],
-  [/scratch\s*resistant/i,'scratch'],
-  (/\buv\b|\buv\s*protection/i,'uv'),
-  [/standard\s+progress/i,'std_prog'],
-  [/premium\s+progress/i,'prem_prog'],
-];
-
+/* NEW: splits the OCR into two buckets:
+   - bucketFree: starts at a line beginning with "Covered" (alone) and stops
+     before the next section heading ("Covered with Additional Copay" or end)
+   - bucketWithCopay: starts at "Covered with Additional Copay" and ends
+     at the next heading or end. Only bucketFree contributes to $0 overrides.
+*/
 function parseBenefits(raw){
   const text = (raw||'').replace(/\r/g,'');
-  const T = text.toLowerCase();
+  const lines = text.split('\n').map(s=>s.replace(/\s+$/,''));
+  const T = lines.map(s=>s.toLowerCase());
 
-  // 1) Materials copay (look near “Co-payments” or lines starting with "Material")
+  // Materials copay (scan for the first numeric after "Material")
   let materials = null;
-  const lines = text.split('\n').map(s=>s.trim());
-  for(const l of lines){
-    const m = /^\s*material[s]?\s*\$?\s*([0-9][\d,]*(?:\.\d{2})?)/i.exec(l);
-    if(m){ materials = money(centsOf(m[1])); break; }
-  }
-  if(!materials){
-    const idx = lines.findIndex(l=>/co-?payments|copayments/i.test(l));
-    if(idx>=0){
-      for(let j=idx;j<Math.min(idx+12,lines.length);j++){
-        const m = /material[^$\n]*\$?\s*([0-9][\d,]*(?:\.\d{2})?)/i.exec(lines[j]);
-        if(m){ materials = money(centsOf(m[1])); break; }
+  for(let i=0;i<lines.length;i++){
+    if(/material/i.test(lines[i])){
+      const m = /(\$?\s*\d[\d,]*(?:\.\d{1,2})?)/.exec(lines[i]);
+      if(m){ materials = money(centsOf(m[1])); break; }
+      // try one line below if same paragraph pattern
+      if(i+1<lines.length){
+        const m2 = /(\$?\s*\d[\d,]*(?:\.\d{1,2})?)/.exec(lines[i+1]);
+        if(m2){ materials = money(centsOf(m2[1])); break; }
       }
     }
   }
   if(!materials) materials = money(0);
 
-  // 2) Covered section isolation
-  const headCovered = /(?:^|\n)covered\s*$/im;
-  const headAddl    = /(?:^|\n)covered\s+with\s+additional\s+copay\s*$/im;
-  const endFence    = /(?:^|\n)(?:confidential|notes|limitations)\b/im;
+  // Find section indices
+  const idxCovered = T.findIndex(s=>/^covered\s*$/.test(s) || /^covered\b(?!.*additional)/.test(s));
+  const idxWithAdd = T.findIndex(s=>/^covered with additional copay/.test(s));
+  const endIdx = lines.length;
 
-  const mStart = T.search(headCovered);
-  const mStop1 = T.search(headAddl);
-  const mStop2 = T.search(endFence);
+  // Build slices (only bucketFree is used for $0)
+  const freeStart = idxCovered>=0 ? idxCovered+1 : -1;
+  const freeEnd   = (idxWithAdd>idxCovered && idxWithAdd>=0) ? idxWithAdd : endIdx;
+  const bucketFree = (freeStart>=0) ? T.slice(freeStart, freeEnd).join('\n') : '';
 
-  let coveredSlice = '';
-  if(mStart >= 0){
-    const stop = [mStop1, mStop2].filter(v=>v>mStart).sort((a,b)=>a-b)[0];
-    coveredSlice = stop ? text.slice(mStart, stop) : text.slice(mStart);
-  }
-
-  // 3) Whitelist only known enhancement lines in the slice
-  const coveredKeys = new Set();
-  for(const [re,key] of ENHANCE_PATTERNS){
-    if(re.test(coveredSlice)) coveredKeys.add(key);
-  }
-
-  // pretty labels
-  const prettyMap = {
-    ar:'Anti-Reflective',
-    photochromic:'Photochromic / Transitions',
-    polarized:'Polarized',
-    polycarbonate:'Polycarbonate',
-    high_index:'High Index',
-    scratch:'Scratch Resistant',
-    uv:'UV Protection',
-    std_prog:'Standard Progressives',
-    prem_prog:'Premium Progressives'
+  // Map of nice name -> key used by enhancementKeyFromName
+  const dict = {
+    'Anti-Reflective':'ar',
+    'Photochromic / Transitions':'photochromic',
+    'Polarized':'polarized',
+    'Polycarbonate':'polycarbonate',
+    'High Index':'high_index',
+    'Scratch Resistant':'scratch',
+    'UV Protection':'uv',
+    'Standard Progressives':'std_prog',
+    'Premium Progressives':'prem_prog'
   };
-  const coveredPretty = Array.from(coveredKeys).map(k=>prettyMap[k]||k);
+
+  // Detect presence in bucketFree only
+  const coveredKeys = new Set();
+  const addIf = (regex,key)=>{ if(regex.test(bucketFree)) coveredKeys.add(key); };
+
+  addIf(/anti[-\s]*reflect|antireflect|\bar\b/, 'ar');
+  addIf(/photochrom|transitions/, 'photochromic');
+  addIf(/polariz/, 'polarized');
+  addIf(/polycarbonate/, 'polycarbonate');
+  addIf(/high\s*index/, 'high_index');
+  addIf(/scratch\s+resistant/, 'scratch');
+  addIf(/\buv\b|\buv\s*protection/, 'uv');
+  addIf(/standard\s+progress/, 'std_prog');
+  addIf(/premium\s+progress/, 'prem_prog');
+
+  const coveredPretty = Array.from(coveredKeys).map(k=>{
+    for(const [nice,key] of Object.entries(dict)) if(key===k) return nice;
+    return k;
+  });
 
   return {
     materialsCopay: materials,
