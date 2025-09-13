@@ -1,4 +1,4 @@
-# Create the fixed HTML file with improved Covered-section parsing for VSP PDF
+# We'll write a complete HTML file with improved parsing for the VSP PDF "Covered" block.
 html = r"""<!doctype html>
 <html lang="en">
 <head>
@@ -26,10 +26,8 @@ html = r"""<!doctype html>
       color:var(--fg);font:15px/1.45 Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
       -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;font-variant-numeric:tabular-nums
     }
-    header{
-      position:sticky;top:0;z-index:20;display:flex;justify-content:space-between;align-items:center;gap:14px;padding:12px 16px;
-      background:linear-gradient(180deg, rgba(9,14,22,.95), rgba(9,14,22,.78));border-bottom:1px solid var(--line);backdrop-filter:blur(10px)
-    }
+    header{position:sticky;top:0;z-index:20;display:flex;justify-content:space-between;align-items:center;gap:14px;padding:12px 16px;
+      background:linear-gradient(180deg, rgba(9,14,22,.95), rgba(9,14,22,.78));border-bottom:1px solid var(--line);backdrop-filter:blur(10px)}
     h1{margin:0;font-weight:800;font-size:clamp(16px,1.8vw,20px)}
     .sub{color:var(--muted);font-size:12px}
     main{padding:14px}
@@ -123,9 +121,12 @@ html = r"""<!doctype html>
       <label class="switch"><input type="checkbox" id="includeCM"> Custom measurements (N/O only)</label>
     </div>
 
+    <!-- OCR controls -->
     <div class="group">
       <button class="btn" id="scanBenefitsBtn">Scan Benefits (Camera / PDF)</button>
       <input id="scanBenefitsFile" type="file" accept="application/pdf,image/*" capture="environment" style="display:none">
+      <button class="btn" id="pickFileBtn">Upload PDF/Image</button>
+      <input id="pickFileInput" type="file" accept="application/pdf,image/*" style="display:none">
     </div>
 
     <span id="status" aria-live="polite"></span>
@@ -135,6 +136,7 @@ html = r"""<!doctype html>
     <div id="stack" class="stack"></div>
   </div>
 
+  <!-- OCR debug -->
   <div class="panel">
     <div class="card">
       <h3>OCR Text / PDF Text Preview</h3>
@@ -150,11 +152,13 @@ html = r"""<!doctype html>
   </div>
 </main>
 
+<!-- OCR + PDF libs -->
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
 <script>pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js";</script>
 
 <script>
+/* -------------------- helpers + error surface -------------------- */
 const el=id=>document.getElementById(id);
 const sum=a=>a.reduce((x,y)=>x+y,0);
 const num=v=>{ const x=parseFloat(String(v??'').replace(/[^0-9.-]/g,'')); return isFinite(x)?x:0; };
@@ -162,11 +166,8 @@ const N=s=>String(s||'').toLowerCase();
 function setStatus(s){ const n=el('status'); if(n) n.textContent=s; }
 window.onerror = (m,src,line)=> setStatus(' script error: '+m+' @'+(src||'')+':'+(line||'?'));
 
-const CSV_CANDIDATES=[
-  './vsp_choice_master_v8.4.csv',
-  './data/vsp_choice_master_v8.4.csv',
-  './vsp_choice_master_v7_full_fixed.csv'
-];
+/* -------------------- CSV + base app -------------------- */
+const CSV_CANDIDATES=[ './vsp_choice_master_v8.4.csv', './data/vsp_choice_master_v8.4.csv', './vsp_choice_master_v7_full_fixed.csv' ];
 const BETTER_CAP_OF_MAX=0.75, GOOD_CAP_OF_MAX=0.60, CAP_RELAX_FACTOR=0.90;
 function quickHash(s){ let h=2166136261>>>0; for(let i=0;i<s.length;i++){ h^=s.charCodeAt(i); h=Math.imul(h,16777619)>>>0; } return ('00000000'+h.toString(16)).slice(-8); }
 function parseCSV(text){
@@ -175,12 +176,12 @@ function parseCSV(text){
     const ch=text[i];
     if(ch==='\"'){ if(q && text[i+1]==='\"'){ field+='\"'; i++; } else { q=!q; } continue; }
     if(!q && ch===','){ row.push(field); field=''; continue; }
-    if(!q && (ch==='\\n'||ch==='\\r')){ if(field!==''||row.length){ row.push(field); rows.push(row); row=[]; field=''; } continue; }
+    if(!q && (ch==='\n'||ch==='\r')){ if(field!==''||row.length){ row.push(field); rows.push(row); row=[]; field=''; } continue; }
     field+=ch;
   }
   if(field!==''||row.length){ row.push(field); rows.push(row); }
-  const headers=rows.shift().map(h=>h.replace(/^\\\"|\\\"$/g,'').trim());
-  return rows.filter(r=>r.length>=headers.length).map(r=>{ const o={}; headers.forEach((h,i)=>o[h]=(r[i]||'').replace(/^\\\"|\\\"$/g,'').trim()); return o; });
+  const headers=rows.shift().map(h=>h.replace(/^\"|\"$/g,'').trim());
+  return rows.filter(r=>r.length>=headers.length).map(r=>{ const o={}; headers.forEach((h,i)=>o[h]=(r[i]||'').replace(/^\"|\"$/g,'').trim()); return o; });
 }
 const CACHE_KEY='rev-vsp-choice-csv-v3', META_KEY='rev-vsp-choice-meta-v3';
 const setCache=(t,m)=>{ localStorage.setItem(CACHE_KEY,t); localStorage.setItem(META_KEY,JSON.stringify(m)); };
@@ -208,20 +209,21 @@ async function loadCSV(){
   let loaded=null, tried=[];
   for(const url of CSV_CANDIDATES){ const r=await tryFetch(url); tried.push(url); if(r.ok){ loaded=r; break; } }
   if(loaded){
-    const meta={plan:'VSP_choice',version:new Date().toISOString().slice(0,10)+'.ui1694-ocrfix',source:'network:'+loaded.url,sha:quickHash(loaded.text)};
+    const meta={plan:'VSP_choice',version:new Date().toISOString().slice(0,10)+'.ui1694-ocr',source:'network:'+loaded.url,sha:quickHash(loaded.text)};
     setCache(loaded.text,meta); DATA=parseCSV(loaded.text); buildSimpleIndex(); renderMeta(DATA.length,meta);
-    status.textContent='[ok] '+loaded.url+' • '+DATA.length+' rows'; computeBundles(); return;
+    status.textContent=`[ok] ${loaded.url} • ${DATA.length} rows`; computeBundles(); return;
   }
   const {text,meta}=getCache();
   if(text){ DATA=parseCSV(text); buildSimpleIndex(); renderMeta(DATA.length,{...meta,source:'cache'});
-    status.textContent=' Network failed. Using cached data ('+DATA.length+' rows).'; computeBundles(); return; }
+    status.textContent=` Network failed. Using cached data (${DATA.length} rows).`; computeBundles(); return; }
   status.textContent = ' load failed — no cache (tried: ' + tried.join(', ') + ')';
 }
 function renderMeta(count,meta){
-  el('version').textContent='plan='+(meta.plan||'VSP_choice')+' • rows='+(count||0)+' • version='+(meta.version||'—')+' • source='+(meta.source||'—')+' • sha='+(meta.sha||'—');
+  el('version').textContent=`plan=${meta.plan||'VSP_choice'} • rows=${count||0} • version=${meta.version||'—'} • source=${meta.source||'—'} • sha=${meta.sha||'—'}`;
 }
 
-const splitCodes=s=>String(s||'').toUpperCase().replace(/[^\\w+&/,\\s-]/g,'').split(/[\\s+&/,\\-]+/).map(t=>t.trim()).filter(Boolean);
+/* ---------- filters/pools ---------- */
+const splitCodes=s=>String(s||'').toUpperCase().replace(/[^\w+&/,\s-]/g,'').split(/[\s+&/,\-]+/).map(t=>t.trim()).filter(Boolean);
 const byKey=k=>DATA.filter(r=>(r.active||'yes').toLowerCase()==='yes' && (r.exclusive_key||'').toLowerCase()===k);
 function applies(row,fam){
   const a=(row.applies_to||'ALL').toUpperCase();
@@ -233,8 +235,21 @@ function applies(row,fam){
 }
 const isGlassName=name=>/glass/.test(N(name||''));
 
+/* ---------- OCR state ---------- */
 let OCR_STATE = { materialsCents: 0, covered: new Set() };
+const COVERAGE_MAP = {
+  'Anti-Reflective':'ar',
+  'Photochromic / Transitions':'photochromic',
+  'Polarized':'polarized',
+  'Polycarbonate':'polycarbonate',
+  'High Index':'high_index',
+  'Scratch Resistant':'scratch',
+  'UV Protection':'uv',
+  'Standard Progressives':'std_prog',
+  'Premium Progressives':'prem_prog'
+};
 
+/* ---------- sun pick ---------- */
 function preferPhotoCodeForBase(row){ return isGlassName(row.enhancement||row.subtype)?'PM':'PR'; }
 function sunPool(fam, wantGlass){
   const tag = r => (r.exclusive_key||'').toLowerCase();
@@ -267,6 +282,7 @@ function chooseSunFor(baseRow){
   return null;
 }
 
+/* ---------- code pickers ---------- */
 function buildSimpleIndexOnce(){ if(!SIMPLE_BY_CODE.size) buildSimpleIndex(); }
 function pickByCode(code){
   buildSimpleIndexOnce();
@@ -285,24 +301,25 @@ function pickBaseByExactCode(baseCode){
   return list.map(r=>({r,s:(r.enhancement||r.subtype||'').toLowerCase()})).sort((a,b)=>score(b.s)-score(a.s))[0].r;
 }
 
-function parseCopayNumbers(s){ const m=String(s||'').match(/[0-9]+(?:\\.[0-9]{1,2})?/g); return m?m.map(x=>parseFloat(x)):[]; }
+/* ---------- line parsing + coverage overrides ---------- */
+function parseCopayNumbers(s){ const m=String(s||'').match(/[0-9]+(?:\.[0-9]{1,2})?/g); return m?m.map(x=>parseFloat(x)):[]; }
 function parseSplitFromNotes(notes){
   const s=String(notes||'');
-  const sv=s.match(/(\\d+)\\s*\\+\\s*(\\d+)\\s*\\(SV\\)/i);
-  const mf=s.match(/(\\d+)\\s*\\+\\s*(\\d+)\\s*\\(MF\\)/i);
+  const sv=s.match(/(\d+)\s*\+\s*(\d+)\s*\(SV\)/i);
+  const mf=s.match(/(\d+)\s*\+\s*(\d+)\s*\(MF\)/i);
   return { svBase: sv?num(sv[1]):null, svAdd: sv?num(sv[2]):null, mfBase: mf?num(mf[1]):null, mfAdd: mf?num(mf[2]):null };
 }
 function enhanceKeyFromName(name){
   const n=N(name);
-  if(/anti[\\s-]*reflect/.test(n) || /\\bar\\b/.test(n)) return 'ar';
+  if(/anti[\s-]*reflect/.test(n) || /\bar\b/.test(n)) return 'ar';
   if(/photochrom|transitions/.test(n)) return 'photochromic';
   if(/polariz/.test(n)) return 'polarized';
   if(/polycarbonate/.test(n)) return 'polycarbonate';
-  if(/high\\s*index|1\\.6|1\\.67|1\\.7/.test(n)) return 'high_index';
+  if(/high\s*index|1\.6|1\.67|1\.7/.test(n)) return 'high_index';
   if(/scratch/.test(n)) return 'scratch';
-  if(/\\buv\\b/.test(n) || /uv\\s*pro/.test(n)) return 'uv';
-  if(/standard.*progress|standard\\s+progressive/.test(n)) return 'std_prog';
-  if(/premium.*progress|premium\\s+progressive/.test(n)) return 'prem_prog';
+  if(/\buv\b/.test(n) || /uv\s*pro/.test(n)) return 'uv';
+  if(/standard.*progress|standard\s+progressive/.test(n)) return 'std_prog';
+  if(/premium.*progress|premium\s+progressive/.test(n)) return 'prem_prog';
   return null;
 }
 function parseLine(row){
@@ -360,9 +377,7 @@ function makeBundle(base,addOns){
   const rows=[base,...addOns.filter(Boolean)];
   const lines=rows.map(parseLine);
   const mat = Math.max(0, OCR_STATE.materialsCents/100);
-  if(mat>0){
-    lines.push({name:'Materials Copay', code:'MAT', copay:mat, chargeback:0, profit:mat, parts:[]});
-  }
+  if(mat>0){ lines.push({name:'Materials Copay', code:'MAT', copay:mat, chargeback:0, profit:mat, parts:[]}); }
   const cop=sum(lines.map(x=>x.copay));
   const cb =sum(lines.map(x=>x.chargeback));
   const pr =cop-cb;
@@ -370,6 +385,7 @@ function makeBundle(base,addOns){
   return {label,lines,copay:cop,chargeback:cb,profit:pr,ratio:cop?pr/cop:0};
 }
 
+/* ---------- selection + render ---------- */
 function computeBundles(){
   if(!DATA.length){ el('stack').innerHTML=''; return; }
   const fam=el('lensFamily').value;
@@ -383,7 +399,7 @@ function computeBundles(){
   function isAsphericRow(row){
     const name=N(row.enhancement||row.subtype||'');
     const first=splitCodes(row.code)[0]||'';
-    const looks=/aspheric/.test(name)||/^BA\\b/.test(first);
+    const looks=/aspheric/.test(name)||/^BA\b/.test(first);
     return looks && !isAA(row);
   }
 
@@ -393,7 +409,7 @@ function computeBundles(){
       const name=N(r.enhancement);
       if(wantGlass && !isGlassName(name)) return false;
       if(!wantGlass && isGlassName(name)) return false;
-      if(/custom\\s*measure/i.test(name)) return false;
+      if(/custom\s*measure/i.test(name)) return false;
       if(tintSel==='polarized') return /polariz/.test(name);
       return !/(photochrom|polariz|tint|tinted|sunglass|gradient|color|colored)/.test(name);
     });
@@ -429,7 +445,7 @@ function computeBundles(){
   }
 
   function rankAR(ars){
-    const gradeVal=s=>{ const m=String(s||'').match(/\\b([A-D])\\b/i); if(!m) return null; return {A:1,B:2,C:3,D:4}[m[1].toUpperCase()]||null; };
+    const gradeVal=s=>{ const m=String(s||'').match(/\b([A-D])\b/i); if(!m) return null; return {A:1,B:2,C:3,D:4}[m[1].toUpperCase()]||null; };
     return [...ars].sort((a,b)=>{
       const ga=gradeVal(a.enhancement)||-1, gb=gradeVal(b.enhancement)||-1;
       if(ga!==gb) return gb-ga;
@@ -448,7 +464,7 @@ function computeBundles(){
   const overs = wantOS ? (byKey('oversize').filter(r=>applies(r,fam))[0]||null) : null;
 
   function buildBundle(m,arRow){
-    const cm=(el('includeCM')?.checked && fam==='PAL') ? (DATA.filter(r=>applies(r,'PAL')).find(row=>/custom\\s*measure/i.test(N(row.enhancement||row.subtype||'')))||null) : null;
+    const cm=(el('includeCM')?.checked && fam==='PAL') ? (DATA.filter(r=>applies(r,'PAL')).find(row=>/custom\s*measure/i.test(N(row.enhancement||row.subtype||'')))||null) : null;
     return makeBundle(m,[arRow,chooseSunFor(m),cm,overs]);
   }
 
@@ -485,27 +501,69 @@ function computeBundles(){
   ]);
 }
 
-const tdMoney = (v, key) =>
-  '<td class="cell-money" data-key="'+key+'" data-anim="'+v.toFixed(2)+'">$'+v.toFixed(2)+'</td>';
+/* ---------- rendering ---------- */
+const tdMoney = (v, key) => `<td class="cell-money" data-key="${key}" data-anim="${v.toFixed(2)}">$${v.toFixed(2)}</td>`;
 function breakdownDetails(li,rowKey){
   if(!li.parts?.length) return '';
-  const rows = li.parts.map((p,pi) => '\\n    <div></div>\\n    <div class="money"><span class="codepill" title="'+p.code+'">'+p.code+'</span></div>\\n    <div class="money" data-key="'+rowKey+'-p'+pi+'-c"  data-anim="'+p.copay.toFixed(2)+'">$'+p.copay.toFixed(2)+'</div>\\n    <div class="money" data-key="'+rowKey+'-p'+pi+'-pr" data-anim="'+p.profit.toFixed(2)+'">$'+p.profit.toFixed(2)+'</div>\\n  ').join('');
-  return '\\n    <tr>\\n      <td colspan="4" style="padding:0;border:0">\\n        <details class="break" open>\\n          <summary>Breakdown</summary>\\n          <div class="breakbox">\\n            <div class="align-grid">\\n              <div></div><div class="hdr">Code</div><div class="hdr">Copay</div><div class="hdr">Service Fee</div>'+rows+'\\n            </div>\\n          </div>\\n        </details>\\n      </td>\\n    </tr>';
+  const rows = li.parts.map((p,pi) => `
+    <div></div>
+    <div class="money"><span class="codepill" title="${p.code}">${p.code}</span></div>
+    <div class="money" data-key="${rowKey}-p${pi}-c"  data-anim="${p.copay.toFixed(2)}">$${p.copay.toFixed(2)}</div>
+    <div class="money" data-key="${rowKey}-p${pi}-pr" data-anim="${p.profit.toFixed(2)}">$${p.profit.toFixed(2)}</div>
+  `).join('');
+  return `
+    <tr>
+      <td colspan="4" style="padding:0;border:0">
+        <details class="break" open>
+          <summary>Breakdown</summary>
+          <div class="breakbox">
+            <div class="align-grid">
+              <div></div><div class="hdr">Code</div><div class="hdr">Copay</div><div class="hdr">Service Fee</div>
+              ${rows}
+            </div>
+          </div>
+        </details>
+      </td>
+    </tr>`;
 }
 function renderTier({name,cls,b}){
   const div=document.createElement('div'); div.className='tier';
   if(!b){
-    div.innerHTML='<div class="tierHead"><div class="stars '+cls+'">\\n      <span>'+ (name==='Best'?'★★★':name==='Better'?'★★':name==='Good'?'★':'◎') +'</span>\\n      <span class="sub" style="margin-left:8px">'+name+'</span></div>\\n      <div class="figures"><div class="hero">—</div><div class="caption">Patient Copay</div></div></div>\\n      <div class="sub">No viable bundle</div>'; return div;
+    div.innerHTML=`<div class="tierHead"><div class="stars ${cls}">
+      <span>${name==='Best'?'★★★':name==='Better'?'★★':name==='Good'?'★':'◎'}</span>
+      <span class="sub" style="margin-left:8px">${name}</span></div>
+      <div class="figures"><div class="hero">—</div><div class="caption">Patient Copay</div></div></div>
+      <div class="sub">No viable bundle</div>`; return div;
   }
   const stars=name==='Best'?'★★★':name==='Better'?'★★':name==='Good'?'★':'◎';
-  const head='<div class="tierHead">\\n    <div class="stars '+cls+'"><div title="'+name+'" style="font-size:18px">'+stars+'</div><span class="sub" style="margin-left:6px">'+b.label+'</span></div>\\n    <div class="figures">\\n      <div class="hero" aria-label="Patient Copay" data-key="'+name+'-hero" data-anim="'+b.copay.toFixed(2)+'">$'+b.copay.toFixed(2)+'</div>\\n      <div class="caption">Patient Copay</div>\\n      <div class="caption">Service Fee (Practice Profit): <span class="svc" data-key="'+name+'-profit" data-anim="'+b.profit.toFixed(2)+'">$'+b.profit.toFixed(2)+'</span></div>\\n    </div>\\n  </div>';
+  const head=`<div class="tierHead">
+    <div class="stars ${cls}"><div title="${name}" style="font-size:18px">${stars}</div><span class="sub" style="margin-left:6px">${b.label}</span></div>
+    <div class="figures">
+      <div class="hero" aria-label="Patient Copay" data-key="${name}-hero" data-anim="${b.copay.toFixed(2)}">$${b.copay.toFixed(2)}</div>
+      <div class="caption">Patient Copay</div>
+      <div class="caption">Service Fee (Practice Profit): <span class="svc" data-key="${name}-profit" data-anim="${b.profit.toFixed(2)}">$${b.profit.toFixed(2)}</span></div>
+    </div>
+  </div>`;
   const lines=b.lines.map((li,i)=>{
-    const rowKey=name+'-line'+i;
-    const main='<tr>\\n      <td class="cell-item"><span class="label" title="'+li.name+'">'+li.name+'</span></td>\\n      <td class="cell-code" title="'+(li.code||'')+'">'+(li.code||'—')+'</td>\\n      '+tdMoney(li.copay,  rowKey+'-c')+'\\n      '+tdMoney(li.profit, rowKey+'-pr')+'\\n    </tr>';
+    const rowKey=`${name}-line${i}`;
+    const main=`<tr>
+      <td class="cell-item"><span class="label" title="${li.name}">${li.name}</span></td>
+      <td class="cell-code" title="${li.code||''}">${li.code||'—'}</td>
+      ${tdMoney(li.copay,  `${rowKey}-c`)}
+      ${tdMoney(li.profit, `${rowKey}-pr`)}
+    </tr>`;
     const parts=(li.parts&&li.parts.length)?breakdownDetails(li,rowKey):'';
     return main+parts;
   }).join('');
-  div.innerHTML=head+'<table class="bundle">\\n    <colgroup><col><col><col><col></colgroup>\\n    <thead><tr>\\n      <th>Item</th><th>Code</th><th>Copay</th><th>Service Fee</th>\\n    </tr></thead>\\n    <tbody>'+lines+'</tbody>\\n    <tfoot><tr><th colspan="2" style="text-align:right">Totals</th>\\n      '+tdMoney(b.copay,name+'-tot-c')+tdMoney(b.profit,name+'-tot-pr')+'\\n    </tr></tfoot></table>';
+  div.innerHTML=head+`<table class="bundle">
+    <colgroup><col><col><col><col></colgroup>
+    <thead><tr>
+      <th>Item</th><th>Code</th><th>Copay</th><th>Service Fee</th>
+    </tr></thead>
+    <tbody>${lines}</tbody>
+    <tfoot><tr><th colspan="2" style="text-align:right">Totals</th>
+      ${tdMoney(b.copay,`${name}-tot-c`)}${tdMoney(b.profit,`${name}-tot-pr`)}
+    </tr></tfoot></table>`;
   return div;
 }
 function renderStack(rows){
@@ -518,7 +576,7 @@ function fitViewportScale() {
   const vw = document.documentElement.clientWidth;
   if (vw <= 900){ frame.style.transform = 'none'; frame.style.width = '100%'; return; }
   const needed = 360*4 + 14*3; let scale = Math.min(1, vw / needed); if (scale < 0.82) scale = 0.82;
-  frame.style.transform = 'scale('+scale+')'; frame.style.width = (100 / scale) + '%';
+  frame.style.transform = `scale(${scale})`; frame.style.width = (100 / scale) + '%';
 }
 function fitHeroText() {
   document.querySelectorAll('.hero').forEach(n => {
@@ -553,19 +611,26 @@ function animateMoney(duration = 350) {
 const ro = new ResizeObserver(()=>{ fitHeroText(); fitViewportScale(); });
 ro.observe(document.body);
 
+/* controls */
 el('forceRefresh').onclick=()=>{ clearCacheStorage(); loadCSV(); };
 el('clearCache').onclick =()=>{ clearCacheStorage(); el('status').textContent=' cache cleared — click Force Refresh to reload'; };
 ['lensFamily','lensTint','includeAR','includeAspheric','includeOversize','includeGlass','includeCM']
   .forEach(id=>{ const n=el(id); if(n) n.onchange=computeBundles; });
 (function boot(){ loadCSV(); })();
 
+/* -------------------- OCR/PDF wiring -------------------- */
 const scanBtn   = el('scanBenefitsBtn');
 const scanInput = el('scanBenefitsFile');
+const pickBtn   = el('pickFileBtn');
+const pickInput = el('pickFileInput');
 scanBtn?.addEventListener('click', ()=> scanInput?.click());
-scanInput?.addEventListener('change', async ()=>{
-  const file = scanInput.files?.[0]; if(!file) return;
+pickBtn?.addEventListener('click', ()=> pickInput?.click());
+for (const input of [scanInput, pickInput]) input?.addEventListener('change', handleFile);
+
+async function handleFile(evt){
+  const file = evt.target.files?.[0]; if(!file) return;
   try{
-    scanBtn.disabled = true; setStatus('file received ('+(file.type||file.name)+')…');
+    scanBtn.disabled = true; pickBtn.disabled = true; setStatus(`file received (${file.type||file.name})…`);
     let text = '';
 
     if (/pdf$/i.test(file.name) || file.type==='application/pdf') {
@@ -603,14 +668,15 @@ scanInput?.addEventListener('change', async ()=>{
     setStatus('scan complete');
   }catch(e){
     console.error(e);
-    setStatus('scan failed: '+(e?.message||e));
-    alert('Scan failed.\\n\\nReason: '+(e?.message||e));
+    setStatus(`scan failed: ${e?.message||e}`);
+    alert(`Scan failed.\n\nReason: ${e?.message||e}`);
   }finally{
-    scanBtn.disabled = false;
-    scanInput.value='';
+    scanBtn.disabled = false; pickBtn.disabled = false;
+    evt.target.value='';
   }
-});
+}
 
+/* ---- PDF helpers (prefer text; fallback to image OCR) ---- */
 async function pdfExtractText(file){
   setStatus('extracting PDF text…');
   const buf = await file.arrayBuffer();
@@ -633,6 +699,7 @@ async function pdfFirstPageToCanvas(file){
   return canvas;
 }
 
+/* ---- image OCR pipeline ---- */
 function fileToCanvas(file){
   setStatus('loading image…');
   return new Promise((resolve,reject)=>{
@@ -805,89 +872,80 @@ function chooseBestText(a,b){
   return score(a)>=score(b)?a:b;
 }
 
-/* ----------- Parser tuned to VSP sheet (fixed) ----------- */
+/* ----------- Parser tuned to VSP sheet (section-aware) ----------- */
 function centsOf(s){ if(!s) return null; const m=String(s).replace(/[^\\d.]/g,''); if(!m) return null; const [a,b='0']=m.split('.'); return parseInt(a||'0',10)*100+parseInt((b+'00').slice(0,2),10); }
-function money(c){ return c==null?null:{cents:c,raw:'$'+(c/100).toFixed(2)}; }
+function money(c){ return c==null?null:{cents:c,raw:`$${(c/100).toFixed(2)}`}; }
+function sectionBetween(hay, startRe, endRe){
+  const m1 = hay.match(startRe); if(!m1) return '';
+  const from = m1.index + m1[0].length;
+  const slice = hay.slice(from);
+  const m2 = slice.match(endRe);
+  return m2 ? slice.slice(0, m2.index) : slice;
+}
 function parseBenefits(raw){
-  const text0 = (raw||'').replace(/\\r/g,'').replace(/[\\t ]+/g,' ').replace(/\\u00a0/g,' ');
-  const lines = text0.split('\\n').map(s=>s.trim());
-  const T = lines.join('\\n').toLowerCase();
+  const text = (raw||'').replace(/\\r/g,'');
+  const lines = text.split('\\n').map(s=>s.trim()).filter(Boolean);
+  const T = text.toLowerCase();
 
-  // Materials copay (prefer the Co-payments table)
+  // Materials copay (handles "Material $25.00" and "Materials $25.00")
   let materials = null;
-  const copayIdx = T.indexOf('co-payments');
-  if(copayIdx>=0){
-    const window = T.slice(copayIdx, copayIdx+600); // small window after header
-    const m = window.match(/material[^\\d$]*\\$?\\s*([0-9][\\d,]*(?:\\.[0-9]{2})?)/i);
-    if(m) materials = money(centsOf(m[1]));
+  for(const l of lines){
+    const m = /\\bmaterial[s]?\\b[^\\d$]*\\$?\\s*(\\d[\\d,]*(?:\\.\\d{2})?)/i.exec(l);
+    if(m){ materials = money(centsOf(m[1])); break; }
   }
   if(!materials){
-    const m2 = T.match(/material[^\\d$]*\\$\\s*([0-9][\\d,]*(?:\\.[0-9]{2})?)/i);
-    if(m2) materials = money(centsOf(m2[1]));
+    const m = /co-?payments[\\s\\S]{0,200}?\\bmaterial[s]?\\b[^\\d$]*\\$?\\s*(\\d[\\d,]*(?:\\.\\d{2})?)/i.exec(text);
+    if(m) materials = money(centsOf(m[1]));
   }
   if(!materials) materials = money(0);
 
-  // Covered bucket: find the block under "LENS ENHANCEMENT DETAILS" then "Covered" until the first "Covered with Additional Copay"
-  const allIdx = T.indexOf('lens enhancement details');
-  let bucketCovered = '';
-  if(allIdx>=0){
-    const after = T.slice(allIdx);
-    const coveredMatch = after.match(/^\\s*covered\\s*$/m);
-    if(coveredMatch){
-      const coveredStart = coveredMatch.index || 0;
-      const afterCovered = after.slice(coveredStart);
-      const nextBreak = afterCovered.search(/^\\s*covered with additional copay\\s*$/m);
-      bucketCovered = nextBreak>=0 ? afterCovered.slice(0,nextBreak) : afterCovered;
-    }
-  }
-  // fallback: simple slice between first 'covered' and 'covered with additional copay'
-  if(!bucketCovered){
-    const idxCovered = T.indexOf('\\ncovered\\n');
-    const idxAddl = T.indexOf('covered with additional copay');
-    if(idxCovered>=0) bucketCovered = T.slice(idxCovered, idxAddl>idxCovered?idxAddl:undefined);
-  }
+  // Focus just the "LENS ENHANCEMENT DETAILS" area to avoid stray "covered" words
+  const lensBlock = sectionBetween(
+    T, /lens\\s+enhancement\\s+details[\\s\\S]*?\\n\\s*covered\\s*\\n/i, /\\bconfidential\\b/i
+  );
 
-  const isIn = (bucket, re) => re.test(bucket);
+  // Pull the list that is STRICTLY under the first "Covered" header and stops at the first "Covered with Additional Copay"
+  const coveredBlock = sectionBetween('\\n'+lensBlock, /\\n\\s*covered\\s*\\n/i, /\\n\\s*covered\\s+with\\s+additional\\s+copay\\s*\\n/i);
+  const coveredLines = coveredBlock.split('\\n').map(s=>s.trim()).filter(Boolean);
 
   const coveredKeys = new Set();
-  if(bucketCovered){
-    if(isIn(bucketCovered, /anti[-\\s]*reflect|antireflect|\\bar\\b/)) coveredKeys.add('ar');
-    if(isIn(bucketCovered, /photochrom|transitions/)) coveredKeys.add('photochromic');
-    if(isIn(bucketCovered, /polariz/)) coveredKeys.add('polarized');
-    if(isIn(bucketCovered, /polycarbonate/)) coveredKeys.add('polycarbonate');
-    if(isIn(bucketCovered, /high\\s*index/)) coveredKeys.add('high_index');
-    if(isIn(bucketCovered, /scratch\\s+resistant/)) coveredKeys.add('scratch');
-    if(isIn(bucketCovered, /\\buv\\b|\\buv\\s*protection/)) coveredKeys.add('uv');
-    if(isIn(bucketCovered, /standard\\s+progress/)) coveredKeys.add('std_prog');
-    if(isIn(bucketCovered, /premium\\s+progress/)) coveredKeys.add('prem_prog');
-  }
+  const hit = re => coveredLines.some(l => re.test(l));
 
-  const coveredPretty = Array.from(coveredKeys).map(k=>{
-    for(const [nice,key] of Object.entries({
-      'Anti-Reflective':'ar',
-      'Photochromic / Transitions':'photochromic',
-      'Polarized':'polarized',
-      'Polycarbonate':'polycarbonate',
-      'High Index':'high_index',
-      'Scratch Resistant':'scratch',
-      'UV Protection':'uv',
-      'Standard Progressives':'std_prog',
-      'Premium Progressives':'prem_prog'
-    })) if(key===k) return nice;
-    return k;
-  });
+  if(hit(/anti[-\\s]*reflect|antireflect|\\bar\\b/i)) coveredKeys.add('ar');
+  if(hit(/photochrom|transitions/i)) coveredKeys.add('photochromic');
+  if(hit(/polariz/i)) coveredKeys.add('polarized');
+  if(hit(/polycarbonate/i)) coveredKeys.add('polycarbonate');
+  if(hit(/high\\s*index/i)) coveredKeys.add('high_index');
+  if(hit(/scratch\\s+resistant/i)) coveredKeys.add('scratch');
+  if(hit(/\\buv\\b|uv\\s*protection/i)) coveredKeys.add('uv');
+  if(hit(/standard\\s+progress/i)) coveredKeys.add('std_prog');
+  if(hit(/premium\\s+progress/i)) coveredKeys.add('prem_prog');
+
+  const prettyMap = {
+    'ar':'Anti-Reflective',
+    'photochromic':'Photochromic / Transitions',
+    'polarized':'Polarized',
+    'polycarbonate':'Polycarbonate',
+    'high_index':'High Index',
+    'scratch':'Scratch Resistant',
+    'uv':'UV Protection',
+    'std_prog':'Standard Progressives',
+    'prem_prog':'Premium Progressives'
+  };
+  const coveredPretty = Array.from(coveredKeys).map(k => prettyMap[k] || k);
 
   return {
     materialsCopay: materials,
     coveredEnhancements: coveredPretty,
     coveredEnhancementsKeys: Array.from(coveredKeys),
-    rawText: text0
+    rawText: text
   };
 }
 </script>
 </body>
 </html>
 """
-with open("/mnt/data/payeredge_vsp_bundles_OCR_fix_sep.html","w") as f:
+path = "/mnt/data/payeredge_vsp_bundles_OCR_section_fix.html"
+with open(path, "w") as f:
     f.write(html)
-"/mnt/data/payeredge_vsp_bundles_OCR_fix_sep.html"
+path
